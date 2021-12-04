@@ -1,7 +1,11 @@
 use golem::*;
 use golem::{
-    blend::BlendChannel, blend::BlendEquation, blend::BlendFactor, blend::BlendFunction,
-    blend::BlendInput, blend::BlendMode, blend::BlendOperation, Dimension::*,
+    blend::{
+        BlendChannel, BlendEquation, BlendFactor, BlendFunction, BlendInput, BlendMode,
+        BlendOperation,
+    },
+    depth::{DepthTestFunction, DepthTestMode},
+    Dimension::*,
 };
 use wasm_bindgen::prelude::*;
 
@@ -49,29 +53,26 @@ impl GolemBackend {
         let mut tex = Texture::new(&golem_ctx)?;
         tex.set_image(Some(&[255; 128 * 128 * 4]), 128, 128, ColorFormat::RGBA);
         golem_ctx.set_blend_mode(Some(blend_mode));
+
+        let depth_test = DepthTestMode {
+            function: DepthTestFunction::Always,
+            range_near: 0.0,
+            range_far: 1.0,
+            depth_mask: false,
+        };
+        golem_ctx.set_depth_test_mode(Some(depth_test));
+
         let mut shader = ShaderProgram::new(
             &golem_ctx,
             ShaderDescription {
-                vertex_input: &[
-                    Attribute::new("vert_position", AttributeType::Vector(D2)),
-                    Attribute::new("vert_uv", AttributeType::Vector(D2)),
-                    Attribute::new("vert_color", AttributeType::Vector(D4)),
-                ],
-                fragment_input: &[
-                    Attribute::new("frag_color", AttributeType::Vector(D4)),
-                    Attribute::new("frag_uv", AttributeType::Vector(D2)),
-                ],
-                uniforms: &[
-                    Uniform::new("projection", UniformType::Matrix(D4)),
-                    Uniform::new("tex", UniformType::Sampler2D),
-                ],
+                vertex_input: &[Attribute::new("vert_position", AttributeType::Vector(D2))],
+                fragment_input: &[],
+                uniforms: &[Uniform::new("projection", UniformType::Matrix(D4))],
                 vertex_shader: r#" void main() {
                     gl_Position = projection * vec4(vert_position, 0, 1);
-                    frag_uv = vert_uv;
-                    frag_color = vert_color;
                 }"#,
                 fragment_shader: r#" void main() {
-                    gl_FragColor = frag_color * texture(tex, frag_uv.st);
+                    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
                 }"#,
             },
         )?;
@@ -89,33 +90,30 @@ impl GolemBackend {
 
     pub fn draw(&mut self) -> Result<(), GolemError> {
         #[rustfmt::skip]
-            let projection = UniformValue::Matrix4([
-            1., 0., 0., 0.,
-            0., 1., 0., 0.,
-            0., 0., 1., 0.,
-            0., 0., 0., 1.,
+        let projection = UniformValue::Matrix4([
+            1.8106601238250732, 0.0, 0.0, 0.0,
+            0.0, 2.4142136573791504, 0.0, 0.0,
+            0.0, 0.0, -1.0020020008087158, -1.0,
+            0.0, 0.0, 5.811811923980713, 6.0,
         ]);
         #[rustfmt::skip]
-            let vertices = &[
-            0.0, 1.0, -3.0,
-            -1.0, 0.9, -3.0,
-            1.0, 0.9, -3.0,
-            0.0, 0.0, -3.0,
-            -1.0, -0.9, -3.0,
-            1.0, -0.9, -3.0,
+        let vertices = &[
+            -1.0,  1.0,
+            1.0,  1.0,
+            -1.0, -1.0,
+            1.0, -1.0,
         ];
-        let indices = &[2, 1, 0, 3, 4, 5];
+        let indices = &[0, 1, 2, 3];
         self.vb.set_data(vertices);
         self.eb.set_data(indices);
         self.shader.prepare_draw(&self.vb, &self.eb)?;
         self.shader.set_uniform("projection", projection)?;
-        self.shader.set_uniform("tex", UniformValue::Int(1))?;
-        self.golem_ctx.set_viewport(0, 0, 10, 10);
-        self.golem_ctx.set_clear_color(1.0, 0.0, 0.0, 1.0);
+        // self.golem_ctx.set_viewport(0, 0, 10, 10);
+        self.golem_ctx.set_clear_color(0.0, 1.0, 1.0, 0.8);
         self.tex.set_active(std::num::NonZeroU32::new(1).unwrap());
         self.golem_ctx.clear();
         unsafe {
-            self.shader.draw_prepared(0..2, GeometryMode::Triangles);
+            self.shader.draw_prepared(0..4, GeometryMode::TriangleStrip);
         }
         Ok(())
     }

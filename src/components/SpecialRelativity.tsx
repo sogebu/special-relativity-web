@@ -22,10 +22,8 @@ export const SpecialRelativity = forwardRef<Handler, SpecialRelativityProps>((_,
           backend.free();
           return;
         }
-        const width = wrapper.current!.clientWidth;
-        const height = wrapper.current!.clientHeight;
-        canvas.current!.width = width * window.devicePixelRatio;
-        canvas.current!.height = height * window.devicePixelRatio;
+        canvas.current!.width = 800;
+        canvas.current!.height = 600;
         backend.render();
         requestAnimationFrame(loop);
       };
