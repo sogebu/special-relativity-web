@@ -3,10 +3,22 @@
 version = 3
 
 [[package]]
+name = "anyhow"
+version = "1.0.51"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b26702f315f53b6071259e15dd9d64528213b44d61de1ec926eca7715d62203"
+
+[[package]]
 name = "bumpalo"
 version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f1e260c3a9040a7c19a12468758f4c16f31a81a1fe087482be9570ec864bb6c"
+
+[[package]]
+name = "bytemuck"
+version = "1.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "439989e6b8c38d1b6570a384ef1e49c8848128f5a97f3914baef02920842712f"
 
 [[package]]
 name = "cfg-if"
@@ -110,6 +122,8 @@ dependencies = [
 name = "special-relativity-rs"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "bytemuck",
  "glow",
  "js-sys",
  "wasm-bindgen",
