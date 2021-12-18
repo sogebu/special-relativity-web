@@ -1,4 +1,29 @@
-[workspace]
-members = [
-    "crates/special-relativity-rs",
+[package]
+name = "special-relativity-rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
+js-sys = "0.3.55"
+
+[dependencies.web-sys]
+version = "0.3.55"
+features = [
+    'console',
+    'Document',
+    'Element',
+    'HtmlCanvasElement',
+    'WebGlBuffer',
+    'WebGlRenderingContext',
+    'WebGlProgram',
+    'WebGlShader',
+    'Window',
 ]
+
+[dependencies.golem]
+version = "0.1.7"
+features = ['web-sys']
