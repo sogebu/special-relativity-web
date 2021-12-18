@@ -1,16 +1,10 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use glow::{Context, HasContext};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
 
 fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
-}
-
-fn request_animation_frame(f: &Closure<dyn FnMut()>) {
-    window()
-        .request_animation_frame(f.as_ref().unchecked_ref())
-        .expect("should register `requestAnimationFrame` OK");
 }
 
 fn document() -> web_sys::Document {
@@ -19,50 +13,29 @@ fn document() -> web_sys::Document {
         .expect("should have a document on window")
 }
 
-fn body() -> web_sys::HtmlElement {
-    document().body().expect("document should have a body")
-}
-
-// This function is automatically invoked after the wasm module is instantiated.
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
-    // Here we want to call `requestAnimationFrame` in a loop, but only a fixed
-    // number of times. After it's done we want all our resources cleaned up. To
-    // achieve this we're using an `Rc`. The `Rc` will eventually store the
-    // closure we want to execute on each frame, but to start out it contains
-    // `None`.
-    //
-    // After the `Rc` is made we'll actually create the closure, and the closure
-    // will reference one of the `Rc` instances. The other `Rc` reference is
-    // used to store the closure, request the first frame, and then is dropped
-    // by this function.
-    //
-    // Inside the closure we've got a persistent `Rc` reference, which we use
-    // for all future iterations of the loop
-    let f = Rc::new(RefCell::new(None));
-    let g = f.clone();
+    let canvas: HtmlCanvasElement = document()
+        .get_element_by_id("canvas")
+        .expect("No canvas")
+        .dyn_into()
+        .expect("No canvas");
 
-    let mut i = 0;
-    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-        if i > 300 {
-            body().set_text_content(Some("All done!"));
+    canvas.set_width(600);
+    canvas.set_height(480);
 
-            // Drop our handle to this closure so that it will get cleaned
-            // up once we return.
-            let _ = f.borrow_mut().take();
-            return;
-        }
+    let webgl2: WebGl2RenderingContext = canvas
+        .get_context("webgl2")
+        .expect("This Platform is unsupported webgl2")
+        .expect("No webgl2")
+        .dyn_into()
+        .expect("No webgl2");
 
-        // Set the body's text content to how many times this
-        // requestAnimationFrame callback has fired.
-        i += 1;
-        let text = format!("requestAnimationFrame has been called {} times.", i);
-        body().set_text_content(Some(&text));
+    let gl = Context::from_webgl2_context(webgl2);
+    unsafe {
+        gl.clear_color(1.0, 0.0, 0.0, 1.0);
+        gl.clear(glow::COLOR_BUFFER_BIT);
+    }
 
-        // Schedule ourself for another requestAnimationFrame callback.
-        request_animation_frame(f.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut()>));
-
-    request_animation_frame(g.borrow().as_ref().unwrap());
     Ok(())
 }
