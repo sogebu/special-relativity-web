@@ -7,9 +7,11 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
-js-sys = "0.3.55"
+anyhow = "1.0"
+bytemuck = "1.7"
 glow = "0.11.1"
+js-sys = "0.3.55"
+wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
 
 [dependencies.web-sys]
 version = "0.3.55"
