@@ -1,3 +1,4 @@
+use color::RGBA;
 use glow::{Buffer, Context, HasContext};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -98,14 +99,13 @@ impl Backend {
             0.5,  -0.5, 0.0,
             0.5,  0.5,  0.0,
         ];
-        #[rustfmt::skip]
-            let colors: &[f32] = &[
-            1.0, 0.0, 0.0, 1.0,
-            0.0, 1.0, 0.0, 1.0,
-            0.0, 0.0, 1.0, 1.0,
-            0.0, 1.0, 0.0, 1.0,
-            0.0, 0.0, 0.0, 1.0,
-            0.0, 0.0, 1.0, 1.0,
+        let colors = &[
+            RGBA::red(),
+            RGBA::lime(),
+            RGBA::blue(),
+            RGBA::lime(),
+            RGBA::black(),
+            RGBA::blue(),
         ];
 
         unsafe {

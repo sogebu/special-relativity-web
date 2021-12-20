@@ -1,3 +1,9 @@
+[workspace]
+members = [
+    ".",
+    "color",
+]
+
 [package]
 name = "special-relativity-rs"
 version = "0.1.0"
@@ -12,6 +18,8 @@ bytemuck = "1.7"
 glow = "0.11.1"
 js-sys = "0.3.55"
 wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
+
+color = { path = "./color" }
 
 [dependencies.web-sys]
 version = "0.3.55"
