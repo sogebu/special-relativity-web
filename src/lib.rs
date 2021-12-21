@@ -1,8 +1,9 @@
+use std::{cell::RefCell, rc::Rc};
+
 use color::RGBA;
 use glow::{Buffer, Context, HasContext};
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
-use web_sys::{HtmlCanvasElement, WebGl2RenderingContext};
+use wasm_bindgen::{prelude::*, JsCast};
+use web_sys::{console, HtmlCanvasElement, WebGl2RenderingContext};
 
 fn window() -> web_sys::Window {
     web_sys::window().expect("no global `window` exists")
@@ -138,6 +139,12 @@ impl Backend {
     }
 }
 
+fn request_animation_frame(f: &Closure<dyn FnMut()>) {
+    window()
+        .request_animation_frame(f.as_ref().unchecked_ref())
+        .expect("should register `requestAnimationFrame` OK");
+}
+
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     let canvas: HtmlCanvasElement = document()
@@ -158,5 +165,14 @@ pub fn run() -> Result<(), JsValue> {
 
     let backend = Backend::new(webgl2).unwrap();
     backend.draw().unwrap();
+
+    let f = Rc::new(RefCell::new(None));
+    let g = f.clone();
+    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        backend.draw().unwrap();
+        console::log_1(&"log".into());
+        request_animation_frame(f.borrow().as_ref().unwrap());
+    }) as Box<dyn FnMut()>));
+    request_animation_frame(g.borrow().as_ref().unwrap());
     Ok(())
 }
