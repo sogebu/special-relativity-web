@@ -3,6 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use color::RGBA;
 use glow::{Buffer, Context, HasContext};
 use wasm_bindgen::{prelude::*, JsCast};
+use wasm_timer::Instant;
 use web_sys::{console, HtmlCanvasElement, WebGl2RenderingContext};
 
 fn window() -> web_sys::Window {
@@ -166,11 +167,12 @@ pub fn run() -> Result<(), JsValue> {
     let backend = Backend::new(webgl2).unwrap();
     backend.draw().unwrap();
 
+    let start = Instant::now();
     let f = Rc::new(RefCell::new(None));
     let g = f.clone();
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         backend.draw().unwrap();
-        console::log_1(&"log".into());
+        console::log_1(&format!("{}", start.elapsed().as_millis()).into());
         request_animation_frame(f.borrow().as_ref().unwrap());
     }) as Box<dyn FnMut()>));
     request_animation_frame(g.borrow().as_ref().unwrap());
