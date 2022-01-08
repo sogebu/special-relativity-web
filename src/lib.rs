@@ -1,24 +1,20 @@
-use std::{cell::RefCell, rc::Rc};
+use glow::{Buffer, Context, HasContext};
+use wasm_bindgen::prelude::*;
+use web_sys::{console, WebGl2RenderingContext};
 
 use color::RGBA;
-use glow::{Buffer, Context, HasContext};
 use rmath::Vector3;
-use wasm_bindgen::{prelude::*, JsCast};
-use wasm_timer::Instant;
-use web_sys::{console, HtmlCanvasElement, WebGl2RenderingContext};
-
-fn window() -> web_sys::Window {
-    web_sys::window().expect("no global `window` exists")
-}
-
-fn document() -> web_sys::Document {
-    window()
-        .document()
-        .expect("should have a document on window")
-}
 
 fn glow_error(s: String) -> anyhow::Error {
     anyhow::anyhow!("Glow Error: {}", s)
+}
+
+fn wasm_error(e: anyhow::Error) -> JsValue {
+    e.to_string().into()
+}
+
+fn log(s: String) {
+    console::log_1(&s.into());
 }
 
 pub struct Backend {
@@ -92,14 +88,14 @@ impl Backend {
         }
     }
 
-    pub fn draw(&self) -> anyhow::Result<()> {
+    pub fn draw(&self, d: Vector3) -> anyhow::Result<()> {
         let vertices: &[Vector3] = &[
-            Vector3::new(-0.5, 0.5, 0.0),
-            Vector3::new(-0.5, -0.5, 0.0),
-            Vector3::new(0.5, 0.5, 0.0),
-            Vector3::new(-0.5, -0.5, 0.0),
-            Vector3::new(0.5, -0.5, 0.0),
-            Vector3::new(0.5, 0.5, 0.0),
+            d + Vector3::new(-0.5, 0.5, 0.0),
+            d + Vector3::new(-0.5, -0.5, 0.0),
+            d + Vector3::new(0.5, 0.5, 0.0),
+            d + Vector3::new(-0.5, -0.5, 0.0),
+            d + Vector3::new(0.5, -0.5, 0.0),
+            d + Vector3::new(0.5, 0.5, 0.0),
         ];
         let colors = &[
             RGBA::red(),
@@ -140,41 +136,31 @@ impl Backend {
     }
 }
 
-fn request_animation_frame(f: &Closure<dyn FnMut()>) {
-    window()
-        .request_animation_frame(f.as_ref().unchecked_ref())
-        .expect("should register `requestAnimationFrame` OK");
+#[wasm_bindgen]
+pub struct App {
+    backend: Backend,
+    last_tick: Option<f64>,
 }
 
-#[wasm_bindgen(start)]
-pub fn run() -> Result<(), JsValue> {
-    let canvas: HtmlCanvasElement = document()
-        .get_element_by_id("canvas")
-        .expect("No canvas")
-        .dyn_into()
-        .expect("No canvas");
+#[wasm_bindgen]
+impl App {
+    #[wasm_bindgen(constructor)]
+    pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
+        Ok(App {
+            backend: Backend::new(context).map_err(wasm_error)?,
+            last_tick: None,
+        })
+    }
 
-    canvas.set_width(600);
-    canvas.set_height(600);
+    #[wasm_bindgen]
+    pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
+        let last_tick = self.last_tick.replace(timestamp);
+        let dt = timestamp - last_tick.unwrap_or(timestamp);
+        log(format!("{}", dt));
 
-    let webgl2: WebGl2RenderingContext = canvas
-        .get_context("webgl2")
-        .expect("This Platform is unsupported webgl2")
-        .expect("No webgl2")
-        .dyn_into()
-        .expect("No webgl2");
-
-    let backend = Backend::new(webgl2).unwrap();
-    backend.draw().unwrap();
-
-    let start = Instant::now();
-    let f = Rc::new(RefCell::new(None));
-    let g = f.clone();
-    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
-        backend.draw().unwrap();
-        console::log_1(&format!("{}", start.elapsed().as_millis()).into());
-        request_animation_frame(f.borrow().as_ref().unwrap());
-    }) as Box<dyn FnMut()>));
-    request_animation_frame(g.borrow().as_ref().unwrap());
-    Ok(())
+        let x = (timestamp / 10000.0) as f32;
+        self.backend
+            .draw(Vector3::new(x, x, 1.0))
+            .map_err(wasm_error)
+    }
 }
