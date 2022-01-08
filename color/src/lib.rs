@@ -68,6 +68,7 @@ impl RGBA {
 /// generate by gen_color.py
 #[rustfmt::skip]
 mod color_swatch {
+    #![allow(clippy::excessive_precision)]
     use super::{RGB, RGBA};
 
     macro_rules! impl_color {

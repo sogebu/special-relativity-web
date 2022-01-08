@@ -2,6 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use color::RGBA;
 use glow::{Buffer, Context, HasContext};
+use rmath::Vector3;
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_timer::Instant;
 use web_sys::{console, HtmlCanvasElement, WebGl2RenderingContext};
@@ -92,14 +93,13 @@ impl Backend {
     }
 
     pub fn draw(&self) -> anyhow::Result<()> {
-        #[rustfmt::skip]
-        let vertices: &[f32] = &[
-            -0.5, 0.5,  0.0,
-            -0.5, -0.5, 0.0,
-            0.5,  0.5,  0.0,
-            -0.5, -0.5, 0.0,
-            0.5,  -0.5, 0.0,
-            0.5,  0.5,  0.0,
+        let vertices: &[Vector3] = &[
+            Vector3::new(-0.5, 0.5, 0.0),
+            Vector3::new(-0.5, -0.5, 0.0),
+            Vector3::new(0.5, 0.5, 0.0),
+            Vector3::new(-0.5, -0.5, 0.0),
+            Vector3::new(0.5, -0.5, 0.0),
+            Vector3::new(0.5, 0.5, 0.0),
         ];
         let colors = &[
             RGBA::red(),

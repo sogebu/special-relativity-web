@@ -279,6 +279,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rmath"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -337,6 +344,7 @@ dependencies = [
  "color",
  "glow",
  "js-sys",
+ "rmath",
  "wasm-bindgen",
  "wasm-timer",
  "web-sys",
