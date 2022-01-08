@@ -18,7 +18,7 @@ const config: webpack.Configuration = {
     ],
   },
   plugins: [
-    new HtmlWebpackPlugin({template: "./public/index.html"}),
+    new HtmlWebpackPlugin({template: "./index.html"}),
   ],
   experiments: {
     asyncWebAssembly: true,
