@@ -14,6 +14,16 @@ context.viewport(0, 0, canvas.width, canvas.height);
 
 const app = new App(context);
 
+document.addEventListener('keydown', (event) => {
+  app.key_down(event.key.toLowerCase());
+});
+document.addEventListener('keyup', (event) => {
+  app.key_up(event.key.toLowerCase());
+});
+window.addEventListener('blur', (event) => {
+  app.window_blue();
+});
+
 function step(timestamp: DOMHighResTimeStamp): void {
   app.tick(timestamp);
   window.requestAnimationFrame(step);
