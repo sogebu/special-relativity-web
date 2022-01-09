@@ -1,11 +1,12 @@
-use std::collections::HashSet;
-
 use glow::{Buffer, Context, HasContext};
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext};
 
 use color::RGBA;
+use key::KeyManager;
 use rmath::Vector3;
+
+mod key;
 
 fn glow_error(s: String) -> anyhow::Error {
     anyhow::anyhow!("Glow Error: {}", s)
@@ -139,40 +140,6 @@ impl Backend {
     }
 }
 
-pub struct KeyManager {
-    pressed: HashSet<String>,
-}
-
-impl Default for KeyManager {
-    fn default() -> Self {
-        KeyManager::new()
-    }
-}
-
-impl KeyManager {
-    pub fn new() -> KeyManager {
-        KeyManager {
-            pressed: HashSet::new(),
-        }
-    }
-
-    pub fn down(&mut self, key: String) {
-        self.pressed.insert(key);
-    }
-
-    pub fn up(&mut self, key: String) {
-        self.pressed.remove(&key);
-    }
-
-    pub fn clear(&mut self) {
-        self.pressed = HashSet::new();
-    }
-
-    pub fn is_pressed(&self, key: &str) -> bool {
-        self.pressed.contains(key)
-    }
-}
-
 #[wasm_bindgen]
 pub struct App {
     backend: Backend,
@@ -212,26 +179,33 @@ impl App {
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
         let last_tick = self.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
-        let up = if self.key_manager.is_pressed("w") {
-            1.0
-        } else if self.key_manager.is_pressed("s") {
-            -1.0
-        } else {
-            0.0
-        };
-        let right = if self.key_manager.is_pressed("d") {
-            1.0
-        } else if self.key_manager.is_pressed("a") {
-            -1.0
-        } else {
-            0.0
-        };
+        self.base += Player.get_velocity(&self.key_manager) * dt as f32;
+        self.backend.draw(self.base).map_err(wasm_error)
+    }
+}
+
+pub struct Player;
+
+impl Player {
+    pub fn get_velocity(&self, key: &KeyManager) -> Vector3 {
+        let mut up = 0.0;
+        let mut right = 0.0;
+        if key.is_pressed("w") {
+            up += 1.0;
+        }
+        if key.is_pressed("s") {
+            up -= 1.0;
+        }
+        if key.is_pressed("d") {
+            right += 1.0;
+        }
+        if key.is_pressed("a") {
+            right -= 1.0;
+        }
         let mut d = Vector3::new(right, up, 0.0);
         if d.magnitude2() > 0.0 {
             d /= d.magnitude();
         };
-        d *= dt as f32;
-        self.base += d;
-        self.backend.draw(self.base).map_err(wasm_error)
+        d
     }
 }
