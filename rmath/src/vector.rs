@@ -1,5 +1,6 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
+use approx::{AbsDiffEq, RelativeEq};
 use bytemuck::{Pod, Zeroable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Zeroable, Pod)]
@@ -119,5 +120,36 @@ impl DivAssign<f32> for Vector3 {
         self.x /= scaler;
         self.y /= scaler;
         self.z /= scaler;
+    }
+}
+
+impl AbsDiffEq for Vector3 {
+    type Epsilon = f32;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f32::EPSILON
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.x.abs_diff_eq(&other.x, epsilon)
+            && self.y.abs_diff_eq(&other.y, epsilon)
+            && self.z.abs_diff_eq(&other.z, epsilon)
+    }
+}
+
+impl RelativeEq for Vector3 {
+    fn default_max_relative() -> Self::Epsilon {
+        f32::EPSILON
+    }
+
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        self.x.relative_eq(&other.x, epsilon, max_relative)
+            && self.y.relative_eq(&other.y, epsilon, max_relative)
+            && self.z.relative_eq(&other.z, epsilon, max_relative)
     }
 }
