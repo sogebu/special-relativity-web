@@ -16,6 +16,10 @@ impl Vector3 {
         Vector3 { x, y, z }
     }
 
+    pub const fn zero() -> Vector3 {
+        Vector3::new(0.0, 0.0, 0.0)
+    }
+
     /// Length of vector
     ///
     /// ```rust
@@ -64,6 +68,37 @@ impl Vector3 {
             self.z * rhs.x - rhs.z * self.x,
             self.x * rhs.y - rhs.x * self.y,
         )
+    }
+
+    /// Normalize vector
+    ///
+    /// panic: if magnitude of vector is zero
+    ///
+    /// ```rust
+    /// # use rmath::Vector3;
+    /// # use approx::relative_eq;
+    /// relative_eq!(Vector3::new(3.0, 4.0, 0.0).normalize(), Vector3::new(0.6, 0.8, 0.0));
+    /// ```
+    pub fn normalize(self) -> Vector3 {
+        self / self.magnitude()
+    }
+
+    /// Normalize vector, but if vector magnitude equals zero
+    /// then return zero vector.
+    ///
+    /// ```rust
+    /// # use rmath::Vector3;
+    /// # use approx::relative_eq;
+    /// relative_eq!(Vector3::new(3.0, 0.0, 4.0).normalize(), Vector3::new(0.6, 0.0, 0.8));
+    /// relative_eq!(Vector3::zero(), Vector3::zero());
+    /// ```
+    pub fn safe_normalize(self) -> Vector3 {
+        let magnitude = self.magnitude();
+        if magnitude <= f32::EPSILON {
+            Vector3::zero()
+        } else {
+            self / magnitude
+        }
     }
 }
 

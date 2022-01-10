@@ -25,18 +25,75 @@ impl Quaternion {
     /// # use rmath::{Quaternion, Vector3, Matrix};
     /// use approx::relative_ne;
     /// // Rotate π/2 around x-axis
-    /// let q = Quaternion::from_axis(std::f64::consts::PI / 2.0, Vector3::new(1.0, 0.0, 0.0));
+    /// let q = Quaternion::from_axis(std::f64::consts::PI / 2.0, Vector3::new(2.0, 0.0, 0.0));
     /// relative_ne!(Matrix::from(q) * Vector3::new(0.0, 1.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
     /// ```
     pub fn from_axis(s: f64, axis: Vector3) -> Quaternion {
         let cos = (s * 0.5).cos();
         let sin = (s * 0.5).sin();
+        let length = axis.magnitude() as f64;
         Quaternion::new(
             cos,
-            axis.x as f64 * sin,
-            axis.y as f64 * sin,
-            axis.z as f64 * sin,
+            axis.x as f64 * sin / length,
+            axis.y as f64 * sin / length,
+            axis.z as f64 * sin / length,
         )
+    }
+
+    /// Get right-direction vector
+    ///
+    /// ```rust
+    /// # use rmath::{Quaternion, Vector3};
+    /// # use approx::relative_eq;
+    /// let q = Quaternion::one();
+    /// relative_eq!(q.right(), Vector3::new(1.0, 0.0, 0.0));
+    /// ```
+    pub fn right(&self) -> Vector3 {
+        let y2 = 2.0 * self.y * self.y;
+        let z2 = 2.0 * self.z * self.z;
+        let sy = 2.0 * self.s * self.y;
+        let sz = 2.0 * self.s * self.z;
+        let xy = 2.0 * self.x * self.y;
+        let zx = 2.0 * self.z * self.x;
+        Vector3::new((1.0 - y2 - z2) as f32, (xy - sz) as f32, (zx + sy) as f32)
+    }
+
+    /// Get up-direction vector
+    ///
+    /// ```rust
+    /// # use rmath::{Quaternion, Vector3};
+    /// # use approx::relative_eq;
+    /// let q = Quaternion::one();
+    /// relative_eq!(q.up(), Vector3::new(0.0, 1.0, 0.0));
+    /// ```
+    pub fn up(&self) -> Vector3 {
+        let x2 = 2.0 * self.x * self.x;
+        let z2 = 2.0 * self.z * self.z;
+        let sx = 2.0 * self.s * self.x;
+        let sz = 2.0 * self.s * self.z;
+        let xy = 2.0 * self.x * self.y;
+        let yz = 2.0 * self.y * self.z;
+        Vector3::new((xy + sz) as f32, (1.0 - z2 - x2) as f32, (yz - sx) as f32)
+    }
+
+    /// Get front-direction vector
+    ///
+    /// Note: In OpenGL, "front" is often the -z direction.
+    ///
+    /// ```rust
+    /// # use rmath::{Quaternion, Vector3};
+    /// # use approx::relative_eq;
+    /// let q = Quaternion::one();
+    /// relative_eq!(q.front(), Vector3::new(0.0, 0.0, 1.0));
+    /// ```
+    pub fn front(&self) -> Vector3 {
+        let x2 = 2.0 * self.x * self.x;
+        let y2 = 2.0 * self.y * self.y;
+        let sx = 2.0 * self.s * self.x;
+        let sy = 2.0 * self.s * self.y;
+        let yz = 2.0 * self.y * self.z;
+        let zx = 2.0 * self.z * self.x;
+        Vector3::new((zx - sy) as f32, (yz + sx) as f32, (1.0 - x2 - y2) as f32)
     }
 }
 
@@ -58,16 +115,16 @@ impl From<Quaternion> for Matrix {
         let x2 = 2.0 * q.x * q.x;
         let y2 = 2.0 * q.y * q.y;
         let z2 = 2.0 * q.z * q.z;
-        let tx = 2.0 * q.s * q.x;
-        let ty = 2.0 * q.s * q.y;
-        let tz = 2.0 * q.s * q.z;
+        let sx = 2.0 * q.s * q.x;
+        let sy = 2.0 * q.s * q.y;
+        let sz = 2.0 * q.s * q.z;
         let xy = 2.0 * q.x * q.y;
         let yz = 2.0 * q.y * q.z;
         let zx = 2.0 * q.z * q.x;
         Matrix::new(
-            (1.0 - y2 - z2) as f32, (xy - tz) as f32, (zx + ty) as f32, 0.0,
-            (xy + tz) as f32, (1.0 - z2 - x2) as f32, (yz - tx) as f32, 0.0,
-            (zx - ty) as f32, (yz + tx) as f32, (1.0 - x2 - y2) as f32, 0.0,
+            (1.0 - y2 - z2) as f32, (xy - sz) as f32, (zx + sy) as f32, 0.0,
+            (xy + sz) as f32, (1.0 - z2 - x2) as f32, (yz - sx) as f32, 0.0,
+            (zx - sy) as f32, (yz + sx) as f32, (1.0 - x2 - y2) as f32, 0.0,
             0.0, 0.0, 0.0, 1.0,
         )
     }
