@@ -23,10 +23,10 @@ impl Quaternion {
     ///
     /// ```rust
     /// # use rmath::{Quaternion, Vector3, Matrix};
-    /// use approx::relative_ne;
+    /// use approx::assert_relative_eq;
     /// // Rotate π/2 around x-axis
     /// let q = Quaternion::from_axis(std::f64::consts::PI / 2.0, Vector3::new(2.0, 0.0, 0.0));
-    /// relative_ne!(Matrix::from(q) * Vector3::new(0.0, 1.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
+    /// assert_relative_eq!(Matrix::from(q) * Vector3::new(0.0, 1.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
     /// ```
     pub fn from_axis(s: f64, axis: Vector3) -> Quaternion {
         let (sin, cos) = (s * 0.5).sin_cos();
@@ -43,9 +43,9 @@ impl Quaternion {
     ///
     /// ```rust
     /// # use rmath::{Quaternion, Vector3};
-    /// # use approx::relative_eq;
+    /// # use approx::assert_relative_eq;
     /// let q = Quaternion::one();
-    /// relative_eq!(q.right(), Vector3::new(1.0, 0.0, 0.0));
+    /// assert_relative_eq!(q.right(), Vector3::new(1.0, 0.0, 0.0));
     /// ```
     pub fn right(&self) -> Vector3 {
         let y2 = 2.0 * self.y * self.y;
@@ -61,9 +61,9 @@ impl Quaternion {
     ///
     /// ```rust
     /// # use rmath::{Quaternion, Vector3};
-    /// # use approx::relative_eq;
+    /// # use approx::assert_relative_eq;
     /// let q = Quaternion::one();
-    /// relative_eq!(q.up(), Vector3::new(0.0, 1.0, 0.0));
+    /// assert_relative_eq!(q.up(), Vector3::new(0.0, 1.0, 0.0));
     /// ```
     pub fn up(&self) -> Vector3 {
         let x2 = 2.0 * self.x * self.x;
@@ -81,9 +81,9 @@ impl Quaternion {
     ///
     /// ```rust
     /// # use rmath::{Quaternion, Vector3};
-    /// # use approx::relative_eq;
+    /// # use approx::assert_relative_eq;
     /// let q = Quaternion::one();
-    /// relative_eq!(q.front(), Vector3::new(0.0, 0.0, 1.0));
+    /// assert_relative_eq!(q.front(), Vector3::new(0.0, 0.0, 1.0));
     /// ```
     pub fn front(&self) -> Vector3 {
         let x2 = 2.0 * self.x * self.x;

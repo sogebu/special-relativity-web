@@ -2,7 +2,7 @@ use std::ops::Mul;
 
 use bytemuck::{Pod, Zeroable};
 
-use crate::vector::Vector3;
+use crate::{angle::Rad, vector::Vector3};
 
 #[derive(Debug, Clone, Copy, PartialEq, Zeroable, Pod)]
 #[repr(C)]
@@ -66,8 +66,8 @@ impl Matrix {
     ///
     /// [`gluPerspective`]: https://www.opengl.org/sdk/docs/man2/xhtml/gluPerspective.xml
     #[rustfmt::skip]
-    pub fn perspective(fovy: f64, aspect: f64, near: f64, far: f64) -> Matrix {
-        let f = 1.0 / (fovy / 2.0).tan();
+    pub fn perspective<R: Into<Rad>>(fovy: R, aspect: f64, near: f64, far: f64) -> Matrix {
+        let f = 1.0 / (fovy.into().0 / 2.0).tan();
         Matrix::new(
             (f / aspect) as f32, 0.0, 0.0, 0.0,
             0.0, f as f32, 0.0, 0.0,
@@ -80,9 +80,9 @@ impl Matrix {
     ///
     /// ```rust
     /// # use rmath::{Matrix, Vector3};
-    /// # use approx::relative_eq;
+    /// # use approx::assert_relative_eq;
     /// let m = Matrix::translation(Vector3::new(1.0, 2.0, 3.0));
-    /// relative_eq!(m * Vector3::new(4.0, 5.0, 6.0), Vector3::new(5.0, 7.0, 9.0));
+    /// assert_relative_eq!(m * Vector3::new(4.0, 5.0, 6.0), Vector3::new(5.0, 7.0, 9.0));
     /// ```
     #[rustfmt::skip]
     pub fn translation(v: Vector3) -> Matrix {

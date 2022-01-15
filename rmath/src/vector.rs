@@ -76,8 +76,8 @@ impl Vector3 {
     ///
     /// ```rust
     /// # use rmath::Vector3;
-    /// # use approx::relative_eq;
-    /// relative_eq!(Vector3::new(3.0, 4.0, 0.0).normalize(), Vector3::new(0.6, 0.8, 0.0));
+    /// # use approx::assert_relative_eq;
+    /// assert_relative_eq!(Vector3::new(3.0, 4.0, 0.0).normalize(), Vector3::new(0.6, 0.8, 0.0));
     /// ```
     pub fn normalize(self) -> Vector3 {
         self / self.magnitude()
@@ -88,9 +88,9 @@ impl Vector3 {
     ///
     /// ```rust
     /// # use rmath::Vector3;
-    /// # use approx::relative_eq;
-    /// relative_eq!(Vector3::new(3.0, 0.0, 4.0).normalize(), Vector3::new(0.6, 0.0, 0.8));
-    /// relative_eq!(Vector3::zero(), Vector3::zero());
+    /// # use approx::assert_relative_eq;
+    /// assert_relative_eq!(Vector3::new(3.0, 0.0, 4.0).normalize(), Vector3::new(0.6, 0.0, 0.8));
+    /// assert_relative_eq!(Vector3::zero(), Vector3::zero());
     /// ```
     pub fn safe_normalize(self) -> Vector3 {
         let magnitude = self.magnitude();
