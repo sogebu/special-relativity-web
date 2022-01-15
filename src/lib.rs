@@ -6,7 +6,7 @@ use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
 use color::RGBA;
 use key::KeyManager;
 use memoffset::offset_of;
-use rmath::{Matrix, Quaternion, Vector3};
+use rmath::{Deg, Matrix, Quaternion, Vector3};
 
 mod key;
 
@@ -133,29 +133,30 @@ pub struct App {
 impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
+        let z = 0.0;
         let vertices = [
             Vertex {
-                position: Vector3::new(-0.5, 0.5, 0.0),
+                position: Vector3::new(-0.5, 0.5, z),
                 color: RGBA::red(),
             },
             Vertex {
-                position: Vector3::new(-0.5, -0.5, 0.0),
+                position: Vector3::new(-0.5, -0.5, z),
                 color: RGBA::lime(),
             },
             Vertex {
-                position: Vector3::new(0.5, 0.5, 0.0),
+                position: Vector3::new(0.5, 0.5, z),
                 color: RGBA::blue(),
             },
             Vertex {
-                position: Vector3::new(-0.5, -0.5, 0.0),
+                position: Vector3::new(-0.5, -0.5, z),
                 color: RGBA::lime(),
             },
             Vertex {
-                position: Vector3::new(0.5, -0.5, 0.0),
+                position: Vector3::new(0.5, -0.5, z),
                 color: RGBA::black(),
             },
             Vertex {
-                position: Vector3::new(0.5, 0.5, 0.0),
+                position: Vector3::new(0.5, 0.5, z),
                 color: RGBA::blue(),
             },
         ];
@@ -187,9 +188,19 @@ impl App {
         let last_tick = self.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
         self.player.tick(dt, &self.key_manager);
-        self.backend
-            .draw(self.player.view_matrix())
-            .map_err(wasm_error)
+
+        let (width, height) = unsafe {
+            let mut buf = [0; 4];
+            self.backend
+                .gl
+                .get_parameter_i32_slice(glow::VIEWPORT, &mut buf);
+            (buf[2] - buf[0], buf[3] - buf[1])
+        };
+        let projection_matrix =
+            Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10.0);
+        let view_matrix = self.player.view_matrix();
+        let mat = projection_matrix * view_matrix;
+        self.backend.draw(mat).map_err(wasm_error)
     }
 }
 
@@ -201,7 +212,7 @@ pub struct Player {
 impl Player {
     pub fn new() -> Player {
         Player {
-            pos: Vector3::new(0.0, 0.0, 0.0),
+            pos: Vector3::new(0.0, 0.0, -1.0),
             quaternion: Quaternion::one(),
         }
     }
@@ -217,21 +228,25 @@ impl Player {
     }
 
     pub fn get_velocity(&self, dt: f64, key: &KeyManager) -> Vector3 {
-        let mut up = 0.0;
-        let mut right = 0.0;
+        let mut d = Vector3::zero();
         if key.is_pressed("w") {
-            up += 1.0;
+            d.y += 1.0;
         }
         if key.is_pressed("s") {
-            up -= 1.0;
+            d.y -= 1.0;
         }
         if key.is_pressed("d") {
-            right += 1.0;
+            d.x += 1.0;
         }
         if key.is_pressed("a") {
-            right -= 1.0;
+            d.x -= 1.0
         }
-        let d = Vector3::new(right, up, 0.0);
+        if key.is_pressed("z") {
+            d.z += 1.0;
+        }
+        if key.is_pressed("x") {
+            d.z -= 1.0;
+        }
         d.safe_normalize() * dt as f32
     }
 
