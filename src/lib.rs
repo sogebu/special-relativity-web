@@ -32,11 +32,16 @@ pub struct Vertex {
 }
 
 impl Backend {
-    pub fn new(webgl2: WebGl2RenderingContext, vertices: &[Vertex]) -> Result<Self, String> {
+    pub fn new(
+        webgl2: WebGl2RenderingContext,
+        vertices: &[Vertex],
+        indices: &[[u32; 3]],
+    ) -> Result<Self, String> {
         let gl = Context::from_webgl2_context(webgl2);
         unsafe {
+            gl.enable(glow::DEPTH_TEST);
             gl.clear_color(0.9, 0.9, 0.9, 1.0);
-            gl.clear(glow::COLOR_BUFFER_BIT);
+            gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
             let program = gl.create_program()?;
             let fragment_shader_source = include_str!("fragment_shader.glsl");
@@ -69,7 +74,14 @@ impl Backend {
             gl.buffer_data_u8_slice(
                 glow::ARRAY_BUFFER,
                 bytemuck::cast_slice(vertices),
-                glow::STREAM_READ,
+                glow::STATIC_READ,
+            );
+            let ebo = gl.create_buffer()?;
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+            gl.buffer_data_u8_slice(
+                glow::ELEMENT_ARRAY_BUFFER,
+                bytemuck::cast_slice(indices),
+                glow::STATIC_READ,
             );
 
             let position_location = gl
@@ -113,8 +125,10 @@ impl Backend {
         unsafe {
             self.gl
                 .uniform_matrix_4_f32_slice(Some(&self.matrix_location), false, &mat.array());
-            self.gl.clear(glow::COLOR_BUFFER_BIT);
-            self.gl.draw_arrays(glow::TRIANGLES, 0, 6);
+            self.gl
+                .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
+            self.gl
+                .draw_elements(glow::TRIANGLES, 3 * 12, glow::UNSIGNED_INT, 0);
             self.gl.flush();
         }
         Ok(())
@@ -133,35 +147,56 @@ pub struct App {
 impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
-        let z = 0.0;
         let vertices = [
             Vertex {
-                position: Vector3::new(-0.5, 0.5, z),
+                position: Vector3::new(0.5, 0.5, 0.5),
                 color: RGBA::red(),
             },
             Vertex {
-                position: Vector3::new(-0.5, -0.5, z),
+                position: Vector3::new(-0.5, 0.5, 0.5),
                 color: RGBA::lime(),
             },
             Vertex {
-                position: Vector3::new(0.5, 0.5, z),
+                position: Vector3::new(-0.5, -0.5, 0.5),
                 color: RGBA::blue(),
             },
             Vertex {
-                position: Vector3::new(-0.5, -0.5, z),
+                position: Vector3::new(0.5, -0.5, 0.5),
                 color: RGBA::lime(),
             },
             Vertex {
-                position: Vector3::new(0.5, -0.5, z),
-                color: RGBA::black(),
+                position: Vector3::new(0.5, 0.5, -0.5),
+                color: RGBA::red(),
             },
             Vertex {
-                position: Vector3::new(0.5, 0.5, z),
+                position: Vector3::new(-0.5, 0.5, -0.5),
+                color: RGBA::lime(),
+            },
+            Vertex {
+                position: Vector3::new(-0.5, -0.5, -0.5),
                 color: RGBA::blue(),
+            },
+            Vertex {
+                position: Vector3::new(0.5, -0.5, -0.5),
+                color: RGBA::lime(),
             },
         ];
+        let indices = [
+            [0, 1, 2],
+            [0, 2, 3],
+            [0, 5, 1],
+            [0, 4, 5],
+            [0, 7, 4],
+            [0, 3, 7],
+            [6, 1, 5],
+            [6, 2, 1],
+            [6, 5, 4],
+            [6, 4, 7],
+            [6, 7, 3],
+            [6, 3, 2],
+        ];
         Ok(App {
-            backend: Backend::new(context, &vertices).map_err(wasm_error)?,
+            backend: Backend::new(context, &vertices, &indices).map_err(wasm_error)?,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
