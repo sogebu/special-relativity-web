@@ -139,7 +139,7 @@ pub struct App {
     backend: Backend,
     key_manager: KeyManager,
     last_tick: Option<f64>,
-    base: Vector3,
+    player: Player,
 }
 
 #[wasm_bindgen]
@@ -150,7 +150,7 @@ impl App {
             backend: Backend::new(context).map_err(wasm_error)?,
             key_manager: KeyManager::new(),
             last_tick: None,
-            base: Vector3::new(0.0, 0.0, 0.0),
+            player: Player::new(),
         })
     }
 
@@ -173,16 +173,32 @@ impl App {
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
         let last_tick = self.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
-        self.base += Player.get_velocity(&self.key_manager) * dt as f32;
+        self.player.tick(dt, &self.key_manager);
         self.backend
-            .draw(Matrix::translation(self.base))
+            .draw(self.player.view_matrix())
             .map_err(wasm_error)
     }
 }
 
-pub struct Player;
+pub struct Player {
+    pos: Vector3,
+}
 
 impl Player {
+    pub fn new() -> Player {
+        Player {
+            pos: Vector3::new(0.0, 0.0, 0.0),
+        }
+    }
+
+    pub fn view_matrix(&self) -> Matrix {
+        Matrix::translation(self.pos)
+    }
+
+    pub fn tick(&mut self, dt: f64, key: &KeyManager) {
+        self.pos += self.get_velocity(key) * dt as f32;
+    }
+
     pub fn get_velocity(&self, key: &KeyManager) -> Vector3 {
         let mut up = 0.0;
         let mut right = 0.0;
@@ -198,10 +214,7 @@ impl Player {
         if key.is_pressed("a") {
             right -= 1.0;
         }
-        let mut d = Vector3::new(right, up, 0.0);
-        if d.magnitude2() > 0.0 {
-            d /= d.magnitude();
-        };
-        d
+        let d = Vector3::new(right, up, 0.0);
+        d.safe_normalize()
     }
 }
