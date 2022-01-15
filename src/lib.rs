@@ -1,10 +1,10 @@
 use glow::{Buffer, Context, HasContext};
 use wasm_bindgen::prelude::*;
-use web_sys::{console, WebGl2RenderingContext};
+use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
 
 use color::RGBA;
 use key::KeyManager;
-use rmath::Vector3;
+use rmath::{Matrix, Vector3};
 
 mod key;
 
@@ -21,6 +21,7 @@ pub struct Backend {
     gl: Context,
     position_location: u32,
     color_location: u32,
+    matrix_location: WebGlUniformLocation,
     vbo: Buffer,
     cbo: Buffer,
 }
@@ -64,6 +65,10 @@ impl Backend {
             let color_location = gl
                 .get_attrib_location(program, "vert_color")
                 .ok_or_else(|| "No vert_color attribute".to_string())?;
+            let matrix_location = gl
+                .get_uniform_location(program, "matrix")
+                .ok_or_else(|| "No matrix attribute".to_string())?;
+
             let vbo = gl.create_buffer()?;
             let cbo = gl.create_buffer()?;
 
@@ -71,20 +76,21 @@ impl Backend {
                 gl,
                 position_location,
                 color_location,
+                matrix_location,
                 vbo,
                 cbo,
             })
         }
     }
 
-    pub fn draw(&self, d: Vector3) -> Result<(), String> {
+    pub fn draw(&self, mat: Matrix) -> Result<(), String> {
         let vertices: &[Vector3] = &[
-            d + Vector3::new(-0.5, 0.5, 0.0),
-            d + Vector3::new(-0.5, -0.5, 0.0),
-            d + Vector3::new(0.5, 0.5, 0.0),
-            d + Vector3::new(-0.5, -0.5, 0.0),
-            d + Vector3::new(0.5, -0.5, 0.0),
-            d + Vector3::new(0.5, 0.5, 0.0),
+            Vector3::new(-0.5, 0.5, 0.0),
+            Vector3::new(-0.5, -0.5, 0.0),
+            Vector3::new(0.5, 0.5, 0.0),
+            Vector3::new(-0.5, -0.5, 0.0),
+            Vector3::new(0.5, -0.5, 0.0),
+            Vector3::new(0.5, 0.5, 0.0),
         ];
         let colors = &[
             RGBA::red(),
@@ -116,6 +122,9 @@ impl Backend {
             self.gl.enable_vertex_attrib_array(self.color_location);
             self.gl
                 .vertex_attrib_pointer_f32(self.color_location, 4, glow::FLOAT, false, 0, 0);
+
+            self.gl
+                .uniform_matrix_4_f32_slice(Some(&self.matrix_location), false, &mat.array());
 
             self.gl.clear(glow::COLOR_BUFFER_BIT);
             self.gl.draw_arrays(glow::TRIANGLES, 0, 6);
@@ -165,7 +174,9 @@ impl App {
         let last_tick = self.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
         self.base += Player.get_velocity(&self.key_manager) * dt as f32;
-        self.backend.draw(self.base).map_err(wasm_error)
+        self.backend
+            .draw(Matrix::translation(self.base))
+            .map_err(wasm_error)
     }
 }
 

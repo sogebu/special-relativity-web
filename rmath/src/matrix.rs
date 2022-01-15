@@ -29,12 +29,67 @@ impl Matrix {
         }
     }
 
+    pub const fn array(&self) -> [f32; 16] {
+        [
+            self.cols[0][0],
+            self.cols[0][1],
+            self.cols[0][2],
+            self.cols[0][3],
+            self.cols[1][0],
+            self.cols[1][1],
+            self.cols[1][2],
+            self.cols[1][3],
+            self.cols[2][0],
+            self.cols[2][1],
+            self.cols[2][2],
+            self.cols[2][3],
+            self.cols[3][0],
+            self.cols[3][1],
+            self.cols[3][2],
+            self.cols[3][3],
+        ]
+    }
+
     #[rustfmt::skip]
     pub const fn ident() -> Matrix {
         Matrix::new(
             1.0, 0.0, 0.0, 0.0,
             0.0, 1.0, 0.0, 0.0,
             0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+        )
+    }
+
+    /// Create a perspective projection matrix.
+    ///
+    /// This is the equivalent to the [`gluPerspective`] function.
+    ///
+    /// [`gluPerspective`]: https://www.opengl.org/sdk/docs/man2/xhtml/gluPerspective.xml
+    #[rustfmt::skip]
+    pub fn perspective(fovy: f64, aspect: f64, near: f64, far: f64) -> Matrix {
+        let f = 1.0 / (fovy / 2.0).tan();
+        Matrix::new(
+            (f / aspect) as f32, 0.0, 0.0, 0.0,
+            0.0, f as f32, 0.0, 0.0,
+            0.0, 0.0, ((far + near) / (near - far)) as f32, -1.0,
+            0.0, 0.0, ((2.0 * far * near) / (near - far)) as f32, 0.0,
+        )
+    }
+
+    /// Create a translation matrix
+    ///
+    /// ```rust
+    /// # use rmath::{Matrix, Vector3};
+    /// # use approx::relative_eq;
+    /// let m = Matrix::translation(Vector3::new(1.0, 2.0, 3.0));
+    /// relative_eq!(m * Vector3::new(4.0, 5.0, 6.0), Vector3::new(5.0, 7.0, 9.0));
+    /// ```
+    #[rustfmt::skip]
+    pub fn translation(v: Vector3) -> Matrix {
+        Matrix::new(
+            1.0, 0.0, 0.0, v.x,
+            0.0, 1.0, 0.0, v.y,
+            0.0, 0.0, 1.0, v.z,
             0.0, 0.0, 0.0, 1.0,
         )
     }

@@ -29,8 +29,7 @@ impl Quaternion {
     /// relative_ne!(Matrix::from(q) * Vector3::new(0.0, 1.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
     /// ```
     pub fn from_axis(s: f64, axis: Vector3) -> Quaternion {
-        let cos = (s * 0.5).cos();
-        let sin = (s * 0.5).sin();
+        let (sin, cos) = (s * 0.5).sin_cos();
         let length = axis.magnitude() as f64;
         Quaternion::new(
             cos,
@@ -110,7 +109,6 @@ impl Mul for Quaternion {
 
 impl From<Quaternion> for Matrix {
     /// Convert the quaternion to rotate matrix
-    #[rustfmt::skip]
     fn from(q: Quaternion) -> Self {
         let x2 = 2.0 * q.x * q.x;
         let y2 = 2.0 * q.y * q.y;
@@ -122,10 +120,22 @@ impl From<Quaternion> for Matrix {
         let yz = 2.0 * q.y * q.z;
         let zx = 2.0 * q.z * q.x;
         Matrix::new(
-            (1.0 - y2 - z2) as f32, (xy - sz) as f32, (zx + sy) as f32, 0.0,
-            (xy + sz) as f32, (1.0 - z2 - x2) as f32, (yz - sx) as f32, 0.0,
-            (zx - sy) as f32, (yz + sx) as f32, (1.0 - x2 - y2) as f32, 0.0,
-            0.0, 0.0, 0.0, 1.0,
+            (1.0 - y2 - z2) as f32,
+            (xy - sz) as f32,
+            (zx + sy) as f32,
+            0.0,
+            (xy + sz) as f32,
+            (1.0 - z2 - x2) as f32,
+            (yz - sx) as f32,
+            0.0,
+            (zx - sy) as f32,
+            (yz + sx) as f32,
+            (1.0 - x2 - y2) as f32,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         )
     }
 }
