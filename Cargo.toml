@@ -18,6 +18,7 @@ anyhow = "1.0"
 bytemuck = "1.7"
 glow = "0.11.1"
 js-sys = "0.3.55"
+memoffset = "0.6.5"
 wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
 wasm-timer = "0.2.5"
 
