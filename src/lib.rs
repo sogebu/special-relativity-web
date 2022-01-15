@@ -8,12 +8,8 @@ use rmath::Vector3;
 
 mod key;
 
-fn glow_error(s: String) -> anyhow::Error {
-    anyhow::anyhow!("Glow Error: {}", s)
-}
-
-fn wasm_error(e: anyhow::Error) -> JsValue {
-    e.to_string().into()
+fn wasm_error(s: String) -> JsValue {
+    s.into()
 }
 
 #[allow(dead_code)]
@@ -30,42 +26,31 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub fn new(webgl2: WebGl2RenderingContext) -> anyhow::Result<Self> {
+    pub fn new(webgl2: WebGl2RenderingContext) -> Result<Self, String> {
         let gl = Context::from_webgl2_context(webgl2);
         unsafe {
             gl.clear_color(0.9, 0.9, 0.9, 1.0);
             gl.clear(glow::COLOR_BUFFER_BIT);
 
-            let program = gl.create_program().map_err(glow_error)?;
+            let program = gl.create_program()?;
             let fragment_shader_source = include_str!("fragment_shader.glsl");
-            let vertex_shader = gl.create_shader(glow::VERTEX_SHADER).map_err(glow_error)?;
+            let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
             gl.shader_source(vertex_shader, include_str!("vertex_shader.glsl"));
             gl.compile_shader(vertex_shader);
             if !gl.get_shader_compile_status(vertex_shader) {
-                return Err(anyhow::anyhow!(
-                    "Glow Error: {}",
-                    gl.get_shader_info_log(vertex_shader)
-                ));
+                return Err(gl.get_shader_info_log(vertex_shader));
             }
             gl.attach_shader(program, vertex_shader);
-            let fragment_shader = gl
-                .create_shader(glow::FRAGMENT_SHADER)
-                .map_err(glow_error)?;
+            let fragment_shader = gl.create_shader(glow::FRAGMENT_SHADER)?;
             gl.shader_source(fragment_shader, fragment_shader_source);
             gl.compile_shader(fragment_shader);
             if !gl.get_shader_compile_status(fragment_shader) {
-                return Err(anyhow::anyhow!(
-                    "Glow Error: {}",
-                    gl.get_shader_info_log(fragment_shader)
-                ));
+                return Err(gl.get_shader_info_log(fragment_shader));
             }
             gl.attach_shader(program, fragment_shader);
             gl.link_program(program);
             if !gl.get_program_link_status(program) {
-                return Err(anyhow::anyhow!(
-                    "Glow Error: {}",
-                    gl.get_program_info_log(program)
-                ));
+                return Err(gl.get_program_info_log(program));
             }
             gl.detach_shader(program, vertex_shader);
             gl.delete_shader(vertex_shader);
@@ -75,12 +60,12 @@ impl Backend {
 
             let position_location = gl
                 .get_attrib_location(program, "vert_position")
-                .ok_or_else(|| anyhow::anyhow!("No vert_position attribute"))?;
+                .ok_or_else(|| "No vert_position attribute".to_string())?;
             let color_location = gl
                 .get_attrib_location(program, "vert_color")
-                .ok_or_else(|| anyhow::anyhow!("No vert_color attribute"))?;
-            let vbo = gl.create_buffer().map_err(glow_error)?;
-            let cbo = gl.create_buffer().map_err(glow_error)?;
+                .ok_or_else(|| "No vert_color attribute".to_string())?;
+            let vbo = gl.create_buffer()?;
+            let cbo = gl.create_buffer()?;
 
             Ok(Self {
                 gl,
@@ -92,7 +77,7 @@ impl Backend {
         }
     }
 
-    pub fn draw(&self, d: Vector3) -> anyhow::Result<()> {
+    pub fn draw(&self, d: Vector3) -> Result<(), String> {
         let vertices: &[Vector3] = &[
             d + Vector3::new(-0.5, 0.5, 0.0),
             d + Vector3::new(-0.5, -0.5, 0.0),
