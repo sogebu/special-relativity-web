@@ -6,7 +6,7 @@ use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
 use color::RGBA;
 use key::KeyManager;
 use memoffset::offset_of;
-use rmath::{Matrix, Vector3};
+use rmath::{Matrix, Quaternion, Vector3};
 
 mod key;
 
@@ -195,24 +195,28 @@ impl App {
 
 pub struct Player {
     pos: Vector3,
+    quaternion: Quaternion,
 }
 
 impl Player {
     pub fn new() -> Player {
         Player {
             pos: Vector3::new(0.0, 0.0, 0.0),
+            quaternion: Quaternion::one(),
         }
     }
 
     pub fn view_matrix(&self) -> Matrix {
-        Matrix::translation(self.pos)
+        let rot = Matrix::from(self.quaternion);
+        Matrix::translation(self.pos) * rot
     }
 
     pub fn tick(&mut self, dt: f64, key: &KeyManager) {
-        self.pos += self.get_velocity(key) * dt as f32;
+        self.pos += self.get_velocity(dt, key);
+        self.quaternion = self.get_rotation_velocity(dt, key) * self.quaternion;
     }
 
-    pub fn get_velocity(&self, key: &KeyManager) -> Vector3 {
+    pub fn get_velocity(&self, dt: f64, key: &KeyManager) -> Vector3 {
         let mut up = 0.0;
         let mut right = 0.0;
         if key.is_pressed("w") {
@@ -228,6 +232,39 @@ impl Player {
             right -= 1.0;
         }
         let d = Vector3::new(right, up, 0.0);
-        d.safe_normalize()
+        d.safe_normalize() * dt as f32
+    }
+
+    pub fn get_rotation_velocity(&self, dt: f64, key: &KeyManager) -> Quaternion {
+        let mut right = 0;
+        if key.is_pressed("arrowright") {
+            right += 1;
+        }
+        if key.is_pressed("arrowleft") {
+            right -= 1;
+        }
+        let mut up = 0;
+        if key.is_pressed("arrowup") {
+            up += 1;
+        }
+        if key.is_pressed("arrowdown") {
+            up -= 1;
+        }
+        let mut role = 0;
+        if key.is_pressed("e") {
+            role += 1;
+        }
+        if key.is_pressed("q") {
+            role -= 1;
+        }
+        if (right, up, role) == (0, 0, 0) {
+            Quaternion::one()
+        } else {
+            let axis = self.quaternion.up() * right as f32
+                - self.quaternion.right() * up as f32
+                - self.quaternion.front() * role as f32;
+            log(format!("{:?}", axis));
+            Quaternion::from_axis(dt, axis)
+        }
     }
 }
