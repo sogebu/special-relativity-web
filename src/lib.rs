@@ -252,6 +252,12 @@ pub struct Player {
     quaternion: Quaternion,
 }
 
+impl Default for Player {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Player {
     pub fn new() -> Player {
         Player {
@@ -321,9 +327,8 @@ impl Player {
         if (right, up, role) == (0, 0, 0) {
             Quaternion::one()
         } else {
-            let axis = self.quaternion.up() * right as f32
-                - self.quaternion.right() * up as f32
-                - self.quaternion.front() * role as f32;
+            let axis = self.quaternion.up() * right as f32 - self.quaternion.right() * up as f32
+                + self.quaternion.front() * role as f32;
             Quaternion::from_axis(Rad(dt), axis)
         }
     }
