@@ -22,6 +22,7 @@ fn log(s: String) {
 pub struct Backend {
     gl: Context,
     matrix_location: WebGlUniformLocation,
+    triangle_count: usize,
 }
 
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
@@ -117,6 +118,7 @@ impl Backend {
             Ok(Self {
                 gl,
                 matrix_location,
+                triangle_count: indices.len(),
             })
         }
     }
@@ -127,8 +129,12 @@ impl Backend {
                 .uniform_matrix_4_f32_slice(Some(&self.matrix_location), false, &mat.array());
             self.gl
                 .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
-            self.gl
-                .draw_elements(glow::TRIANGLES, 3 * 12, glow::UNSIGNED_INT, 0);
+            self.gl.draw_elements(
+                glow::TRIANGLES,
+                (self.triangle_count * 3) as i32,
+                glow::UNSIGNED_INT,
+                0,
+            );
             self.gl.flush();
         }
         Ok(())
@@ -147,41 +153,17 @@ pub struct App {
 impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
-        let vertices = [
-            Vertex {
-                position: Vector3::new(0.5, 0.5, 0.5),
-                color: RGBA::red(),
-            },
-            Vertex {
-                position: Vector3::new(-0.5, 0.5, 0.5),
-                color: RGBA::lime(),
-            },
-            Vertex {
-                position: Vector3::new(-0.5, -0.5, 0.5),
-                color: RGBA::blue(),
-            },
-            Vertex {
-                position: Vector3::new(0.5, -0.5, 0.5),
-                color: RGBA::lime(),
-            },
-            Vertex {
-                position: Vector3::new(0.5, 0.5, -0.5),
-                color: RGBA::red(),
-            },
-            Vertex {
-                position: Vector3::new(-0.5, 0.5, -0.5),
-                color: RGBA::lime(),
-            },
-            Vertex {
-                position: Vector3::new(-0.5, -0.5, -0.5),
-                color: RGBA::blue(),
-            },
-            Vertex {
-                position: Vector3::new(0.5, -0.5, -0.5),
-                color: RGBA::lime(),
-            },
+        let qube_vertices = [
+            Vector3::new(0.5, 0.5, 0.5),
+            Vector3::new(-0.5, 0.5, 0.5),
+            Vector3::new(-0.5, -0.5, 0.5),
+            Vector3::new(0.5, -0.5, 0.5),
+            Vector3::new(0.5, 0.5, -0.5),
+            Vector3::new(-0.5, 0.5, -0.5),
+            Vector3::new(-0.5, -0.5, -0.5),
+            Vector3::new(0.5, -0.5, -0.5),
         ];
-        let indices = [
+        let qube_indices = [
             [0, 1, 2],
             [0, 2, 3],
             [0, 5, 1],
@@ -195,6 +177,32 @@ impl App {
             [6, 7, 3],
             [6, 3, 2],
         ];
+        let mut vertices = Vec::new();
+        let mut indices = Vec::new();
+        let num = 16;
+        for x in 0..num {
+            for y in 0..num {
+                for z in 0..num {
+                    let center = Vector3::new(x as f32, y as f32, z as f32) * 8.0;
+                    let color = RGBA::new(
+                        ((x * (256 / num)) as f32) / 255.0,
+                        ((y * (256 / num)) as f32) / 255.0,
+                        ((z * (256 / num)) as f32) / 255.0,
+                        1.0,
+                    );
+                    let vertex_num = vertices.len() as u32;
+                    for &i in qube_indices.iter() {
+                        indices.push([vertex_num + i[0], vertex_num + i[1], vertex_num + i[2]]);
+                    }
+                    for &v in qube_vertices.iter() {
+                        vertices.push(Vertex {
+                            position: center + v,
+                            color,
+                        });
+                    }
+                }
+            }
+        }
         Ok(App {
             backend: Backend::new(context, &vertices, &indices).map_err(wasm_error)?,
             key_manager: KeyManager::new(),
@@ -232,7 +240,7 @@ impl App {
             (buf[2] - buf[0], buf[3] - buf[1])
         };
         let projection_matrix =
-            Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10.0);
+            Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0);
         let view_matrix = self.player.view_matrix();
         let mat = projection_matrix * view_matrix;
         self.backend.draw(mat).map_err(wasm_error)
