@@ -20,3 +20,5 @@ rm -rf dist
 npm run build
 npm run deploy
 ```
+
+See: https://sogebu.github.io/special-relativity-web/
