@@ -6,7 +6,7 @@ use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
 use color::RGBA;
 use key::KeyManager;
 use memoffset::offset_of;
-use rmath::{Deg, Matrix, Quaternion, Vector3};
+use rmath::{Deg, Matrix, Quaternion, Rad, Vector3};
 
 mod key;
 
@@ -255,42 +255,45 @@ pub struct Player {
 impl Player {
     pub fn new() -> Player {
         Player {
-            pos: Vector3::new(0.0, 0.0, -1.0),
-            quaternion: Quaternion::one(),
+            pos: Vector3::new(-9.0, -9.0, -30.0),
+            quaternion: Quaternion::from_axis(Deg(130.0), Vector3::new(-1.0, 1.0, 0.0)),
         }
     }
 
     pub fn view_matrix(&self) -> Matrix {
         let rot = Matrix::from(self.quaternion);
-        Matrix::translation(self.pos) * rot
+        rot * Matrix::translation(-self.pos)
     }
 
     pub fn tick(&mut self, dt: f64, key: &KeyManager) {
         self.pos += self.get_velocity(dt, key);
-        self.quaternion = self.get_rotation_velocity(dt, key) * self.quaternion;
+        self.quaternion *= self.get_rotation_velocity(dt, key);
     }
 
     pub fn get_velocity(&self, dt: f64, key: &KeyManager) -> Vector3 {
         let mut d = Vector3::zero();
+        // forward
         if key.is_pressed("w") {
-            d.y += 1.0;
+            d -= self.quaternion.front()
         }
         if key.is_pressed("s") {
-            d.y -= 1.0;
+            d += self.quaternion.front()
         }
+        // right-left
         if key.is_pressed("d") {
-            d.x += 1.0;
+            d += self.quaternion.right();
         }
         if key.is_pressed("a") {
-            d.x -= 1.0
+            d -= self.quaternion.right();
         }
+        // up-down
         if key.is_pressed("z") {
-            d.z += 1.0;
+            d -= self.quaternion.up();
         }
         if key.is_pressed("x") {
-            d.z -= 1.0;
+            d += self.quaternion.up();
         }
-        d.safe_normalize() * dt as f32
+        d.safe_normalize() * dt as f32 * 20.0
     }
 
     pub fn get_rotation_velocity(&self, dt: f64, key: &KeyManager) -> Quaternion {
@@ -321,8 +324,7 @@ impl Player {
             let axis = self.quaternion.up() * right as f32
                 - self.quaternion.right() * up as f32
                 - self.quaternion.front() * role as f32;
-            log(format!("{:?}", axis));
-            Quaternion::from_axis(dt, axis)
+            Quaternion::from_axis(Rad(dt), axis)
         }
     }
 }

@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use approx::{AbsDiffEq, RelativeEq};
 use bytemuck::{Pod, Zeroable};
@@ -155,6 +155,14 @@ impl DivAssign<f32> for Vector3 {
         self.x /= scaler;
         self.y /= scaler;
         self.z /= scaler;
+    }
+}
+
+impl Neg for Vector3 {
+    type Output = Vector3;
+
+    fn neg(self) -> Self::Output {
+        Vector3::new(-self.x, -self.y, -self.z)
     }
 }
 

@@ -1,6 +1,6 @@
-use std::ops::Mul;
+use std::ops::{Mul, MulAssign};
 
-use crate::{matrix::Matrix, vector::Vector3};
+use crate::{angle::Rad, matrix::Matrix, vector::Vector3};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Quaternion {
@@ -22,14 +22,14 @@ impl Quaternion {
     /// Construct a new quaternion as `s[rad]` rotation around 3d-axis
     ///
     /// ```rust
-    /// # use rmath::{Quaternion, Vector3, Matrix};
+    /// # use rmath::{Quaternion, Vector3, Matrix, Deg};
     /// use approx::assert_relative_eq;
     /// // Rotate π/2 around x-axis
-    /// let q = Quaternion::from_axis(std::f64::consts::PI / 2.0, Vector3::new(2.0, 0.0, 0.0));
+    /// let q = Quaternion::from_axis(Deg(90.0), Vector3::new(2.0, 0.0, 0.0));
     /// assert_relative_eq!(Matrix::from(q) * Vector3::new(0.0, 1.0, 0.0), Vector3::new(0.0, 0.0, 1.0));
     /// ```
-    pub fn from_axis(s: f64, axis: Vector3) -> Quaternion {
-        let (sin, cos) = (s * 0.5).sin_cos();
+    pub fn from_axis<R: Into<Rad>>(s: R, axis: Vector3) -> Quaternion {
+        let (sin, cos) = (s.into().0 * 0.5).sin_cos();
         let length = axis.magnitude() as f64;
         Quaternion::new(
             cos,
@@ -107,6 +107,21 @@ impl Mul for Quaternion {
     }
 }
 
+impl MulAssign for Quaternion {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
+}
+
+impl Mul<Vector3> for Quaternion {
+    type Output = Vector3;
+
+    fn mul(self, rhs: Vector3) -> Self::Output {
+        let mat = Matrix::from(self);
+        mat * rhs
+    }
+}
+
 impl From<Quaternion> for Matrix {
     /// Convert the quaternion to rotate matrix
     fn from(q: Quaternion) -> Self {
@@ -137,5 +152,30 @@ impl From<Quaternion> for Matrix {
             0.0,
             1.0,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Deg;
+    use approx::assert_relative_eq;
+
+    #[test]
+    fn mul_synth() {
+        let q1 = Quaternion::from_axis(Deg(45.0), Vector3::new(1.0, 0.0, 0.0));
+        let q2 = Quaternion::from_axis(Deg(45.0), Vector3::new(0.0, 1.0, 0.0));
+        // Turn first with q1, then with q2.
+        let q = q1 * q2;
+        assert_relative_eq!(
+            q * Vector3::new(0.0, 0.0, 1.0),
+            Vector3::new(std::f32::consts::FRAC_1_SQRT_2, -0.5, 0.5)
+        );
+        // Turn first with q2, then with q1.
+        let q = q2 * q1;
+        assert_relative_eq!(
+            q * Vector3::new(0.0, 0.0, 1.0),
+            Vector3::new(0.5, -std::f32::consts::FRAC_1_SQRT_2, 0.5)
+        );
     }
 }
