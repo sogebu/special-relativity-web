@@ -19,7 +19,7 @@ impl Quaternion {
         Quaternion::new(1.0, 0.0, 0.0, 0.0)
     }
 
-    /// Construct a new quaternion as `s[rad]` rotation around 3d-axis
+    /// Construct a new quaternion that rotate around 3d-axis
     ///
     /// ```rust
     /// # use rmath::{Quaternion, Vector3, Matrix, Deg};
@@ -30,12 +30,12 @@ impl Quaternion {
     /// ```
     pub fn from_axis<R: Into<Rad>>(s: R, axis: Vector3) -> Quaternion {
         let (sin, cos) = (s.into().0 * 0.5).sin_cos();
-        let length = axis.magnitude() as f64;
+        let length = axis.magnitude();
         Quaternion::new(
             cos,
-            axis.x as f64 * sin / length,
-            axis.y as f64 * sin / length,
-            axis.z as f64 * sin / length,
+            axis.x * sin / length,
+            axis.y * sin / length,
+            axis.z * sin / length,
         )
     }
 
@@ -54,7 +54,7 @@ impl Quaternion {
         let sz = 2.0 * self.s * self.z;
         let xy = 2.0 * self.x * self.y;
         let zx = 2.0 * self.z * self.x;
-        Vector3::new((1.0 - y2 - z2) as f32, (xy - sz) as f32, (zx + sy) as f32)
+        Vector3::new(1.0 - y2 - z2, xy - sz, zx + sy)
     }
 
     /// Get up-direction vector
@@ -72,7 +72,7 @@ impl Quaternion {
         let sz = 2.0 * self.s * self.z;
         let xy = 2.0 * self.x * self.y;
         let yz = 2.0 * self.y * self.z;
-        Vector3::new((xy + sz) as f32, (1.0 - z2 - x2) as f32, (yz - sx) as f32)
+        Vector3::new(xy + sz, 1.0 - z2 - x2, yz - sx)
     }
 
     /// Get front-direction vector
@@ -92,7 +92,7 @@ impl Quaternion {
         let sy = 2.0 * self.s * self.y;
         let yz = 2.0 * self.y * self.z;
         let zx = 2.0 * self.z * self.x;
-        Vector3::new((zx - sy) as f32, (yz + sx) as f32, (1.0 - x2 - y2) as f32)
+        Vector3::new(zx - sy, yz + sx, 1.0 - x2 - y2)
     }
 }
 
@@ -135,17 +135,17 @@ impl From<Quaternion> for Matrix {
         let yz = 2.0 * q.y * q.z;
         let zx = 2.0 * q.z * q.x;
         Matrix::new(
-            (1.0 - y2 - z2) as f32,
-            (xy - sz) as f32,
-            (zx + sy) as f32,
+            1.0 - y2 - z2,
+            xy - sz,
+            zx + sy,
             0.0,
-            (xy + sz) as f32,
-            (1.0 - z2 - x2) as f32,
-            (yz - sx) as f32,
+            xy + sz,
+            1.0 - z2 - x2,
+            yz - sx,
             0.0,
-            (zx - sy) as f32,
-            (yz + sx) as f32,
-            (1.0 - x2 - y2) as f32,
+            zx - sy,
+            yz + sx,
+            1.0 - x2 - y2,
             0.0,
             0.0,
             0.0,
@@ -169,13 +169,13 @@ mod tests {
         let q = q1 * q2;
         assert_relative_eq!(
             q * Vector3::new(0.0, 0.0, 1.0),
-            Vector3::new(std::f32::consts::FRAC_1_SQRT_2, -0.5, 0.5)
+            Vector3::new(std::f64::consts::FRAC_1_SQRT_2, -0.5, 0.5)
         );
         // Turn first with q2, then with q1.
         let q = q2 * q1;
         assert_relative_eq!(
             q * Vector3::new(0.0, 0.0, 1.0),
-            Vector3::new(0.5, -std::f32::consts::FRAC_1_SQRT_2, 0.5)
+            Vector3::new(0.5, -std::f64::consts::FRAC_1_SQRT_2, 0.5)
         );
     }
 }

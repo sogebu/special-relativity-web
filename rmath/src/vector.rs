@@ -1,18 +1,17 @@
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use approx::{AbsDiffEq, RelativeEq};
-use bytemuck::{Pod, Zeroable};
 
-#[derive(Debug, Clone, Copy, PartialEq, Zeroable, Pod)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
 pub struct Vector3 {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
 impl Vector3 {
-    pub const fn new(x: f32, y: f32, z: f32) -> Vector3 {
+    pub const fn new(x: f64, y: f64, z: f64) -> Vector3 {
         Vector3 { x, y, z }
     }
 
@@ -27,7 +26,7 @@ impl Vector3 {
     /// let v = Vector3::new(1.0, 4.0, 8.0);
     /// assert_eq!(v.magnitude(), 9.0);
     /// ```
-    pub fn magnitude(self) -> f32 {
+    pub fn magnitude(self) -> f64 {
         self.magnitude2().sqrt()
     }
 
@@ -38,7 +37,7 @@ impl Vector3 {
     /// let v = Vector3::new(1.0, 4.0, 8.0);
     /// assert_eq!(v.magnitude2(), 81.0);
     /// ```
-    pub fn magnitude2(self) -> f32 {
+    pub fn magnitude2(self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
 
@@ -50,7 +49,7 @@ impl Vector3 {
     /// let b = Vector3::new(0.5, 1.5, 2.5);
     /// assert_eq!(a.dot(b), 1.0 + 4.5 + 10.0);
     /// ```
-    pub fn dot(self, rhs: Vector3) -> f32 {
+    pub fn dot(self, rhs: Vector3) -> f64 {
         self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
 
@@ -94,7 +93,7 @@ impl Vector3 {
     /// ```
     pub fn safe_normalized(self) -> Vector3 {
         let magnitude = self.magnitude();
-        if magnitude <= f32::EPSILON {
+        if magnitude <= f64::EPSILON {
             Vector3::zero()
         } else {
             self / magnitude
@@ -130,28 +129,28 @@ impl SubAssign for Vector3 {
     }
 }
 
-impl Mul<f32> for Vector3 {
+impl Mul<f64> for Vector3 {
     type Output = Vector3;
-    fn mul(self, scaler: f32) -> Self::Output {
+    fn mul(self, scaler: f64) -> Self::Output {
         Vector3::new(self.x * scaler, self.y * scaler, self.z * scaler)
     }
 }
-impl MulAssign<f32> for Vector3 {
-    fn mul_assign(&mut self, scaler: f32) {
+impl MulAssign<f64> for Vector3 {
+    fn mul_assign(&mut self, scaler: f64) {
         self.x *= scaler;
         self.y *= scaler;
         self.z *= scaler;
     }
 }
 
-impl Div<f32> for Vector3 {
+impl Div<f64> for Vector3 {
     type Output = Vector3;
-    fn div(self, scaler: f32) -> Self::Output {
+    fn div(self, scaler: f64) -> Self::Output {
         Vector3::new(self.x / scaler, self.y / scaler, self.z / scaler)
     }
 }
-impl DivAssign<f32> for Vector3 {
-    fn div_assign(&mut self, scaler: f32) {
+impl DivAssign<f64> for Vector3 {
+    fn div_assign(&mut self, scaler: f64) {
         self.x /= scaler;
         self.y /= scaler;
         self.z /= scaler;
@@ -167,10 +166,10 @@ impl Neg for Vector3 {
 }
 
 impl AbsDiffEq for Vector3 {
-    type Epsilon = f32;
+    type Epsilon = f64;
 
     fn default_epsilon() -> Self::Epsilon {
-        f32::EPSILON
+        f64::EPSILON
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
@@ -182,7 +181,7 @@ impl AbsDiffEq for Vector3 {
 
 impl RelativeEq for Vector3 {
     fn default_max_relative() -> Self::Epsilon {
-        f32::EPSILON
+        f64::EPSILON
     }
 
     fn relative_eq(

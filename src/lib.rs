@@ -28,7 +28,7 @@ pub struct Backend {
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 #[repr(C)]
 pub struct Vertex {
-    position: Vector3,
+    position: [f32; 3],
     color: RGBA,
 }
 
@@ -126,7 +126,7 @@ impl Backend {
     pub fn draw(&self, mat: Matrix) -> Result<(), String> {
         unsafe {
             self.gl
-                .uniform_matrix_4_f32_slice(Some(&self.matrix_location), false, &mat.array());
+                .uniform_matrix_4_f32_slice(Some(&self.matrix_location), false, &mat.open_gl());
             self.gl
                 .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
             self.gl.draw_elements(
@@ -154,14 +154,14 @@ impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
         let qube_vertices = [
-            Vector3::new(0.5, 0.5, 0.5),
-            Vector3::new(-0.5, 0.5, 0.5),
-            Vector3::new(-0.5, -0.5, 0.5),
-            Vector3::new(0.5, -0.5, 0.5),
-            Vector3::new(0.5, 0.5, -0.5),
-            Vector3::new(-0.5, 0.5, -0.5),
-            Vector3::new(-0.5, -0.5, -0.5),
-            Vector3::new(0.5, -0.5, -0.5),
+            [0.5, 0.5, 0.5],
+            [-0.5, 0.5, 0.5],
+            [-0.5, -0.5, 0.5],
+            [0.5, -0.5, 0.5],
+            [0.5, 0.5, -0.5],
+            [-0.5, 0.5, -0.5],
+            [-0.5, -0.5, -0.5],
+            [0.5, -0.5, -0.5],
         ];
         let qube_indices = [
             [0, 1, 2],
@@ -183,7 +183,6 @@ impl App {
         for x in 0..num {
             for y in 0..num {
                 for z in 0..num {
-                    let center = Vector3::new(x as f32, y as f32, z as f32) * 8.0;
                     let color = RGBA::new(
                         ((x * (256 / num)) as f32) / 255.0,
                         ((y * (256 / num)) as f32) / 255.0,
@@ -194,9 +193,13 @@ impl App {
                     for &i in qube_indices.iter() {
                         indices.push([vertex_num + i[0], vertex_num + i[1], vertex_num + i[2]]);
                     }
-                    for &v in qube_vertices.iter() {
+                    for &[vx, vy, vz] in qube_vertices.iter() {
                         vertices.push(Vertex {
-                            position: center + v,
+                            position: [
+                                vx + x as f32 * 8.0,
+                                vy + y as f32 * 8.0,
+                                vz + z as f32 * 8.0,
+                            ],
                             color,
                         });
                     }
@@ -299,36 +302,36 @@ impl Player {
         if key.is_pressed("x") {
             d += self.quaternion.up();
         }
-        d.safe_normalized() * dt as f32 * 20.0
+        d.safe_normalized() * dt * 20.0
     }
 
     pub fn get_rotation_velocity(&self, dt: f64, key: &KeyManager) -> Quaternion {
-        let mut right = 0;
+        let mut right = 0.0;
         if key.is_pressed("arrowright") {
-            right += 1;
+            right += 1.0;
         }
         if key.is_pressed("arrowleft") {
-            right -= 1;
+            right -= 1.0;
         }
-        let mut up = 0;
+        let mut up = 0.0;
         if key.is_pressed("arrowup") {
-            up += 1;
+            up += 1.0;
         }
         if key.is_pressed("arrowdown") {
-            up -= 1;
+            up -= 1.0;
         }
-        let mut role = 0;
+        let mut role = 0.0;
         if key.is_pressed("e") {
-            role += 1;
+            role += 1.0;
         }
         if key.is_pressed("q") {
-            role -= 1;
+            role -= 1.0;
         }
-        if (right, up, role) == (0, 0, 0) {
+        if (right, up, role) == (0.0, 0.0, 0.0) {
             Quaternion::one()
         } else {
-            let axis = self.quaternion.up() * right as f32 - self.quaternion.right() * up as f32
-                + self.quaternion.front() * role as f32;
+            let axis = self.quaternion.up() * right - self.quaternion.right() * up
+                + self.quaternion.front() * role;
             Quaternion::from_axis(Rad(dt), axis)
         }
     }
