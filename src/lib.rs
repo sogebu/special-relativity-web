@@ -299,7 +299,7 @@ impl Player {
         if key.is_pressed("x") {
             d += self.quaternion.up();
         }
-        d.safe_normalize() * dt as f32 * 20.0
+        d.safe_normalized() * dt as f32 * 20.0
     }
 
     pub fn get_rotation_velocity(&self, dt: f64, key: &KeyManager) -> Quaternion {

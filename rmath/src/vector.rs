@@ -70,29 +70,29 @@ impl Vector3 {
         )
     }
 
-    /// Normalize vector
+    /// Get normalized vector
     ///
     /// panic: if magnitude of vector is zero
     ///
     /// ```rust
     /// # use rmath::Vector3;
     /// # use approx::assert_relative_eq;
-    /// assert_relative_eq!(Vector3::new(3.0, 4.0, 0.0).normalize(), Vector3::new(0.6, 0.8, 0.0));
+    /// assert_relative_eq!(Vector3::new(3.0, 4.0, 0.0).normalized(), Vector3::new(0.6, 0.8, 0.0));
     /// ```
-    pub fn normalize(self) -> Vector3 {
+    pub fn normalized(self) -> Vector3 {
         self / self.magnitude()
     }
 
-    /// Normalize vector, but if vector magnitude equals zero
+    /// Get normalized vector, but if vector magnitude equals zero
     /// then return zero vector.
     ///
     /// ```rust
     /// # use rmath::Vector3;
     /// # use approx::assert_relative_eq;
-    /// assert_relative_eq!(Vector3::new(3.0, 0.0, 4.0).normalize(), Vector3::new(0.6, 0.0, 0.8));
-    /// assert_relative_eq!(Vector3::zero(), Vector3::zero());
+    /// assert_relative_eq!(Vector3::new(3.0, 0.0, 4.0).safe_normalized(), Vector3::new(0.6, 0.0, 0.8));
+    /// assert_relative_eq!(Vector3::zero().safe_normalized(), Vector3::zero());
     /// ```
-    pub fn safe_normalize(self) -> Vector3 {
+    pub fn safe_normalized(self) -> Vector3 {
         let magnitude = self.magnitude();
         if magnitude <= f32::EPSILON {
             Vector3::zero()
