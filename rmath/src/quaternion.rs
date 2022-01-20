@@ -135,22 +135,10 @@ impl From<Quaternion> for Matrix {
         let yz = 2.0 * q.y * q.z;
         let zx = 2.0 * q.z * q.x;
         Matrix::new(
-            1.0 - y2 - z2,
-            xy - sz,
-            zx + sy,
-            0.0,
-            xy + sz,
-            1.0 - z2 - x2,
-            yz - sx,
-            0.0,
-            zx - sy,
-            yz + sx,
-            1.0 - x2 - y2,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            1.0,
+            [1.0 - y2 - z2, xy - sz, zx + sy, 0.0],
+            [xy + sz, 1.0 - z2 - x2, yz - sx, 0.0],
+            [zx - sy, yz + sx, 1.0 - x2 - y2, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
         )
     }
 }
