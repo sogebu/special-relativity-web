@@ -1,6 +1,9 @@
 use std::ops::Mul;
 
-use crate::{angle::Rad, vector::Vector3};
+use crate::{
+    angle::Rad,
+    vector::{Vector3, Vector4},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Matrix {
@@ -108,6 +111,19 @@ impl Matrix {
     }
 
     /// Create a Lorentz transform matrix
+    ///
+    /// The matrix ``Matrix::lorentz(u)`` makes velocity vector ``u`` to zero-vector.
+    ///
+    /// ```rust
+    /// # use rmath::{Matrix, Vector3, Vector4};
+    /// # use approx::assert_relative_eq;
+    /// let u = Vector3::new(0.1, 0.2, 0.3);
+    /// let m = Matrix::lorentz(u);
+    /// assert_relative_eq!(
+    ///     m * Vector4::from_velocity(u),
+    ///     Vector4::from_velocity(Vector3::zero()),
+    /// );
+    /// ```
     pub fn lorentz(u: Vector3) -> Matrix {
         let x2 = u.x * u.x;
         let y2 = u.y * u.y;
@@ -115,14 +131,13 @@ impl Matrix {
         let r = x2 + y2 + z2;
         if r > 0.0 {
             let g = (1.0 + r).sqrt();
-            let r = 1.0 / r;
-            let xy = (g - 1.0) * (u.x * u.y) as f64 * r;
-            let yz = (g - 1.0) * (u.y * u.z) as f64 * r;
-            let zx = (g - 1.0) * (u.z * u.x) as f64 * r;
+            let xy = (g - 1.0) * (u.x * u.y) as f64 / r;
+            let yz = (g - 1.0) * (u.y * u.z) as f64 / r;
+            let zx = (g - 1.0) * (u.z * u.x) as f64 / r;
             Matrix::new(
-                [(g * x2 + y2 + z2) * r, xy, zx, -u.x],
-                [xy, (x2 + g * y2 + z2) * r, yz, -u.y],
-                [zx, yz, (x2 + y2 + g * z2) * r, -u.z],
+                [(g * x2 + y2 + z2) / r, xy, zx, -u.x],
+                [xy, (x2 + g * y2 + z2) / r, yz, -u.y],
+                [zx, yz, (x2 + y2 + g * z2) / r, -u.z],
                 [-u.x, -u.y, -u.z, g],
             )
         } else {
@@ -154,6 +169,17 @@ impl Mul<Vector3> for Matrix {
             *t = row[0] * v.x + row[1] * v.y + row[2] * v.z + row[3];
         }
         Vector3::new(t[0], t[1], t[2])
+    }
+}
+
+impl Mul<Vector4> for Matrix {
+    type Output = Vector4;
+    fn mul(self, v: Vector4) -> Self::Output {
+        let mut t = [0.0; 4];
+        for (t, row) in t.iter_mut().zip(&self.rows) {
+            *t = row[0] * v.x + row[1] * v.y + row[2] * v.z + row[3] * v.t;
+        }
+        Vector4::new(t[0], t[1], t[2], t[3])
     }
 }
 
