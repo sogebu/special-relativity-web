@@ -2,6 +2,8 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use approx::{AbsDiffEq, RelativeEq};
 
+use crate::matrix::Matrix;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
 pub struct Vector3 {
@@ -17,6 +19,12 @@ pub struct Vector4 {
     pub y: f64,
     pub z: f64,
     pub t: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct PhaseSpace {
+    pub velocity: Vector3,
+    pub position: Vector4,
 }
 
 impl Vector3 {
@@ -103,21 +111,68 @@ impl Vector3 {
 }
 
 impl Vector4 {
+    pub const fn from_tv(t: f64, v: Vector3) -> Vector4 {
+        Vector4::new(v.x, v.y, v.z, t)
+    }
+
+    /// Calculate Lorentz-squared-norm
+    ///
+    /// ```rust
+    /// # use rmath::vec4;
+    /// assert_eq!(vec4(1.0, 2.0, 3.0, 4.0).lorentz_norm2(), 1.0 + 4.0 + 9.0 - 16.0);
+    /// ```
     pub fn lorentz_norm2(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z - self.t * self.t
     }
 
+    /// Calculate Lorentz-inner-product
+    ///
+    /// ```rust
+    /// # use rmath::vec4;
+    /// assert_eq!(
+    ///     vec4(1.0, 2.0, 3.0, 4.0).lorentz_dot(vec4(2.0, 3.0, 4.0, 5.0)),
+    ///     2.0 + 6.0 + 12.0 - 20.0,
+    /// );
+    /// ```
     pub fn lorentz_dot(&self, other: Vector4) -> f64 {
         self.x * other.x + self.y * other.y + self.z * other.z - self.t * other.t
     }
 
+    /// Get spatial vector
     pub const fn spatial(&self) -> Vector3 {
         Vector3::new(self.x, self.y, self.z)
     }
 
+    /// Construct from spatial velocity vector
+    ///
+    /// The time-component of 4d velocity is gamma factor.
     pub fn from_velocity(u: Vector3) -> Vector4 {
         let gamma = (1.0 + u.magnitude2()).sqrt();
         Vector4::new(u.x, u.y, u.z, gamma)
+    }
+
+    /// Construct from spatial acceleration vector
+    ///
+    /// The time-component if always zero.
+    pub fn from_acceleration(a: Vector3) -> Vector4 {
+        Vector4::new(a.x, a.y, a.z, 0.0)
+    }
+}
+
+impl PhaseSpace {
+    /// Construct PhaseSpace instance
+    pub const fn new(velocity: Vector3, position: Vector4) -> PhaseSpace {
+        PhaseSpace { velocity, position }
+    }
+
+    /// Calculate the time evolution for one step based on
+    /// the acceleration and the time tick width ``ds``
+    /// given in the rest system.
+    pub fn tick(&mut self, ds: f64, acceleration: Vector3) {
+        let lorentz = Matrix::lorentz(-self.velocity);
+        let acceleration = lorentz * Vector4::from_acceleration(acceleration);
+        self.position += Vector4::from_velocity(self.velocity) * ds;
+        self.velocity += acceleration.spatial() * ds;
     }
 }
 

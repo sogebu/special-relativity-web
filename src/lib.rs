@@ -6,7 +6,7 @@ use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
 use color::RGBA;
 use key::KeyManager;
 use memoffset::offset_of;
-use rmath::{Deg, Matrix, Quaternion, Rad, Vector3};
+use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
 
 mod key;
 
@@ -251,7 +251,7 @@ impl App {
 }
 
 pub struct Player {
-    pos: Vector3,
+    phase_space: PhaseSpace,
     quaternion: Quaternion,
 }
 
@@ -264,22 +264,27 @@ impl Default for Player {
 impl Player {
     pub fn new() -> Player {
         Player {
-            pos: Vector3::new(-9.0, -9.0, -30.0),
-            quaternion: Quaternion::from_axis(Deg(130.0), Vector3::new(-1.0, 1.0, 0.0)),
+            phase_space: PhaseSpace::new(
+                Vector3::zero(),
+                Vector4::from_tv(0.0, vec3(-9.0, -9.0, -30.0)),
+            ),
+            quaternion: Quaternion::from_axis(Deg(130.0), vec3(-1.0, 1.0, 0.0)),
         }
     }
 
     pub fn view_matrix(&self) -> Matrix {
         let rot = Matrix::from(self.quaternion);
-        rot * Matrix::translation(-self.pos)
+        rot * Matrix::translation(-self.phase_space.position.spatial())
     }
 
     pub fn tick(&mut self, dt: f64, key: &KeyManager) {
-        self.pos += self.get_velocity(dt, key);
+        let a =
+            self.get_user_input_acceleration(key) * 4.0 + self.get_viscous_acceleration() * 0.05;
+        self.phase_space.tick(dt, a);
         self.quaternion *= self.get_rotation_velocity(dt, key);
     }
 
-    pub fn get_velocity(&self, dt: f64, key: &KeyManager) -> Vector3 {
+    pub fn get_user_input_acceleration(&self, key: &KeyManager) -> Vector3 {
         let mut d = Vector3::zero();
         // forward
         if key.is_pressed("w") {
@@ -302,7 +307,11 @@ impl Player {
         if key.is_pressed("x") {
             d += self.quaternion.up();
         }
-        d.safe_normalized() * dt * 20.0
+        d.safe_normalized()
+    }
+
+    pub fn get_viscous_acceleration(&self) -> Vector3 {
+        -self.phase_space.velocity
     }
 
     pub fn get_rotation_velocity(&self, dt: f64, key: &KeyManager) -> Quaternion {
