@@ -3,7 +3,6 @@ use std::ops::Mul;
 use crate::{angle::Rad, vector::Vector3};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-#[repr(C)]
 pub struct Matrix {
     rows: [[f64; 4]; 4],
 }

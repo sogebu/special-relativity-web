@@ -10,15 +10,16 @@ pub struct Vector3 {
     pub z: f64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(C)]
+pub struct Vector4 {
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub t: f64,
+}
+
 impl Vector3 {
-    pub const fn new(x: f64, y: f64, z: f64) -> Vector3 {
-        Vector3 { x, y, z }
-    }
-
-    pub const fn zero() -> Vector3 {
-        Vector3::new(0.0, 0.0, 0.0)
-    }
-
     /// Length of vector
     ///
     /// ```rust
@@ -101,97 +102,161 @@ impl Vector3 {
     }
 }
 
-impl Add for Vector3 {
-    type Output = Vector3;
-    fn add(self, rhs: Self) -> Self::Output {
-        Vector3::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+impl Vector4 {
+    pub fn lorentz_norm2(&self) -> f64 {
+        self.x * self.x + self.y * self.y + self.z * self.z - self.t * self.t
     }
-}
-impl AddAssign for Vector3 {
-    fn add_assign(&mut self, rhs: Self) {
-        self.x += rhs.x;
-        self.y += rhs.y;
-        self.z += rhs.z;
-    }
-}
 
-impl Sub for Vector3 {
-    type Output = Vector3;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Vector3::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
+    pub fn lorentz_dot(&self, other: Vector4) -> f64 {
+        self.x * other.x + self.y * other.y + self.z * other.z - self.t * other.t
     }
-}
-impl SubAssign for Vector3 {
-    fn sub_assign(&mut self, rhs: Self) {
-        self.x -= rhs.x;
-        self.y -= rhs.y;
-        self.z -= rhs.z;
+
+    pub const fn spatial(&self) -> Vector3 {
+        Vector3::new(self.x, self.y, self.z)
+    }
+
+    pub fn from_velocity(u: Vector3) -> Vector4 {
+        let gamma = (1.0 + u.magnitude2()).sqrt();
+        Vector4::new(u.x, u.y, u.z, gamma)
     }
 }
 
-impl Mul<f64> for Vector3 {
-    type Output = Vector3;
-    fn mul(self, scaler: f64) -> Self::Output {
-        Vector3::new(self.x * scaler, self.y * scaler, self.z * scaler)
-    }
+macro_rules! impl_vector {
+    ($VectorN:ident { $($field:ident),+ }, $short:ident) => {
+        impl $VectorN {
+            pub const fn new($($field: f64),+) -> $VectorN {
+                $VectorN { $($field),+ }
+            }
+
+            pub const fn zero() -> $VectorN {
+                $VectorN { $($field: 0.0),+ }
+            }
+        }
+
+        pub const fn $short($($field: f64),+) -> $VectorN {
+            $VectorN { $($field),+ }
+        }
+
+        impl Add for $VectorN {
+            type Output = $VectorN;
+            fn add(self, rhs: Self) -> Self::Output {
+                $VectorN::new($(self.$field + rhs.$field),+)
+            }
+        }
+        impl AddAssign for $VectorN {
+            fn add_assign(&mut self, rhs: Self) {
+                $(self.$field += rhs.$field);+
+            }
+        }
+
+        impl Sub for $VectorN {
+            type Output = $VectorN;
+            fn sub(self, rhs: Self) -> Self::Output {
+                $VectorN::new($(self.$field - rhs.$field),+)
+            }
+        }
+        impl SubAssign for $VectorN {
+            fn sub_assign(&mut self, rhs: Self) {
+                $(self.$field -= rhs.$field);+
+            }
+        }
+
+        impl Mul<f64> for $VectorN {
+            type Output = $VectorN;
+            fn mul(self, rhs: f64) -> Self::Output {
+                $VectorN::new($(self.$field * rhs),+)
+            }
+        }
+        impl MulAssign<f64> for $VectorN {
+            fn mul_assign(&mut self, rhs: f64) {
+                $(self.$field *= rhs);+
+            }
+        }
+
+        impl Div<f64> for $VectorN {
+            type Output = $VectorN;
+            fn div(self, rhs: f64) -> Self::Output {
+                $VectorN::new($(self.$field / rhs),+)
+            }
+        }
+        impl DivAssign<f64> for $VectorN {
+            fn div_assign(&mut self, rhs: f64) {
+                $(self.$field /= rhs);+
+            }
+        }
+
+        impl Neg for $VectorN {
+            type Output = $VectorN;
+            fn neg(self) -> Self::Output {
+                $VectorN::new($(-self.$field),+)
+            }
+        }
+
+        impl AbsDiffEq for $VectorN  {
+            type Epsilon = f64;
+            fn default_epsilon() -> Self::Epsilon {
+                f64::EPSILON
+            }
+            fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+                $(self.$field.abs_diff_eq(&other.$field, epsilon)) && +
+            }
+        }
+
+        impl RelativeEq for $VectorN {
+            fn default_max_relative() -> Self::Epsilon {
+                f64::EPSILON
+            }
+            fn relative_eq(
+                &self,
+                other: &Self,
+                epsilon: Self::Epsilon,
+                max_relative: Self::Epsilon,
+            ) -> bool {
+                $(self.$field.relative_eq(&other.$field, epsilon, max_relative)) && +
+            }
+        }
+    };
 }
-impl MulAssign<f64> for Vector3 {
-    fn mul_assign(&mut self, scaler: f64) {
-        self.x *= scaler;
-        self.y *= scaler;
-        self.z *= scaler;
-    }
-}
 
-impl Div<f64> for Vector3 {
-    type Output = Vector3;
-    fn div(self, scaler: f64) -> Self::Output {
-        Vector3::new(self.x / scaler, self.y / scaler, self.z / scaler)
-    }
-}
-impl DivAssign<f64> for Vector3 {
-    fn div_assign(&mut self, scaler: f64) {
-        self.x /= scaler;
-        self.y /= scaler;
-        self.z /= scaler;
-    }
-}
+impl_vector!(Vector3 { x, y, z }, vec3);
+impl_vector!(Vector4 { x, y, z, t }, vec4);
 
-impl Neg for Vector3 {
-    type Output = Vector3;
+#[cfg(test)]
+mod test {
+    use super::*;
+    use approx::assert_relative_eq;
 
-    fn neg(self) -> Self::Output {
-        Vector3::new(-self.x, -self.y, -self.z)
-    }
-}
-
-impl AbsDiffEq for Vector3 {
-    type Epsilon = f64;
-
-    fn default_epsilon() -> Self::Epsilon {
-        f64::EPSILON
+    #[test]
+    fn add() {
+        assert_relative_eq!(vec3(1.0, 2.0, 3.0) + Vector3::zero(), vec3(1.0, 2.0, 3.0));
+        assert_relative_eq!(
+            vec3(1.0, 2.0, 3.0) + vec3(4.0, 5.0, 6.0),
+            vec3(5.0, 7.0, 9.0)
+        );
     }
 
-    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.x.abs_diff_eq(&other.x, epsilon)
-            && self.y.abs_diff_eq(&other.y, epsilon)
-            && self.z.abs_diff_eq(&other.z, epsilon)
-    }
-}
-
-impl RelativeEq for Vector3 {
-    fn default_max_relative() -> Self::Epsilon {
-        f64::EPSILON
+    #[test]
+    fn sub() {
+        assert_relative_eq!(vec3(1.0, 2.0, 3.0) - Vector3::zero(), vec3(1.0, 2.0, 3.0));
+        assert_relative_eq!(
+            vec3(1.0, 2.0, 3.0) - vec3(4.0, 6.0, 8.0),
+            vec3(-3.0, -4.0, -5.0)
+        );
     }
 
-    fn relative_eq(
-        &self,
-        other: &Self,
-        epsilon: Self::Epsilon,
-        max_relative: Self::Epsilon,
-    ) -> bool {
-        self.x.relative_eq(&other.x, epsilon, max_relative)
-            && self.y.relative_eq(&other.y, epsilon, max_relative)
-            && self.z.relative_eq(&other.z, epsilon, max_relative)
+    #[test]
+    fn mul() {
+        assert_relative_eq!(vec3(1.0, 2.0, 3.0) * 0.0, Vector3::zero());
+        assert_relative_eq!(vec3(5.0, 2.0, 3.0) * 4.0, vec3(20.0, 8.0, 12.0));
+    }
+
+    #[test]
+    fn div() {
+        assert_relative_eq!(vec3(5.0, 2.0, 3.0) / 4.0, vec3(1.25, 0.5, 0.75));
+    }
+
+    #[test]
+    fn neg() {
+        assert_eq!(-vec3(1.0, -2.0, 3.0), vec3(-1.0, 2.0, -3.0));
     }
 }
