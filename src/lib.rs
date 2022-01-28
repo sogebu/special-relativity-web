@@ -21,7 +21,9 @@ fn log(s: String) {
 
 pub struct Backend {
     gl: Context,
-    matrix_location: WebGlUniformLocation,
+    model_matrix_location: WebGlUniformLocation,
+    lorentz_matrix_location: WebGlUniformLocation,
+    view_perspective_location: WebGlUniformLocation,
     triangle_count: usize,
 }
 
@@ -111,22 +113,48 @@ impl Backend {
                 offset_of!(Vertex, color) as i32,
             );
 
-            let matrix_location = gl
-                .get_uniform_location(program, "matrix")
-                .ok_or_else(|| "No matrix attribute".to_string())?;
+            let model_matrix_location = gl
+                .get_uniform_location(program, "model")
+                .ok_or_else(|| "No model matrix attribute".to_string())?;
+            let lorentz_matrix_location = gl
+                .get_uniform_location(program, "lorentz")
+                .ok_or_else(|| "No lorentz matrix attribute".to_string())?;
+            let view_perspective_location = gl
+                .get_uniform_location(program, "view_perspective")
+                .ok_or_else(|| "No view_perspective matrix attribute".to_string())?;
 
             Ok(Self {
                 gl,
-                matrix_location,
+                model_matrix_location,
+                lorentz_matrix_location,
+                view_perspective_location,
                 triangle_count: indices.len(),
             })
         }
     }
 
-    pub fn draw(&self, mat: Matrix) -> Result<(), String> {
+    pub fn draw(
+        &self,
+        model: Matrix,
+        lorentz: Matrix,
+        view_perspective: Matrix,
+    ) -> Result<(), String> {
         unsafe {
-            self.gl
-                .uniform_matrix_4_f32_slice(Some(&self.matrix_location), false, &mat.open_gl());
+            self.gl.uniform_matrix_4_f32_slice(
+                Some(&self.model_matrix_location),
+                false,
+                &model.open_gl(),
+            );
+            self.gl.uniform_matrix_4_f32_slice(
+                Some(&self.lorentz_matrix_location),
+                false,
+                &lorentz.open_gl(),
+            );
+            self.gl.uniform_matrix_4_f32_slice(
+                Some(&self.view_perspective_location),
+                false,
+                &view_perspective.open_gl(),
+            );
             self.gl
                 .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
             self.gl.draw_elements(
@@ -244,9 +272,16 @@ impl App {
         };
         let projection_matrix =
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0);
-        let view_matrix = self.player.view_matrix();
-        let mat = projection_matrix * view_matrix;
-        self.backend.draw(mat).map_err(wasm_error)
+        let rot_matrix = Matrix::from(self.player.quaternion);
+        let transition_matrix = Matrix::translation(-self.player.phase_space.position.spatial());
+        let lorentz_matrix = Matrix::lorentz(self.player.phase_space.velocity);
+        self.backend
+            .draw(
+                transition_matrix,
+                lorentz_matrix,
+                projection_matrix * rot_matrix,
+            )
+            .map_err(wasm_error)
     }
 }
 
@@ -272,14 +307,9 @@ impl Player {
         }
     }
 
-    pub fn view_matrix(&self) -> Matrix {
-        let rot = Matrix::from(self.quaternion);
-        rot * Matrix::translation(-self.phase_space.position.spatial())
-    }
-
     pub fn tick(&mut self, dt: f64, key: &KeyManager) {
         let a =
-            self.get_user_input_acceleration(key) * 4.0 + self.get_viscous_acceleration() * 0.05;
+            self.get_user_input_acceleration(key) * 0.5 + self.get_viscous_acceleration() * 0.05;
         self.phase_space.tick(dt, a);
         self.quaternion *= self.get_rotation_velocity(dt, key);
     }
