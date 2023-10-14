@@ -2,6 +2,8 @@ use bytemuck::{Pod, Zeroable};
 use glow::{Context, HasContext, WebBufferKey};
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
+use rand_pcg::Mcg128Xsl64;
+use rand::{Rng, SeedableRng};
 
 use color::RGBA;
 use key::KeyManager;
@@ -215,6 +217,7 @@ pub struct App {
 impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
+        let mut rng = Mcg128Xsl64::from_entropy();
         let qube_vertices = [
             [0.5, 0.5, 0.5],
             [-0.5, 0.5, 0.5],
@@ -256,10 +259,13 @@ impl App {
                     for &i in qube_indices.iter() {
                         indices.push([vertex_num + i[0], vertex_num + i[1], vertex_num + i[2]]);
                     }
+                    let wx = rng.gen_range(-d * num as f32..d * num as f32);
+                    let wy = rng.gen_range(-d * num as f32..d * num as f32);
+                    let wz = rng.gen_range(-d * num as f32..d * num as f32);
                     for &v in qube_vertices.iter() {
                         vertices.push(Vertex {
                             local_position: v,
-                            world_position: [x as f32 * d, y as f32 * d, z as f32 * d],
+                            world_position: [wx, wy, wz],
                             scale: [3.0, 1.0, 0.5],
                             color,
                         });
