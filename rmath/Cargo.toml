@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 approx = "0.5"
-bytemuck = { version = "1.7", features = ["derive"] }
+bytemuck = { version = "1.14", features = ["derive"] }

@@ -1,40 +1,7 @@
 [workspace]
 members = [
-    ".",
+    "app",
     "color",
     "rmath",
 ]
-
-[package]
-name = "special-relativity-rs"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-crate-type = ["cdylib"]
-
-[dependencies]
-anyhow = "1.0"
-bytemuck = "1.7"
-glow = "0.11.1"
-js-sys = "0.3.55"
-memoffset = "0.6.5"
-wasm-bindgen = { version = "0.2.78", features = ["serde-serialize"] }
-wasm-timer = "0.2.5"
-
-color = { path = "./color" }
-rmath = { path = "./rmath" }
-
-[dependencies.web-sys]
-version = "0.3.55"
-features = [
-    'console',
-    'Document',
-    'Element',
-    'HtmlCanvasElement',
-    'WebGlBuffer',
-    'WebGl2RenderingContext',
-    'WebGlProgram',
-    'WebGlShader',
-    'Window',
-]
+resolver = "2"
