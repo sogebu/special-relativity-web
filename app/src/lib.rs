@@ -301,7 +301,7 @@ impl Player {
         Player {
             phase_space: PhaseSpace::new(
                 Vector3::zero(),
-                Vector4::from_tv(0.0, vec3(-9.0, -9.0, -30.0)),
+                Vector4::from_tv(0.0, vec3(50.0, 50.0, 40.0)),
             ),
             quaternion: Quaternion::from_axis(Deg(130.0), vec3(-1.0, 1.0, 0.0)),
         }
