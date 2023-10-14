@@ -1,5 +1,5 @@
 use bytemuck::{Pod, Zeroable};
-use glow::{Context, HasContext};
+use glow::{Context, HasContext, WebBufferKey};
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
 
@@ -21,6 +21,8 @@ fn log(s: String) {
 
 pub struct Backend {
     gl: Context,
+    vbo: WebBufferKey,
+    ebo: WebBufferKey,
     model_matrix_location: WebGlUniformLocation,
     lorentz_matrix_location: WebGlUniformLocation,
     view_perspective_location: WebGlUniformLocation,
@@ -30,14 +32,15 @@ pub struct Backend {
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 #[repr(C)]
 pub struct Vertex {
-    position: [f32; 3],
+    local_position: [f32; 3],
+    world_position: [f32; 3],
+    scale: [f32; 3],
     color: RGBA,
 }
 
 impl Backend {
     pub fn new(
         webgl2: WebGl2RenderingContext,
-        vertices: &[Vertex],
         indices: &[[u32; 3]],
     ) -> Result<Self, String> {
         let gl = Context::from_webgl2_context(webgl2);
@@ -74,11 +77,6 @@ impl Backend {
 
             let vbo = gl.create_buffer()?;
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-            gl.buffer_data_u8_slice(
-                glow::ARRAY_BUFFER,
-                bytemuck::cast_slice(vertices),
-                glow::STATIC_READ,
-            );
             let ebo = gl.create_buffer()?;
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
             gl.buffer_data_u8_slice(
@@ -87,17 +85,41 @@ impl Backend {
                 glow::STATIC_READ,
             );
 
-            let position_location = gl
-                .get_attrib_location(program, "vert_position")
-                .ok_or_else(|| "No vert_position attribute".to_string())?;
-            gl.enable_vertex_attrib_array(position_location);
+            let loc = gl
+                .get_attrib_location(program, "vert_local_position")
+                .ok_or_else(|| "No vert_local_position attribute".to_string())?;
+            gl.enable_vertex_attrib_array(loc);
             gl.vertex_attrib_pointer_f32(
-                position_location,
+                loc,
                 3,
                 glow::FLOAT,
                 false,
                 std::mem::size_of::<Vertex>() as i32,
-                offset_of!(Vertex, position) as i32,
+                offset_of!(Vertex, local_position) as i32,
+            );
+            let loc = gl
+                .get_attrib_location(program, "vert_world_position")
+                .ok_or_else(|| "No vert_world_position attribute".to_string())?;
+            gl.enable_vertex_attrib_array(loc);
+            gl.vertex_attrib_pointer_f32(
+                loc,
+                3,
+                glow::FLOAT,
+                false,
+                std::mem::size_of::<Vertex>() as i32,
+                offset_of!(Vertex, world_position) as i32,
+            );
+            let loc = gl
+                .get_attrib_location(program, "vert_scale")
+                .ok_or_else(|| "No vert_scale attribute".to_string())?;
+            gl.enable_vertex_attrib_array(loc);
+            gl.vertex_attrib_pointer_f32(
+                loc,
+                3,
+                glow::FLOAT,
+                false,
+                std::mem::size_of::<Vertex>() as i32,
+                offset_of!(Vertex, scale) as i32,
             );
 
             let color_location = gl
@@ -125,6 +147,8 @@ impl Backend {
 
             Ok(Self {
                 gl,
+                vbo,
+                ebo,
                 model_matrix_location,
                 lorentz_matrix_location,
                 view_perspective_location,
@@ -135,11 +159,20 @@ impl Backend {
 
     pub fn draw(
         &self,
+        vertices: &[Vertex],
         model: Matrix,
         lorentz: Matrix,
         view_perspective: Matrix,
     ) -> Result<(), String> {
         unsafe {
+            self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
+            self.gl.buffer_data_u8_slice(
+                glow::ARRAY_BUFFER,
+                bytemuck::cast_slice(vertices),
+                glow::DYNAMIC_DRAW,
+            );
+            self.gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.ebo));
+
             self.gl.uniform_matrix_4_f32_slice(
                 Some(&self.model_matrix_location),
                 false,
@@ -175,6 +208,7 @@ pub struct App {
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
+    vertices: Vec<Vertex>,
 }
 
 #[wasm_bindgen]
@@ -208,6 +242,7 @@ impl App {
         let mut vertices = Vec::new();
         let mut indices = Vec::new();
         let num = 16;
+        let d = 8.0;
         for x in 0..num {
             for y in 0..num {
                 for z in 0..num {
@@ -221,13 +256,11 @@ impl App {
                     for &i in qube_indices.iter() {
                         indices.push([vertex_num + i[0], vertex_num + i[1], vertex_num + i[2]]);
                     }
-                    for &[vx, vy, vz] in qube_vertices.iter() {
+                    for &v in qube_vertices.iter() {
                         vertices.push(Vertex {
-                            position: [
-                                vx + x as f32 * 8.0,
-                                vy + y as f32 * 8.0,
-                                vz + z as f32 * 8.0,
-                            ],
+                            local_position: v,
+                            world_position: [x as f32 * d, y as f32 * d, z as f32 * d],
+                            scale: [3.0, 1.0, 0.5],
                             color,
                         });
                     }
@@ -235,10 +268,11 @@ impl App {
             }
         }
         Ok(App {
-            backend: Backend::new(context, &vertices, &indices).map_err(wasm_error)?,
+            backend: Backend::new(context, &indices).map_err(wasm_error)?,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
+            vertices,
         })
     }
 
@@ -277,6 +311,7 @@ impl App {
         let lorentz_matrix = Matrix::lorentz(self.player.phase_space.velocity);
         self.backend
             .draw(
+                &self.vertices,
                 transition_matrix,
                 lorentz_matrix,
                 projection_matrix * rot_matrix,
