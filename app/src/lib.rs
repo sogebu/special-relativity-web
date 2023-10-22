@@ -1,16 +1,18 @@
 use bytemuck::{Pod, Zeroable};
 use glow::{Context, HasContext, WebBufferKey};
+use memoffset::offset_of;
+use rand::{Rng, SeedableRng};
+use rand_pcg::Mcg128Xsl64;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext, WebGlUniformLocation};
-use rand_pcg::Mcg128Xsl64;
-use rand::{Rng, SeedableRng};
 
 use color::RGBA;
-use key::KeyManager;
-use memoffset::offset_of;
-use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
+use rmath::{Deg, Matrix};
+
+use crate::{key::KeyManager, player::Player};
 
 mod key;
+mod player;
 
 fn wasm_error(s: String) -> JsValue {
     s.into()
@@ -41,10 +43,7 @@ pub struct Vertex {
 }
 
 impl Backend {
-    pub fn new(
-        webgl2: WebGl2RenderingContext,
-        indices: &[[u32; 3]],
-    ) -> Result<Self, String> {
+    pub fn new(webgl2: WebGl2RenderingContext, indices: &[[u32; 3]]) -> Result<Self, String> {
         let gl = Context::from_webgl2_context(webgl2);
         unsafe {
             gl.enable(glow::DEPTH_TEST);
@@ -173,7 +172,8 @@ impl Backend {
                 bytemuck::cast_slice(vertices),
                 glow::DYNAMIC_DRAW,
             );
-            self.gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.ebo));
+            self.gl
+                .bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.ebo));
 
             self.gl.uniform_matrix_4_f32_slice(
                 Some(&self.model_matrix_location),
@@ -312,9 +312,9 @@ impl App {
         };
         let projection_matrix =
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0);
-        let rot_matrix = Matrix::from(self.player.quaternion);
-        let transition_matrix = Matrix::translation(-self.player.phase_space.position.spatial());
-        let lorentz_matrix = Matrix::lorentz(self.player.phase_space.velocity);
+        let rot_matrix = self.player.rot_matrix();
+        let transition_matrix = self.player.transition_matrix();
+        let lorentz_matrix = self.player.lorentz_matrix();
         self.backend
             .draw(
                 &self.vertices,
@@ -323,96 +323,5 @@ impl App {
                 projection_matrix * rot_matrix,
             )
             .map_err(wasm_error)
-    }
-}
-
-pub struct Player {
-    phase_space: PhaseSpace,
-    quaternion: Quaternion,
-}
-
-impl Default for Player {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Player {
-    pub fn new() -> Player {
-        Player {
-            phase_space: PhaseSpace::new(
-                Vector3::zero(),
-                Vector4::from_tv(0.0, vec3(50.0, 50.0, 40.0)),
-            ),
-            quaternion: Quaternion::from_axis(Deg(130.0), vec3(-1.0, 1.0, 0.0)),
-        }
-    }
-
-    pub fn tick(&mut self, dt: f64, key: &KeyManager) {
-        let a =
-            self.get_user_input_acceleration(key) * 0.5 + self.get_viscous_acceleration() * 0.05;
-        self.phase_space.tick(dt, a);
-        self.quaternion *= self.get_rotation_velocity(dt, key);
-    }
-
-    pub fn get_user_input_acceleration(&self, key: &KeyManager) -> Vector3 {
-        let mut d = Vector3::zero();
-        // forward
-        if key.is_pressed("w") {
-            d -= self.quaternion.front()
-        }
-        if key.is_pressed("s") {
-            d += self.quaternion.front()
-        }
-        // right-left
-        if key.is_pressed("d") {
-            d += self.quaternion.right();
-        }
-        if key.is_pressed("a") {
-            d -= self.quaternion.right();
-        }
-        // up-down
-        if key.is_pressed("z") {
-            d -= self.quaternion.up();
-        }
-        if key.is_pressed("x") {
-            d += self.quaternion.up();
-        }
-        d.safe_normalized()
-    }
-
-    pub fn get_viscous_acceleration(&self) -> Vector3 {
-        -self.phase_space.velocity
-    }
-
-    pub fn get_rotation_velocity(&self, dt: f64, key: &KeyManager) -> Quaternion {
-        let mut right = 0.0;
-        if key.is_pressed("arrowright") {
-            right += 1.0;
-        }
-        if key.is_pressed("arrowleft") {
-            right -= 1.0;
-        }
-        let mut up = 0.0;
-        if key.is_pressed("arrowup") {
-            up += 1.0;
-        }
-        if key.is_pressed("arrowdown") {
-            up -= 1.0;
-        }
-        let mut role = 0.0;
-        if key.is_pressed("e") {
-            role += 1.0;
-        }
-        if key.is_pressed("q") {
-            role -= 1.0;
-        }
-        if (right, up, role) == (0.0, 0.0, 0.0) {
-            Quaternion::one()
-        } else {
-            let axis = self.quaternion.up() * right - self.quaternion.right() * up
-                + self.quaternion.front() * role;
-            Quaternion::from_axis(Rad(dt), axis)
-        }
     }
 }
