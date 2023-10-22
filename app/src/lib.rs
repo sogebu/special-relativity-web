@@ -51,9 +51,9 @@ impl Backend {
             gl.clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
 
             let program = gl.create_program()?;
-            let fragment_shader_source = include_str!("fragment_shader.glsl");
+            let fragment_shader_source = include_str!("assets/fragment_shader.glsl");
             let vertex_shader = gl.create_shader(glow::VERTEX_SHADER)?;
-            gl.shader_source(vertex_shader, include_str!("vertex_shader.glsl"));
+            gl.shader_source(vertex_shader, include_str!("assets/vertex_shader.glsl"));
             gl.compile_shader(vertex_shader);
             if !gl.get_shader_compile_status(vertex_shader) {
                 return Err(gl.get_shader_info_log(vertex_shader));
