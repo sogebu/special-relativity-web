@@ -7,7 +7,7 @@ use color::RGBA;
 use rmath::{Deg, Matrix};
 
 use crate::{
-    backend::{Backend, Vertex},
+    backend::{Backend, Entity, Vertex},
     key::KeyManager,
     player::Player,
 };
@@ -28,6 +28,7 @@ fn log(s: String) {
 #[wasm_bindgen]
 pub struct App {
     backend: Backend,
+    entities: Vec<Entity>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
@@ -94,8 +95,12 @@ impl App {
                 }
             }
         }
+        let backend = Backend::new(context).map_err(wasm_error)?;
+        let mut entities = Vec::new();
+        entities.push(backend.new_entity(&vertices, &indices)?);
         Ok(App {
-            backend: Backend::new(context, &indices).map_err(wasm_error)?,
+            backend,
+            entities,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
@@ -132,7 +137,7 @@ impl App {
         let lorentz_matrix = self.player.lorentz_matrix();
         self.backend
             .draw(
-                &self.vertices,
+                &self.entities,
                 transition_matrix,
                 lorentz_matrix,
                 projection_matrix * rot_matrix,
