@@ -4,8 +4,8 @@ const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
 if (!canvas) {
   throw new Error("No 'canvas'");
 }
-canvas.width = 800;
-canvas.height = 600;
+canvas.width = 1200;
+canvas.height = 800;
 const context = canvas.getContext("webgl2");
 if (!context) {
   throw new Error("webgl2 not supported");
