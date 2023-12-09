@@ -20,12 +20,70 @@ pub struct Vertex {
 }
 
 pub struct Entity {
+    program: WebProgramKey,
     vbo: WebBufferKey,
     ebo: WebBufferKey,
+    vertices: Vec<Vertex>,
+    indices: Vec<[u32; 3]>,
     model_matrix_location: WebGlUniformLocation,
     lorentz_matrix_location: WebGlUniformLocation,
     view_perspective_location: WebGlUniformLocation,
     triangle_count: usize,
+    vertex_attrib: Vec<VertexAttrib>,
+}
+
+#[derive(Debug)]
+struct VertexAttrib {
+    index: u32,
+    size: usize,
+    stride: usize,
+    offset: usize,
+}
+
+impl VertexAttrib {
+    fn new(
+        gl: &Context,
+        program: WebProgramKey,
+        name: &str,
+        size: usize,
+        stride: usize,
+        offset: usize,
+    ) -> Result<VertexAttrib, String> {
+        fn make_vertex_attrib(
+            gl: &Context,
+            program: WebProgramKey,
+            name: &str,
+        ) -> Result<u32, String> {
+            unsafe {
+                let index = gl
+                    .get_attrib_location(program, name)
+                    .ok_or_else(|| format!("No '{}' attribute", name))?;
+                Ok(index)
+            }
+        }
+
+        let index = make_vertex_attrib(gl, program, name)?;
+        Ok(VertexAttrib {
+            index,
+            size,
+            stride,
+            offset,
+        })
+    }
+
+    fn bind(&self, gl: &Context) {
+        unsafe {
+            gl.vertex_attrib_pointer_f32(
+                self.index,
+                self.size as i32,
+                glow::FLOAT,
+                false,
+                self.stride as i32,
+                self.offset as i32,
+            );
+            gl.enable_vertex_attrib_array(self.index);
+        }
+    }
 }
 
 impl Backend {
@@ -47,75 +105,46 @@ impl Backend {
                 include_str!("assets/vertex_shader.glsl"),
                 include_str!("assets/fragment_shader.glsl"),
             )?;
+            self.gl.use_program(Some(program));
 
             let vbo = self.gl.create_buffer()?;
             self.gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-            self.gl.buffer_data_u8_slice(
-                glow::ARRAY_BUFFER,
-                bytemuck::cast_slice(vertices),
-                glow::STATIC_READ,
-            );
             let ebo = self.gl.create_buffer()?;
             self.gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
-            self.gl.buffer_data_u8_slice(
-                glow::ELEMENT_ARRAY_BUFFER,
-                bytemuck::cast_slice(indices),
-                glow::STATIC_READ,
-            );
 
-            let loc = self
-                .gl
-                .get_attrib_location(program, "vert_local_position")
-                .ok_or_else(|| "No vert_local_position attribute".to_string())?;
-            self.gl.enable_vertex_attrib_array(loc);
-            self.gl.vertex_attrib_pointer_f32(
-                loc,
+            let mut vertex_attrib = Vec::new();
+            vertex_attrib.push(VertexAttrib::new(
+                &self.gl,
+                program,
+                "vert_local_position",
                 3,
-                glow::FLOAT,
-                false,
-                std::mem::size_of::<Vertex>() as i32,
-                offset_of!(Vertex, local_position) as i32,
-            );
-            let loc = self
-                .gl
-                .get_attrib_location(program, "vert_world_position")
-                .ok_or_else(|| "No vert_world_position attribute".to_string())?;
-            self.gl.enable_vertex_attrib_array(loc);
-            self.gl.vertex_attrib_pointer_f32(
-                loc,
+                std::mem::size_of::<Vertex>(),
+                offset_of!(Vertex, local_position),
+            )?);
+            vertex_attrib.push(VertexAttrib::new(
+                &self.gl,
+                program,
+                "vert_world_position",
                 3,
-                glow::FLOAT,
-                false,
-                std::mem::size_of::<Vertex>() as i32,
-                offset_of!(Vertex, world_position) as i32,
-            );
-            let loc = self
-                .gl
-                .get_attrib_location(program, "vert_scale")
-                .ok_or_else(|| "No vert_scale attribute".to_string())?;
-            self.gl.enable_vertex_attrib_array(loc);
-            self.gl.vertex_attrib_pointer_f32(
-                loc,
+                std::mem::size_of::<Vertex>(),
+                offset_of!(Vertex, world_position),
+            )?);
+            vertex_attrib.push(VertexAttrib::new(
+                &self.gl,
+                program,
+                "vert_scale",
                 3,
-                glow::FLOAT,
-                false,
-                std::mem::size_of::<Vertex>() as i32,
-                offset_of!(Vertex, scale) as i32,
-            );
-
-            let color_location = self
-                .gl
-                .get_attrib_location(program, "vert_color")
-                .ok_or_else(|| "No vert_color attribute".to_string())?;
-            self.gl.enable_vertex_attrib_array(color_location);
-            self.gl.vertex_attrib_pointer_f32(
-                color_location,
-                4,
-                glow::FLOAT,
-                false,
-                std::mem::size_of::<Vertex>() as i32,
-                offset_of!(Vertex, color) as i32,
-            );
+                std::mem::size_of::<Vertex>(),
+                offset_of!(Vertex, scale),
+            )?);
+            vertex_attrib.push(VertexAttrib::new(
+                &self.gl,
+                program,
+                "vert_color",
+                3,
+                std::mem::size_of::<Vertex>(),
+                offset_of!(Vertex, color),
+            )?);
 
             let model_matrix_location = self
                 .gl
@@ -131,12 +160,16 @@ impl Backend {
                 .ok_or_else(|| "No view_perspective matrix attribute".to_string())?;
 
             Ok(Entity {
+                program,
                 vbo,
                 ebo,
+                vertices: vertices.to_vec(),
+                indices: indices.to_vec(),
                 model_matrix_location,
                 lorentz_matrix_location,
                 view_perspective_location,
                 triangle_count: indices.len(),
+                vertex_attrib,
             })
         }
     }
@@ -161,8 +194,7 @@ impl Backend {
             self.gl
                 .clear(glow::COLOR_BUFFER_BIT | glow::DEPTH_BUFFER_BIT);
             for e in entities {
-                e.load_uniform(&self.gl, model, lorentz, view_perspective);
-                e.draw(&self.gl);
+                e.draw(&self.gl, model, lorentz, view_perspective);
             }
             self.gl.flush();
         }
@@ -171,14 +203,26 @@ impl Backend {
 }
 
 impl Entity {
-    pub fn load_uniform(
-        &self,
-        gl: &Context,
-        model: Matrix,
-        lorentz: Matrix,
-        view_perspective: Matrix,
-    ) {
+    pub fn draw(&self, gl: &Context, model: Matrix, lorentz: Matrix, view_perspective: Matrix) {
         unsafe {
+            gl.use_program(Some(self.program));
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
+            gl.buffer_data_u8_slice(
+                glow::ARRAY_BUFFER,
+                bytemuck::cast_slice(&self.vertices),
+                glow::STATIC_READ,
+            );
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.ebo));
+            gl.buffer_data_u8_slice(
+                glow::ELEMENT_ARRAY_BUFFER,
+                bytemuck::cast_slice(&self.indices),
+                glow::STATIC_READ,
+            );
+
+            for va in self.vertex_attrib.iter() {
+                va.bind(gl);
+            }
+
             gl.uniform_matrix_4_f32_slice(
                 Some(&self.model_matrix_location),
                 false,
@@ -194,13 +238,6 @@ impl Entity {
                 false,
                 &view_perspective.open_gl(),
             );
-        }
-    }
-
-    pub fn draw(&self, gl: &Context) {
-        unsafe {
-            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
-            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.ebo));
             gl.draw_elements(
                 glow::TRIANGLES,
                 (self.triangle_count * 3) as i32,
@@ -245,7 +282,6 @@ fn make_program(
         gl.delete_shader(vs);
         gl.detach_shader(program, fs);
         gl.delete_shader(fs);
-        gl.use_program(Some(program));
         Ok(program)
     }
 }
