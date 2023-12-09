@@ -1,4 +1,4 @@
-use rand::{Rng, SeedableRng};
+use rand::Rng;
 use rand_pcg::Mcg128Xsl64;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext};
@@ -7,7 +7,7 @@ use color::RGBA;
 use rmath::{Deg, Matrix};
 
 use crate::{
-    backend::{Backend, Vertex},
+    backend::{Backend, Entity, Vertex},
     key::KeyManager,
     player::Player,
 };
@@ -28,17 +28,17 @@ fn log(s: String) {
 #[wasm_bindgen]
 pub struct App {
     backend: Backend,
+    entities: Vec<Entity>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
-    vertices: Vec<Vertex>,
 }
 
 #[wasm_bindgen]
 impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
-        let mut rng = Mcg128Xsl64::from_entropy();
+        let mut rng = Mcg128Xsl64::new(3);
         let qube_vertices = [
             [0.5, 0.5, 0.5],
             [-0.5, 0.5, 0.5],
@@ -63,13 +63,16 @@ impl App {
             [6, 7, 3],
             [6, 3, 2],
         ];
-        let mut vertices = Vec::new();
-        let mut indices = Vec::new();
-        let num = 16;
+        let num = 10;
         let d = 8.0;
+
+        let backend = Backend::new(context).map_err(wasm_error)?;
+        let mut entities = Vec::new();
         for x in 0..num {
             for y in 0..num {
                 for z in 0..num {
+                    let mut vertices = Vec::new();
+                    let mut indices = Vec::new();
                     let color = RGBA::new(
                         ((x * (256 / num)) as f32) / 255.0,
                         ((y * (256 / num)) as f32) / 255.0,
@@ -91,15 +94,17 @@ impl App {
                             color,
                         });
                     }
+                    entities.push(backend.new_entity(&vertices, &indices)?);
                 }
             }
         }
+
         Ok(App {
-            backend: Backend::new(context, &indices).map_err(wasm_error)?,
+            backend,
+            entities,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
-            vertices,
         })
     }
 
@@ -132,7 +137,7 @@ impl App {
         let lorentz_matrix = self.player.lorentz_matrix();
         self.backend
             .draw(
-                &self.vertices,
+                &self.entities,
                 transition_matrix,
                 lorentz_matrix,
                 projection_matrix * rot_matrix,
