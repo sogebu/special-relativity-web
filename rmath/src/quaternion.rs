@@ -94,6 +94,16 @@ impl Quaternion {
         let zx = 2.0 * self.z * self.x;
         Vector3::new(zx - sy, yz + sx, 1.0 - x2 - y2)
     }
+
+    /// Get the rotation for transforming `from` to `to`.
+    ///
+    /// Ref: https://docs.rs/glam/latest/glam/f64/struct.DQuat.html#method.from_rotation_arc
+    pub fn from_rotation_arc(from: Vector3, to: Vector3) -> Quaternion {
+        let c = from.cross(to);
+        let (x, y, z, s) = (c.x, c.y, c.z, 1.0 + from.dot(to));
+        let l = (x * x + y * y + z * z + s * s).sqrt();
+        Quaternion::new(s / l, x / l, y / l, z / l)
+    }
 }
 
 impl Mul for Quaternion {
@@ -148,6 +158,7 @@ mod tests {
     use super::*;
     use crate::Deg;
     use approx::assert_relative_eq;
+    use std::f64::consts::FRAC_1_SQRT_2;
 
     #[test]
     fn mul_synth() {
@@ -157,13 +168,29 @@ mod tests {
         let q = q1 * q2;
         assert_relative_eq!(
             q * Vector3::new(0.0, 0.0, 1.0),
-            Vector3::new(std::f64::consts::FRAC_1_SQRT_2, -0.5, 0.5)
+            Vector3::new(FRAC_1_SQRT_2, -0.5, 0.5)
         );
         // Turn first with q2, then with q1.
         let q = q2 * q1;
         assert_relative_eq!(
             q * Vector3::new(0.0, 0.0, 1.0),
-            Vector3::new(0.5, -std::f64::consts::FRAC_1_SQRT_2, 0.5)
+            Vector3::new(0.5, -FRAC_1_SQRT_2, 0.5)
+        );
+    }
+
+    #[test]
+    fn from_rotation_arc() {
+        let q = Quaternion::from_rotation_arc(
+            Vector3::new(0.0, 0.0, 1.0),
+            Vector3::new(FRAC_1_SQRT_2, FRAC_1_SQRT_2, 0.0),
+        );
+        assert_relative_eq!(
+            q * Vector3::new(0.0, 0.0, -3.0),
+            Vector3::new(-FRAC_1_SQRT_2 * 3.0, -FRAC_1_SQRT_2 * 3.0, 0.0),
+        );
+        assert_relative_eq!(
+            q * Vector3::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2, 0.0),
+            Vector3::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2, 0.0),
         );
     }
 }

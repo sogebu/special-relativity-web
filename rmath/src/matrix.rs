@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::ops::{Index, IndexMut, Mul};
 
 use crate::{
     angle::Rad,
@@ -101,7 +101,7 @@ impl Matrix {
     /// let m = Matrix::translation(Vector3::new(1.0, 2.0, 3.0));
     /// assert_relative_eq!(m * Vector3::new(4.0, 5.0, 6.0), Vector3::new(5.0, 7.0, 9.0));
     /// ```
-    pub fn translation(v: Vector3) -> Matrix {
+    pub const fn translation(v: Vector3) -> Matrix {
         Matrix::new(
             [1.0, 0.0, 0.0, v.x],
             [0.0, 1.0, 0.0, v.y],
@@ -110,7 +110,13 @@ impl Matrix {
         )
     }
 
-    pub fn scale(v: Vector3) -> Matrix {
+    /// ```rust
+    /// # use rmath::{Matrix, Vector3};
+    /// let m = Matrix::scale(Vector3::new(2.0, 3.0, 4.0));
+    /// let v = Vector3::new(1.5, 2.5, 3.5);
+    /// assert_eq!(m * v, Vector3::new(3.0, 7.5, 14.0));
+    /// ```
+    pub const fn scale(v: Vector3) -> Matrix {
         Matrix::new(
             [v.x, 0.0, 0.0, 0.0],
             [0.0, v.y, 0.0, 0.0],
@@ -140,9 +146,9 @@ impl Matrix {
         let r = x2 + y2 + z2;
         if r > 0.0 {
             let g = (1.0 + r).sqrt();
-            let xy = (g - 1.0) * (u.x * u.y) as f64 / r;
-            let yz = (g - 1.0) * (u.y * u.z) as f64 / r;
-            let zx = (g - 1.0) * (u.z * u.x) as f64 / r;
+            let xy = (g - 1.0) * (u.x * u.y) / r;
+            let yz = (g - 1.0) * (u.y * u.z) / r;
+            let zx = (g - 1.0) * (u.z * u.x) / r;
             Matrix::new(
                 [(g * x2 + y2 + z2) / r, xy, zx, -u.x],
                 [xy, (x2 + g * y2 + z2) / r, yz, -u.y],
@@ -152,6 +158,31 @@ impl Matrix {
         } else {
             Matrix::ident()
         }
+    }
+
+    /// ```rust
+    /// # use rmath::Matrix;
+    /// let m = Matrix::new(
+    ///     [1.0, 2.0, 3.0, 4.0],
+    ///     [5.0, 6.0, 7.0, 8.0],
+    ///     [9.0, 10.0, 11.0, 12.0],
+    ///     [13.0, 14.0, 15.0, 16.0],
+    /// );
+    /// assert_eq!(m.transposed(), Matrix::new(
+    ///     [1.0, 5.0, 9.0, 13.0],
+    ///     [2.0, 6.0, 10.0, 14.0],
+    ///     [3.0, 7.0, 11.0, 15.0],
+    ///     [4.0, 8.0, 12.0, 16.0],
+    /// ));
+    /// ```
+    pub const fn transposed(&self) -> Matrix {
+        let [r0, r1, r2, r3] = self.rows;
+        Matrix::new(
+            [r0[0], r1[0], r2[0], r3[0]],
+            [r0[1], r1[1], r2[1], r3[1]],
+            [r0[2], r1[2], r2[2], r3[2]],
+            [r0[3], r1[3], r2[3], r3[3]],
+        )
     }
 }
 
@@ -189,6 +220,20 @@ impl Mul<Vector4> for Matrix {
             *t = row[0] * v.x + row[1] * v.y + row[2] * v.z + row[3] * v.t;
         }
         Vector4::new(t[0], t[1], t[2], t[3])
+    }
+}
+
+impl Index<(usize, usize)> for Matrix {
+    type Output = f64;
+
+    fn index(&self, index: (usize, usize)) -> &f64 {
+        &self.rows[index.0][index.1]
+    }
+}
+
+impl IndexMut<(usize, usize)> for Matrix {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut f64 {
+        &mut self.rows[index.0][index.1]
     }
 }
 
