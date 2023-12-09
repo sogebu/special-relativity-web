@@ -110,6 +110,15 @@ impl Matrix {
         )
     }
 
+    pub fn scale(v: Vector3) -> Matrix {
+        Matrix::new(
+            [v.x, 0.0, 0.0, 0.0],
+            [0.0, v.y, 0.0, 0.0],
+            [0.0, 0.0, v.z, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        )
+    }
+
     /// Create a Lorentz transform matrix
     ///
     /// The matrix ``Matrix::lorentz(u)`` makes velocity vector ``u`` to zero-vector.

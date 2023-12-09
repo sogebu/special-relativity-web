@@ -14,8 +14,6 @@ pub struct Backend {
 #[repr(C)]
 pub struct Vertex {
     pub local_position: [f32; 3],
-    pub world_position: [f32; 3],
-    pub scale: [f32; 3],
     pub color: RGBA,
 }
 
@@ -25,6 +23,7 @@ pub struct Entity {
     ebo: WebBufferKey,
     vertices: Vec<Vertex>,
     indices: Vec<[u32; 3]>,
+    pub model_local_matrix: Matrix,
     model_matrix_location: WebGlUniformLocation,
     lorentz_matrix_location: WebGlUniformLocation,
     view_perspective_location: WebGlUniformLocation,
@@ -124,22 +123,6 @@ impl Backend {
             vertex_attrib.push(VertexAttrib::new(
                 &self.gl,
                 program,
-                "vert_world_position",
-                3,
-                std::mem::size_of::<Vertex>(),
-                offset_of!(Vertex, world_position),
-            )?);
-            vertex_attrib.push(VertexAttrib::new(
-                &self.gl,
-                program,
-                "vert_scale",
-                3,
-                std::mem::size_of::<Vertex>(),
-                offset_of!(Vertex, scale),
-            )?);
-            vertex_attrib.push(VertexAttrib::new(
-                &self.gl,
-                program,
                 "vert_color",
                 3,
                 std::mem::size_of::<Vertex>(),
@@ -165,6 +148,7 @@ impl Backend {
                 ebo,
                 vertices: vertices.to_vec(),
                 indices: indices.to_vec(),
+                model_local_matrix: Matrix::ident(),
                 model_matrix_location,
                 lorentz_matrix_location,
                 view_perspective_location,
@@ -223,6 +207,7 @@ impl Entity {
                 va.bind(gl);
             }
 
+            let model = model * self.model_local_matrix;
             gl.uniform_matrix_4_f32_slice(
                 Some(&self.model_matrix_location),
                 false,

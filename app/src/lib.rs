@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext};
 
 use color::RGBA;
-use rmath::{Deg, Matrix};
+use rmath::{vec3, Deg, Matrix, Quaternion, Vector3};
 
 use crate::{
     backend::{Backend, Entity, Vertex},
@@ -29,9 +29,14 @@ fn log(s: String) {
 pub struct App {
     backend: Backend,
     entities: Vec<Entity>,
+    entity_prop: Vec<EntityProp>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
+}
+
+pub struct EntityProp {
+    world_pos: Vector3,
 }
 
 #[wasm_bindgen]
@@ -68,6 +73,7 @@ impl App {
 
         let backend = Backend::new(context).map_err(wasm_error)?;
         let mut entities = Vec::new();
+        let mut entity_prop = Vec::new();
         for x in 0..num {
             for y in 0..num {
                 for z in 0..num {
@@ -83,14 +89,16 @@ impl App {
                     for &i in qube_indices.iter() {
                         indices.push([vertex_num + i[0], vertex_num + i[1], vertex_num + i[2]]);
                     }
-                    let wx = rng.gen_range(-d * num as f32..d * num as f32);
-                    let wy = rng.gen_range(-d * num as f32..d * num as f32);
-                    let wz = rng.gen_range(-d * num as f32..d * num as f32);
+                    let wx = rng.gen_range(-d * num as f64..d * num as f64);
+                    let wy = rng.gen_range(-d * num as f64..d * num as f64);
+                    let wz = rng.gen_range(-d * num as f64..d * num as f64);
+                    entity_prop.push(EntityProp {
+                        world_pos: vec3(wx, wy, wz),
+                    });
+
                     for &v in qube_vertices.iter() {
                         vertices.push(Vertex {
                             local_position: v,
-                            world_position: [wx, wy, wz],
-                            scale: [3.0, 1.0, 0.5],
                             color,
                         });
                     }
@@ -102,6 +110,7 @@ impl App {
         Ok(App {
             backend,
             entities,
+            entity_prop,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
@@ -128,6 +137,13 @@ impl App {
         let last_tick = self.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
         self.player.tick(dt, &self.key_manager);
+
+        let rotate = Quaternion::from_axis(Deg(timestamp * 0.01), vec3(0.0, 0.0, 1.0));
+        for (ent, prop) in self.entities.iter_mut().zip(self.entity_prop.iter()) {
+            ent.model_local_matrix = Matrix::translation(prop.world_pos)
+                * Matrix::from(rotate)
+                * Matrix::scale(vec3(10.0, 1.0, 1.0));
+        }
 
         let (width, height) = self.backend.get_viewport_size();
         let projection_matrix =
