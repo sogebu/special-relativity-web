@@ -20,7 +20,7 @@ const config: webpack.Configuration = {
   },
   plugins: [
     new HtmlWebpackPlugin({template: "./index.html"}),
-    new WasmPackPlugin({crateDirectory: path.resolve(__dirname, "app")}),
+    new WasmPackPlugin({crateDirectory: __dirname}),
   ],
   experiments: {
     asyncWebAssembly: true,

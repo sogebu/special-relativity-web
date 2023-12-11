@@ -8,7 +8,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
-    "special-relativity-web": "./app/pkg"
+    "special-relativity-web": "./pkg"
   },
   "devDependencies": {
     "@types/webpack": "^5.28.4",
