@@ -34,9 +34,9 @@ pub struct Entity {
 #[derive(Debug)]
 struct VertexAttrib {
     index: u32,
-    size: usize,
-    stride: usize,
-    offset: usize,
+    size: i32,
+    stride: i32,
+    offset: i32,
 }
 
 impl VertexAttrib {
@@ -48,25 +48,15 @@ impl VertexAttrib {
         stride: usize,
         offset: usize,
     ) -> Result<VertexAttrib, String> {
-        fn make_vertex_attrib(
-            gl: &Context,
-            program: WebProgramKey,
-            name: &str,
-        ) -> Result<u32, String> {
-            unsafe {
-                let index = gl
-                    .get_attrib_location(program, name)
-                    .ok_or_else(|| format!("No '{}' attribute", name))?;
-                Ok(index)
-            }
-        }
-
-        let index = make_vertex_attrib(gl, program, name)?;
+        let index = unsafe {
+            gl.get_attrib_location(program, name)
+                .ok_or_else(|| format!("No '{}' attribute", name))?
+        };
         Ok(VertexAttrib {
             index,
-            size,
-            stride,
-            offset,
+            size: size as i32,
+            stride: stride as i32,
+            offset: offset as i32,
         })
     }
 
@@ -74,11 +64,11 @@ impl VertexAttrib {
         unsafe {
             gl.vertex_attrib_pointer_f32(
                 self.index,
-                self.size as i32,
+                self.size,
                 glow::FLOAT,
                 false,
-                self.stride as i32,
-                self.offset as i32,
+                self.stride,
+                self.offset,
             );
             gl.enable_vertex_attrib_array(self.index);
         }
