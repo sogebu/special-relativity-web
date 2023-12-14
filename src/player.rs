@@ -42,6 +42,10 @@ impl Player {
         Matrix::lorentz(self.phase_space.velocity)
     }
 
+    pub fn position(&self) -> Vector4 {
+        self.phase_space.position
+    }
+
     fn get_user_input_acceleration(&self, key: &KeyManager) -> Vector3 {
         let mut d = Vector3::zero();
         // forward

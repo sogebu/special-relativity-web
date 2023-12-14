@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext};
 
 use color::RGBA;
-use rmath::{vec3, Deg, Matrix, Quaternion, Vector3};
+use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, WorldLine};
 
 use crate::{
     backend::{Backend, LorentzLocalData, LorentzShader, Shader, Shape},
@@ -38,7 +38,7 @@ pub struct App {
 
 pub struct QubeProperty {
     color: RGBA,
-    world_pos: Vector3,
+    world_line: StaticWorldLine,
 }
 
 #[wasm_bindgen]
@@ -67,7 +67,7 @@ impl App {
                     let wz = rng.gen_range(-d * num as f64..d * num as f64);
                     qube_properties.push(QubeProperty {
                         color,
-                        world_pos: vec3(wx, wy, wz),
+                        world_line: StaticWorldLine::new(vec3(wx, wy, wz)),
                     });
                 }
             }
@@ -117,9 +117,10 @@ impl App {
         let rot_matrix = self.player.rot_matrix();
         let lorentz_matrix = self.player.lorentz_matrix();
 
-        let rotate = Quaternion::from_axis(Deg(timestamp * 0.01), vec3(0.0, 0.0, 1.0));
         for prop in self.qube_properties.iter() {
-            let model_local_matrix = Matrix::translation(prop.world_pos)
+            let (pos_in_plc, _, _) = prop.world_line.past_intersection(self.player.position());
+            let rotate = Quaternion::from_axis(Deg(pos_in_plc.t * 100.0), vec3(0.0, 0.0, 1.0));
+            let model_local_matrix = Matrix::translation(pos_in_plc.spatial())
                 * Matrix::from(rotate)
                 * Matrix::scale(vec3(10.0, 1.0, 1.0));
             let data = LorentzLocalData {
