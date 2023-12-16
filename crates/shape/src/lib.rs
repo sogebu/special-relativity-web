@@ -1,6 +1,7 @@
 mod cube;
+mod icosahedron;
 
-pub use crate::cube::CubeOption;
+pub use crate::{cube::CubeOption, icosahedron::IcosahedronOption};
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -15,7 +16,7 @@ impl Data {
             write!(w, "v {} {} {}\n", x, y, z)?
         }
         for &[x, y, z] in self.indices.iter() {
-            write!(w, "f {}// {}// {}//\n", x + 1, y + 1, z + 1)?
+            write!(w, "f {} {} {}\n", x + 1, y + 1, z + 1)?;
         }
         Ok(())
     }
