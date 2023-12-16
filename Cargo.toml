@@ -21,17 +21,14 @@ crate-type = ["cdylib"]
 
 [profile.release]
 lto = true
-codegen-units = 1
 opt-level = "z"
 
 [dependencies]
-anyhow = "1.0"
 bytemuck = "1.14"
 glow = "0.13"
 js-sys = "0.3"
 memoffset = "0.9"
-wasm-bindgen = { version = "0.2.87", features = ["serde-serialize"] }
-wasm-timer = "0.2.5"
+wasm-bindgen = "0.2"
 rand = "0.8"
 rand_pcg = "0.3"
 getrandom = { version = "0.2", features = ["js"] }
@@ -41,18 +38,14 @@ rmath = { path = "crates/rmath" }
 shape = { path = "crates/shape" }
 
 [dependencies.web-sys]
-version = "0.3.64"
+version = "0.3"
 features = [
     'console',
-    'Document',
-    'Element',
-    'HtmlCanvasElement',
     'WebGlBuffer',
     'WebGl2RenderingContext',
     'WebGlProgram',
     'WebGlShader',
     'WebGlUniformLocation',
-    'Window',
 ]
 
 [dev-dependencies]
