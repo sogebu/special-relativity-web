@@ -12,8 +12,17 @@ name = "special-relativity-rs"
 version = "0.1.0"
 edition = "2021"
 
+description = "special relativity game"
+repository = "https://github.com/sogebu/special-relativity-web"
+license = "MIT"
+
 [lib]
 crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "z"
 
 [dependencies]
 anyhow = "1.0"
