@@ -29,7 +29,7 @@ fn log(s: String) {
 pub struct App {
     backend: Backend,
     lorentz_shader: LorentzShader,
-    cube: Shape,
+    arrow: Shape,
     qube_properties: Vec<QubeProperty>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
@@ -76,7 +76,7 @@ impl App {
         Ok(App {
             backend,
             lorentz_shader,
-            cube: Shape::cube(),
+            arrow: shape::ArrowOption::new().build().into(),
             qube_properties,
             key_manager: KeyManager::new(),
             last_tick: None,
@@ -108,7 +108,7 @@ impl App {
         self.backend.clear();
 
         self.lorentz_shader
-            .bind_shared_data(&self.backend, &self.cube);
+            .bind_shared_data(&self.backend, &self.arrow);
 
         let (width, height) = self.backend.get_viewport_size();
         let transition_matrix = self.player.transition_matrix();
@@ -120,17 +120,17 @@ impl App {
 
         for prop in self.qube_properties.iter() {
             let (pos_in_plc, _, _) = prop.world_line.past_intersection(self.player.position());
-            let rotate = Quaternion::from_axis(Deg(pos_in_plc.t * 100.0), vec3(0.0, 0.0, 1.0));
+            let rotate = Quaternion::from_axis(Deg(pos_in_plc.t * 100.0), vec3(1.0, 0.0, 0.0));
             let model_local_matrix = Matrix::translation(pos_in_plc.spatial())
                 * Matrix::from(rotate)
-                * Matrix::scale(vec3(10.0, 1.0, 1.0));
+                * Matrix::scale(vec3(3.0, 3.0, 3.0));
             let data = LorentzLocalData {
                 color: prop.color,
                 model: transition_matrix * model_local_matrix,
                 lorentz,
                 view_perspective,
             };
-            self.lorentz_shader.draw(&self.backend, &self.cube, &data);
+            self.lorentz_shader.draw(&self.backend, &self.arrow, &data);
         }
         self.backend.flush();
 

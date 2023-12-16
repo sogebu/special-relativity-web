@@ -65,17 +65,16 @@ pub struct Shape {
     indices: Vec<[u32; 3]>,
 }
 
-impl Shape {
-    pub fn cube() -> Shape {
-        let data = shape::CubeOption::new().build();
-        let vertices = data
+impl From<shape::Data> for Shape {
+    fn from(value: shape::Data) -> Self {
+        let vertices = value
             .vertices
             .iter()
             .map(|&v| Vertex { local_position: v })
             .collect();
         Shape {
             vertices,
-            indices: data.indices,
+            indices: value.indices,
         }
     }
 }

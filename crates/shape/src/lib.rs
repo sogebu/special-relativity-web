@@ -1,7 +1,8 @@
+mod arrow;
 mod cube;
 mod icosahedron;
 
-pub use crate::{cube::CubeOption, icosahedron::IcosahedronOption};
+pub use crate::{arrow::ArrowOption, cube::CubeOption, icosahedron::IcosahedronOption};
 
 #[derive(Debug, Clone)]
 pub struct Data {
