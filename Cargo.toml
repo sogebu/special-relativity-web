@@ -3,6 +3,7 @@ members = [
     ".",
     "crates/color",
     "crates/rmath",
+    "crates/shape",
 ]
 resolver = "2"
 
@@ -25,10 +26,10 @@ wasm-timer = "0.2.5"
 rand = "0.8"
 rand_pcg = "0.3"
 getrandom = { version = "0.2", features = ["js"] }
-obj-rs = "0.7"
 
 color = { path = "crates/color" }
 rmath = { path = "crates/rmath" }
+shape = { path = "crates/shape" }
 
 [dependencies.web-sys]
 version = "0.3.64"

@@ -66,36 +66,17 @@ pub struct Shape {
 }
 
 impl Shape {
-    pub fn qube() -> Shape {
-        let qube_vertices = [
-            [0.5, 0.5, 0.5],
-            [-0.5, 0.5, 0.5],
-            [-0.5, -0.5, 0.5],
-            [0.5, -0.5, 0.5],
-            [0.5, 0.5, -0.5],
-            [-0.5, 0.5, -0.5],
-            [-0.5, -0.5, -0.5],
-            [0.5, -0.5, -0.5],
-        ];
-        let indices = vec![
-            [0, 1, 2],
-            [0, 2, 3],
-            [0, 5, 1],
-            [0, 4, 5],
-            [0, 7, 4],
-            [0, 3, 7],
-            [6, 1, 5],
-            [6, 2, 1],
-            [6, 5, 4],
-            [6, 4, 7],
-            [6, 7, 3],
-            [6, 3, 2],
-        ];
-        let vertices = qube_vertices
+    pub fn cube() -> Shape {
+        let data = shape::CubeOption::new().build();
+        let vertices = data
+            .vertices
             .iter()
             .map(|&v| Vertex { local_position: v })
             .collect();
-        Shape { vertices, indices }
+        Shape {
+            vertices,
+            indices: data.indices,
+        }
     }
 }
 

@@ -29,7 +29,7 @@ fn log(s: String) {
 pub struct App {
     backend: Backend,
     lorentz_shader: LorentzShader,
-    qube: Shape,
+    cube: Shape,
     qube_properties: Vec<QubeProperty>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
@@ -76,7 +76,7 @@ impl App {
         Ok(App {
             backend,
             lorentz_shader,
-            qube: Shape::qube(),
+            cube: Shape::cube(),
             qube_properties,
             key_manager: KeyManager::new(),
             last_tick: None,
@@ -108,14 +108,15 @@ impl App {
         self.backend.clear();
 
         self.lorentz_shader
-            .bind_shared_data(&self.backend, &self.qube);
+            .bind_shared_data(&self.backend, &self.cube);
 
         let (width, height) = self.backend.get_viewport_size();
         let transition_matrix = self.player.transition_matrix();
         let projection_matrix =
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0);
         let rot_matrix = self.player.rot_matrix();
-        let lorentz_matrix = self.player.lorentz_matrix();
+        let view_perspective = projection_matrix * rot_matrix;
+        let lorentz = self.player.lorentz_matrix();
 
         for prop in self.qube_properties.iter() {
             let (pos_in_plc, _, _) = prop.world_line.past_intersection(self.player.position());
@@ -126,10 +127,10 @@ impl App {
             let data = LorentzLocalData {
                 color: prop.color,
                 model: transition_matrix * model_local_matrix,
-                lorentz: lorentz_matrix,
-                view_perspective: projection_matrix * rot_matrix,
+                lorentz,
+                view_perspective,
             };
-            self.lorentz_shader.draw(&self.backend, &self.qube, &data);
+            self.lorentz_shader.draw(&self.backend, &self.cube, &data);
         }
         self.backend.flush();
 
