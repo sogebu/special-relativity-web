@@ -108,6 +108,11 @@ impl Vector3 {
             self / magnitude
         }
     }
+
+    /// Gamma factor
+    pub fn gamma(&self) -> f64 {
+        (1.0 + self.magnitude2()).sqrt()
+    }
 }
 
 impl Vector4 {
@@ -147,8 +152,7 @@ impl Vector4 {
     ///
     /// The time-component of 4d velocity is gamma factor.
     pub fn from_velocity(u: Vector3) -> Vector4 {
-        let gamma = (1.0 + u.magnitude2()).sqrt();
-        Vector4::new(u.x, u.y, u.z, gamma)
+        Vector4::new(u.x, u.y, u.z, u.gamma())
     }
 
     /// Construct from spatial acceleration vector

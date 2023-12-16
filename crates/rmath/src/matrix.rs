@@ -7,7 +7,7 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Matrix {
-    rows: [[f64; 4]; 4],
+    pub(crate) rows: [[f64; 4]; 4],
 }
 
 impl Matrix {
@@ -220,6 +220,20 @@ impl Mul<Vector4> for Matrix {
             *t = row[0] * v.x + row[1] * v.y + row[2] * v.z + row[3] * v.t;
         }
         Vector4::new(t[0], t[1], t[2], t[3])
+    }
+}
+
+impl Mul<f64> for Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        let mut mat = self;
+        for row in mat.rows.iter_mut() {
+            for x in row.iter_mut() {
+                *x *= rhs;
+            }
+        }
+        mat
     }
 }
 
