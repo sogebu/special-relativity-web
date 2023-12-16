@@ -54,12 +54,13 @@ impl App {
         let mut measurement_points = Vec::new();
         for x in -num..=num {
             for y in -num..=num {
-                let d = 3.0;
-                measurement_points.push(StaticWorldLine::new(vec3(
-                    x as f64 * d,
-                    y as f64 * d,
-                    0.0,
-                )));
+                for z in -num..=num {
+                    measurement_points.push(StaticWorldLine::new(vec3(
+                        x as f64 * 3.0,
+                        y as f64 * 3.0,
+                        z as f64 * 6.0,
+                    )));
+                }
             }
         }
         let charge = Charge {
@@ -140,7 +141,10 @@ impl App {
             let me_factor = 1000.0;
             let e = fs.field_strength_to_electric_field();
             if e.magnitude() * me_factor > 1.0 {
-                let rotate = Matrix::from(Quaternion::from_rotation_arc(Vector3::Z_AXIS, e));
+                let rotate = Matrix::from(Quaternion::from_rotation_arc(
+                    Vector3::Z_AXIS,
+                    e.normalized(),
+                ));
                 let length = Matrix::scale(vec3(1.0, 1.0, (e.magnitude() * me_factor).log10()));
                 let data = JustLocalData {
                     color: RGBA::red(),
@@ -155,7 +159,10 @@ impl App {
 
             let m = fs.field_strength_to_magnetic_field();
             if m.magnitude() * me_factor > 1.0 {
-                let rotate = Matrix::from(Quaternion::from_rotation_arc(Vector3::Z_AXIS, m));
+                let rotate = Matrix::from(Quaternion::from_rotation_arc(
+                    Vector3::Z_AXIS,
+                    m.normalized(),
+                ));
                 let length = Matrix::scale(vec3(1.0, 1.0, (m.magnitude() * me_factor).log10()));
                 let data = JustLocalData {
                     color: RGBA::blue(),
