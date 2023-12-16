@@ -28,6 +28,10 @@ pub struct PhaseSpace {
 }
 
 impl Vector3 {
+    pub const X_AXIS: Vector3 = Vector3::new(1.0, 0.0, 0.0);
+    pub const Y_AXIS: Vector3 = Vector3::new(0.0, 1.0, 0.0);
+    pub const Z_AXIS: Vector3 = Vector3::new(0.0, 0.0, 1.0);
+
     /// Length of vector
     ///
     /// ```rust

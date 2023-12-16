@@ -65,6 +65,26 @@ pub struct Shape {
     indices: Vec<[u32; 3]>,
 }
 
+impl Shape {
+    fn bind(&self, gl: &Context, program: WebProgramKey, vbo: WebBufferKey, ebo: WebBufferKey) {
+        unsafe {
+            gl.use_program(Some(program));
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+            gl.buffer_data_u8_slice(
+                glow::ARRAY_BUFFER,
+                bytemuck::cast_slice(&self.vertices),
+                glow::STATIC_READ,
+            );
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+            gl.buffer_data_u8_slice(
+                glow::ELEMENT_ARRAY_BUFFER,
+                bytemuck::cast_slice(&self.indices),
+                glow::STATIC_READ,
+            );
+        }
+    }
+}
+
 impl From<shape::Data> for Shape {
     fn from(value: shape::Data) -> Self {
         let vertices = value
@@ -100,39 +120,33 @@ pub struct LorentzLocalData {
 impl LorentzShader {
     pub fn new(backend: &Backend) -> Result<LorentzShader, String> {
         let gl = &backend.gl;
-        unsafe {
-            let program = make_program(
-                gl,
-                include_str!("assets/vertex_shader.glsl"),
-                include_str!("assets/fragment_shader.glsl"),
-            )?;
-            gl.use_program(Some(program));
-            let vbo = gl.create_buffer()?;
-            gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-            let ebo = gl.create_buffer()?;
-            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+        let program = make_program(
+            gl,
+            include_str!("assets/lorentz_vertex_shader.glsl"),
+            include_str!("assets/fragment_shader.glsl"),
+        )?;
+        let (vbo, ebo) = make_buffer(&gl, program)?;
 
-            let mut vertex_attrib = Vec::new();
-            vertex_attrib.push(VertexAttrib::new(
-                gl,
-                program,
-                "vert_local_position",
-                3,
-                std::mem::size_of::<Vertex>(),
-                offset_of!(Vertex, local_position),
-            )?);
+        let mut vertex_attrib = Vec::new();
+        vertex_attrib.push(VertexAttrib::new(
+            gl,
+            program,
+            "vert_local_position",
+            3,
+            std::mem::size_of::<Vertex>(),
+            offset_of!(Vertex, local_position),
+        )?);
 
-            Ok(LorentzShader {
-                program,
-                vbo,
-                ebo,
-                color_location: get_uniform_location(gl, program, "uniform_color")?,
-                model_matrix_location: get_uniform_location(gl, program, "model")?,
-                lorentz_matrix_location: get_uniform_location(gl, program, "lorentz")?,
-                view_perspective_location: get_uniform_location(gl, program, "view_perspective")?,
-                vertex_attrib,
-            })
-        }
+        Ok(LorentzShader {
+            program,
+            vbo,
+            ebo,
+            color_location: get_uniform_location(gl, program, "uniform_color")?,
+            model_matrix_location: get_uniform_location(gl, program, "model")?,
+            lorentz_matrix_location: get_uniform_location(gl, program, "lorentz")?,
+            view_perspective_location: get_uniform_location(gl, program, "view_perspective")?,
+            vertex_attrib,
+        })
     }
 }
 
@@ -142,24 +156,9 @@ impl Shader for LorentzShader {
 
     fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData) {
         let gl = &backend.gl;
-        unsafe {
-            gl.use_program(Some(self.program));
-            gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vbo));
-            gl.buffer_data_u8_slice(
-                glow::ARRAY_BUFFER,
-                bytemuck::cast_slice(&data.vertices),
-                glow::STATIC_READ,
-            );
-            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(self.ebo));
-            gl.buffer_data_u8_slice(
-                glow::ELEMENT_ARRAY_BUFFER,
-                bytemuck::cast_slice(&data.indices),
-                glow::STATIC_READ,
-            );
-
-            for va in self.vertex_attrib.iter() {
-                va.bind(gl);
-            }
+        data.bind(gl, self.program, self.vbo, self.ebo);
+        for va in self.vertex_attrib.iter() {
+            va.bind(gl);
         }
     }
 
@@ -192,6 +191,97 @@ impl Shader for LorentzShader {
                 Some(&self.view_perspective_location),
                 false,
                 &local_data.view_perspective.open_gl(),
+            );
+            backend.gl.draw_elements(
+                glow::TRIANGLES,
+                (shared_data.indices.len() * 3) as i32,
+                glow::UNSIGNED_INT,
+                0,
+            );
+        }
+    }
+}
+
+pub struct JustShader {
+    program: WebProgramKey,
+    vbo: WebBufferKey,
+    ebo: WebBufferKey,
+    vertex_attrib: Vec<VertexAttrib>,
+    color_location: UniformLocation,
+    model_view_perspective_location: UniformLocation,
+}
+
+pub struct JustLocalData {
+    pub color: RGBA,
+    pub model_view_perspective: Matrix,
+}
+
+impl JustShader {
+    pub fn new(backend: &Backend) -> Result<JustShader, String> {
+        let gl = &backend.gl;
+        let program = make_program(
+            gl,
+            include_str!("assets/just_vertex_shader.glsl"),
+            include_str!("assets/fragment_shader.glsl"),
+        )?;
+        let (vbo, ebo) = make_buffer(&gl, program)?;
+
+        let mut vertex_attrib = Vec::new();
+        vertex_attrib.push(VertexAttrib::new(
+            gl,
+            program,
+            "vert_local_position",
+            3,
+            std::mem::size_of::<Vertex>(),
+            offset_of!(Vertex, local_position),
+        )?);
+
+        Ok(JustShader {
+            program,
+            vbo,
+            ebo,
+            color_location: get_uniform_location(gl, program, "uniform_color")?,
+            model_view_perspective_location: get_uniform_location(
+                gl,
+                program,
+                "model_view_perspective",
+            )?,
+            vertex_attrib,
+        })
+    }
+}
+
+impl Shader for JustShader {
+    type SharedData = Shape;
+    type LocalData = JustLocalData;
+
+    fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData) {
+        let gl = &backend.gl;
+        data.bind(gl, self.program, self.vbo, self.ebo);
+        for va in self.vertex_attrib.iter() {
+            va.bind(gl);
+        }
+    }
+
+    fn draw(
+        &self,
+        backend: &Backend,
+        shared_data: &Self::SharedData,
+        local_data: &Self::LocalData,
+    ) {
+        let gl = &backend.gl;
+        unsafe {
+            gl.uniform_4_f32(
+                Some(&self.color_location),
+                local_data.color.r,
+                local_data.color.g,
+                local_data.color.b,
+                local_data.color.a,
+            );
+            gl.uniform_matrix_4_f32_slice(
+                Some(&self.model_view_perspective_location),
+                false,
+                &local_data.model_view_perspective.open_gl(),
             );
             backend.gl.draw_elements(
                 glow::TRIANGLES,
@@ -282,6 +372,20 @@ fn make_program(
         gl.detach_shader(program, fs);
         gl.delete_shader(fs);
         Ok(program)
+    }
+}
+
+fn make_buffer(
+    gl: &Context,
+    program: WebProgramKey,
+) -> Result<(WebBufferKey, WebBufferKey), String> {
+    unsafe {
+        gl.use_program(Some(program));
+        let vbo = gl.create_buffer()?;
+        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+        let ebo = gl.create_buffer()?;
+        gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
+        Ok((vbo, ebo))
     }
 }
 

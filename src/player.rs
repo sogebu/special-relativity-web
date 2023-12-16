@@ -1,5 +1,5 @@
 use crate::key::KeyManager;
-use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
+use rmath::{vec3, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
 
 pub struct Player {
     phase_space: PhaseSpace,
@@ -17,9 +17,9 @@ impl Player {
         Player {
             phase_space: PhaseSpace::new(
                 Vector3::zero(),
-                Vector4::from_tv(0.0, vec3(0.0, 0.0, 0.0)),
+                Vector4::from_tv(0.0, vec3(0.0, 0.0, 20.0)),
             ),
-            quaternion: Quaternion::from_axis(Deg(130.0), vec3(-1.0, 1.0, 0.0)),
+            quaternion: Quaternion::one(),
         }
     }
 

@@ -1,7 +1,7 @@
 use crate::{Matrix, Vector3};
 
 impl Matrix {
-    /// Calculate field strength
+    /// Calculate field strength with upper indices
     ///
     /// q: charge
     /// l: position vector, from observer to charge, in observer's inertial frame
@@ -14,15 +14,15 @@ impl Matrix {
             return Matrix::zero();
         }
         let l_hat = l / l_len;
-        let u_t = u.gamma();
-        let a_t = a.dot(u) / u_t;
+        let u_t = u.gamma(); // =u^0 (upper index)
+        let a_t = a.dot(u) / u_t; // =a^0 (upper index)
 
         let lu = l_hat.dot(u);
         let la = l_hat.dot(a);
         let term_1 = l_hat * ((u_t * (la - 1.0 / l_len) - a_t * lu) / u_t.powi(3));
         let term_2 = u * ((a_t + la - 1.0 / l_len) / u_t.powi(3));
         let term_3 = a / u_t.powi(2);
-        let f_t = term_1 + term_2 - term_3;
+        let f_t = term_1 + term_2 - term_3; // =F^{0i} (upper index)
 
         let t_1 = 1.0 / u_t.powi(2);
         let t_2 = (a_t + la - 1.0 / l_len) / u_t.powi(3);
@@ -30,16 +30,20 @@ impl Matrix {
         let f_yz = (l_hat.y * a.z - l_hat.z * a.y) * t_1 - (l_hat.y * u.z - l_hat.z * u.y) * t_2;
         let f_zx = (l_hat.z * a.x - l_hat.x * a.z) * t_1 - (l_hat.z * u.x - l_hat.x * u.z) * t_2;
 
+        // xx, xy, xz, xt
+        // yx, yy, yz, yt
+        // zx, zy, zz, zt
+        // tx, ty, tz, tt
         Matrix::new(
-            [0.0, f_xy, -f_zx, f_t.x],
-            [-f_xy, 0.0, f_yz, f_t.y],
-            [f_zx, -f_yz, 0.0, f_t.z],
-            [-f_t.x, -f_t.y, -f_t.z, 0.0],
+            [0.0, f_xy, -f_zx, -f_t.x],
+            [-f_xy, 0.0, f_yz, -f_t.y],
+            [f_zx, -f_yz, 0.0, -f_t.z],
+            [f_t.x, f_t.y, f_t.z, 0.0],
         ) * (q / l_len)
     }
 
     pub fn field_strength_to_electric_field(&self) -> Vector3 {
-        Vector3::new(self.rows[0][3], self.rows[1][3], self.rows[2][3])
+        Vector3::new(self.rows[3][0], self.rows[3][1], self.rows[3][2])
     }
 
     pub fn field_strength_to_magnetic_field(&self) -> Vector3 {

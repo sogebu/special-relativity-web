@@ -7,7 +7,7 @@ pub trait WorldLine {
 
 pub struct StaticWorldLine {
     /// in world frame
-    pos: Vector3,
+    pub pos: Vector3,
 }
 
 impl StaticWorldLine {

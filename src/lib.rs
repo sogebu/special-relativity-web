@@ -1,13 +1,11 @@
-use rand::Rng;
-use rand_pcg::Mcg128Xsl64;
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext};
 
 use color::RGBA;
-use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, WorldLine};
+use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
 
 use crate::{
-    backend::{Backend, LorentzLocalData, LorentzShader, Shader, Shape},
+    backend::{Backend, JustLocalData, JustShader, LorentzLocalData, LorentzShader, Shader, Shape},
     key::KeyManager,
     player::Player,
 };
@@ -29,15 +27,18 @@ fn log(s: String) {
 pub struct App {
     backend: Backend,
     lorentz_shader: LorentzShader,
-    arrow: Shape,
-    qube_properties: Vec<QubeProperty>,
+    just_shader: JustShader,
+    arrow_shape: Shape,
+    charge_shape: Shape,
+    measurement_points: Vec<StaticWorldLine>,
+    charge: Charge,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
 }
 
-pub struct QubeProperty {
-    color: RGBA,
+struct Charge {
+    q: f64,
     world_line: StaticWorldLine,
 }
 
@@ -45,39 +46,39 @@ pub struct QubeProperty {
 impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
-        let mut rng = Mcg128Xsl64::new(3);
-
         let backend = Backend::new(context).map_err(wasm_error)?;
         let lorentz_shader = LorentzShader::new(&backend)?;
+        let just_shader = JustShader::new(&backend)?;
 
         let num = 20;
-        let mut qube_properties = Vec::new();
-        for x in 0..num {
-            for y in 0..num {
-                for z in 0..num {
-                    let color = RGBA::new(
-                        ((x * (256 / num)) as f32) / 255.0,
-                        ((y * (256 / num)) as f32) / 255.0,
-                        ((z * (256 / num)) as f32) / 255.0,
-                        1.0,
-                    );
-                    let d = 15.0;
-                    let wx = rng.gen_range(-d * num as f64..d * num as f64);
-                    let wy = rng.gen_range(-d * num as f64..d * num as f64);
-                    let wz = rng.gen_range(-d * num as f64..d * num as f64);
-                    qube_properties.push(QubeProperty {
-                        color,
-                        world_line: StaticWorldLine::new(vec3(wx, wy, wz)),
-                    });
-                }
+        let mut measurement_points = Vec::new();
+        for x in -num..=num {
+            for y in -num..=num {
+                let d = 3.0;
+                measurement_points.push(StaticWorldLine::new(vec3(
+                    x as f64 * d,
+                    y as f64 * d,
+                    0.0,
+                )));
             }
         }
+        let charge = Charge {
+            q: 1.0,
+            world_line: StaticWorldLine::new(vec3(0.0, 0.0, 0.0)),
+        };
 
         Ok(App {
             backend,
             lorentz_shader,
-            arrow: shape::ArrowOption::new().build().into(),
-            qube_properties,
+            just_shader,
+            arrow_shape: shape::ArrowOption::new()
+                .shaft_radius(0.03)
+                .head_radius(0.1)
+                .build()
+                .into(),
+            charge_shape: shape::IcosahedronOption::new().build().into(),
+            charge,
+            measurement_points,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
@@ -107,30 +108,65 @@ impl App {
 
         self.backend.clear();
 
-        self.lorentz_shader
-            .bind_shared_data(&self.backend, &self.arrow);
-
         let (width, height) = self.backend.get_viewport_size();
         let transition_matrix = self.player.transition_matrix();
-        let projection_matrix =
-            Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0);
-        let rot_matrix = self.player.rot_matrix();
-        let view_perspective = projection_matrix * rot_matrix;
+        let view_perspective =
+            Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0)
+                * self.player.rot_matrix();
         let lorentz = self.player.lorentz_matrix();
 
-        for prop in self.qube_properties.iter() {
-            let (pos_in_plc, _, _) = prop.world_line.past_intersection(self.player.position());
-            let rotate = Quaternion::from_axis(Deg(pos_in_plc.t * 100.0), vec3(1.0, 0.0, 0.0));
-            let model_local_matrix = Matrix::translation(pos_in_plc.spatial())
-                * Matrix::from(rotate)
-                * Matrix::scale(vec3(3.0, 3.0, 3.0));
-            let data = LorentzLocalData {
-                color: prop.color,
-                model: transition_matrix * model_local_matrix,
-                lorentz,
-                view_perspective,
-            };
-            self.lorentz_shader.draw(&self.backend, &self.arrow, &data);
+        let charge_data = LorentzLocalData {
+            color: RGBA::yellow(),
+            lorentz,
+            view_perspective,
+            model: transition_matrix * Matrix::translation(self.charge.world_line.pos),
+        };
+        self.lorentz_shader
+            .bind_shared_data(&self.backend, &self.charge_shape);
+        self.lorentz_shader
+            .draw(&self.backend, &self.charge_shape, &charge_data);
+
+        self.just_shader
+            .bind_shared_data(&self.backend, &self.arrow_shape);
+        for m in self.measurement_points.iter() {
+            let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position());
+            let (charge_x, charge_u, charge_a) =
+                self.charge.world_line.past_intersection(pos_on_player_plc);
+            let l = charge_x - pos_on_player_plc;
+            let fs = Matrix::field_strength(self.charge.q, l.spatial(), charge_u, charge_a);
+            let fs = lorentz * fs * lorentz.transposed();
+
+            let pos = lorentz * (pos_on_player_plc - self.player.position());
+            let me_factor = 1000.0;
+            let e = fs.field_strength_to_electric_field();
+            if e.magnitude() * me_factor > 1.0 {
+                let rotate = Matrix::from(Quaternion::from_rotation_arc(Vector3::Z_AXIS, e));
+                let length = Matrix::scale(vec3(1.0, 1.0, (e.magnitude() * me_factor).log10()));
+                let data = JustLocalData {
+                    color: RGBA::red(),
+                    model_view_perspective: view_perspective
+                        * Matrix::translation(pos.spatial())
+                        * rotate
+                        * length,
+                };
+                self.just_shader
+                    .draw(&self.backend, &self.arrow_shape, &data);
+            }
+
+            let m = fs.field_strength_to_magnetic_field();
+            if m.magnitude() * me_factor > 1.0 {
+                let rotate = Matrix::from(Quaternion::from_rotation_arc(Vector3::Z_AXIS, m));
+                let length = Matrix::scale(vec3(1.0, 1.0, (m.magnitude() * me_factor).log10()));
+                let data = JustLocalData {
+                    color: RGBA::blue(),
+                    model_view_perspective: view_perspective
+                        * Matrix::translation(pos.spatial())
+                        * rotate
+                        * length,
+                };
+                self.just_shader
+                    .draw(&self.backend, &self.arrow_shape, &data);
+            }
         }
         self.backend.flush();
 
