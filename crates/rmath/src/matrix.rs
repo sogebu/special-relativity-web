@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut, Mul};
+use std::ops::{Add, Index, IndexMut, Mul};
 
 use crate::{
     angle::Rad,
@@ -237,17 +237,17 @@ impl Mul<f64> for Matrix {
     }
 }
 
-impl Index<(usize, usize)> for Matrix {
-    type Output = f64;
+impl Add for Matrix {
+    type Output = Matrix;
 
-    fn index(&self, index: (usize, usize)) -> &f64 {
-        &self.rows[index.0][index.1]
-    }
-}
-
-impl IndexMut<(usize, usize)> for Matrix {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut f64 {
-        &mut self.rows[index.0][index.1]
+    fn add(self, rhs: Matrix) -> Self::Output {
+        let mut mat = self;
+        for (lhs, rhs) in mat.rows.iter_mut().zip(rhs.rows.iter()) {
+            for (lhs, rhs) in lhs.iter_mut().zip(rhs) {
+                *lhs += *rhs;
+            }
+        }
+        mat
     }
 }
 
@@ -273,6 +273,51 @@ mod tests {
                 [202., 228., 254., 280.],
                 [314., 356., 398., 440.],
                 [426., 484., 542., 600.],
+            )
+        );
+    }
+
+    #[test]
+    fn mat_add() {
+        let m1 = Matrix::new(
+            [1.0, 2.0, 3.0, 4.0],
+            [5.0, 6.0, 7.0, 8.0],
+            [9.0, 10.0, 11.0, 12.0],
+            [13.0, 14.0, 15.0, 16.0],
+        );
+        let m2 = Matrix::new(
+            [1.5, 2.5, 3.5, 4.5],
+            [5.5, 6.5, 7.5, 8.5],
+            [9.5, 10.5, 11.5, 12.5],
+            [13.5, 14.5, 15.5, 16.5],
+        );
+        assert_eq!(m1 + Matrix::zero(), m1);
+        assert_eq!(
+            m1 + m2,
+            Matrix::new(
+                [2.5, 4.5, 6.5, 8.5],
+                [10.5, 12.5, 14.5, 16.5],
+                [18.5, 20.5, 22.5, 24.5],
+                [26.5, 28.5, 30.5, 32.5],
+            )
+        );
+    }
+
+    #[test]
+    fn mul_broadcast() {
+        let m = Matrix::new(
+            [1.0, 2.0, 3.0, 4.0],
+            [5.0, 6.0, 7.0, 8.0],
+            [9.0, 10.0, 11.0, 12.0],
+            [13.0, 14.0, 15.0, 16.0],
+        );
+        assert_eq!(
+            m * -2.0,
+            Matrix::new(
+                [-2.0, -4.0, -6.0, -8.0],
+                [-10.0, -12.0, -14.0, -16.0],
+                [-18.0, -20.0, -22.0, -24.0],
+                [-26.0, -28.0, -30.0, -32.0],
             )
         );
     }
