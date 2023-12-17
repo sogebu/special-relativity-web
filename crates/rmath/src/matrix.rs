@@ -1,4 +1,4 @@
-use std::ops::{Add, Index, IndexMut, Mul};
+use std::ops::{Add, Mul};
 
 use crate::{
     angle::Rad,

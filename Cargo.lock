@@ -205,6 +205,8 @@ version = "0.1.0"
 dependencies = [
  "approx",
  "bytemuck",
+ "rand",
+ "rand_pcg",
 ]
 
 [[package]]
