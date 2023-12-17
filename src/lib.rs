@@ -1,22 +1,12 @@
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext};
 
-use color::RGBA;
-use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
+use crate::app::InternalApp;
 
-use crate::{
-    backend::{Backend, JustLocalData, JustShader, LorentzLocalData, LorentzShader, Shader, Shape},
-    key::KeyManager,
-    player::Player,
-};
-
+mod app;
 mod backend;
 mod key;
 mod player;
-
-fn wasm_error(s: String) -> JsValue {
-    s.into()
-}
 
 #[allow(dead_code)]
 fn log(s: String) {
@@ -24,159 +14,32 @@ fn log(s: String) {
 }
 
 #[wasm_bindgen]
-pub struct App {
-    backend: Backend,
-    lorentz_shader: LorentzShader,
-    just_shader: JustShader,
-    arrow_shape: Shape,
-    charge_shape: Shape,
-    measurement_points: Vec<StaticWorldLine>,
-    charge: Charge,
-    key_manager: KeyManager,
-    last_tick: Option<f64>,
-    player: Player,
-}
-
-struct Charge {
-    q: f64,
-    world_line: StaticWorldLine,
-}
+pub struct App(InternalApp);
 
 #[wasm_bindgen]
 impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
-        let backend = Backend::new(context).map_err(wasm_error)?;
-        let lorentz_shader = LorentzShader::new(&backend)?;
-        let just_shader = JustShader::new(&backend)?;
-
-        let num = 20;
-        let mut measurement_points = Vec::new();
-        for x in -num..=num {
-            for y in -num..=num {
-                for z in -num..=num {
-                    measurement_points.push(StaticWorldLine::new(vec3(
-                        x as f64 * 3.0,
-                        y as f64 * 3.0,
-                        z as f64 * 6.0,
-                    )));
-                }
-            }
-        }
-        let charge = Charge {
-            q: 1.0,
-            world_line: StaticWorldLine::new(vec3(0.0, 0.0, 0.0)),
-        };
-
-        Ok(App {
-            backend,
-            lorentz_shader,
-            just_shader,
-            arrow_shape: shape::ArrowOption::new()
-                .shaft_radius(0.03)
-                .head_radius(0.1)
-                .build()
-                .into(),
-            charge_shape: shape::IcosahedronOption::new().build().into(),
-            charge,
-            measurement_points,
-            key_manager: KeyManager::new(),
-            last_tick: None,
-            player: Player::new(),
-        })
+        Ok(App(InternalApp::new(context)?))
     }
 
     #[wasm_bindgen]
     pub fn key_down(&mut self, key: String) {
-        self.key_manager.down(key);
+        self.0.key_down(key);
     }
 
     #[wasm_bindgen]
     pub fn key_up(&mut self, key: String) {
-        self.key_manager.up(key);
+        self.0.key_up(key);
     }
 
     #[wasm_bindgen]
     pub fn window_blue(&mut self) {
-        self.key_manager.clear();
+        self.0.window_blue();
     }
 
     #[wasm_bindgen]
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
-        let last_tick = self.last_tick.replace(timestamp);
-        let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
-        self.player.tick(dt, &self.key_manager);
-
-        self.backend.clear();
-
-        let (width, height) = self.backend.get_viewport_size();
-        let transition_matrix = self.player.transition_matrix();
-        let view_perspective =
-            Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0)
-                * self.player.rot_matrix();
-        let lorentz = self.player.lorentz_matrix();
-
-        let charge_data = LorentzLocalData {
-            color: RGBA::yellow(),
-            lorentz,
-            view_perspective,
-            model: transition_matrix * Matrix::translation(self.charge.world_line.pos),
-        };
-        self.lorentz_shader
-            .bind_shared_data(&self.backend, &self.charge_shape);
-        self.lorentz_shader
-            .draw(&self.backend, &self.charge_shape, &charge_data);
-
-        self.just_shader
-            .bind_shared_data(&self.backend, &self.arrow_shape);
-        for m in self.measurement_points.iter() {
-            let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position());
-            let (charge_x, charge_u, charge_a) =
-                self.charge.world_line.past_intersection(pos_on_player_plc);
-            let l = charge_x - pos_on_player_plc;
-            let fs = Matrix::field_strength(self.charge.q, l.spatial(), charge_u, charge_a);
-            let fs = lorentz * fs * lorentz.transposed();
-
-            let pos = lorentz * (pos_on_player_plc - self.player.position());
-            let me_factor = 1000.0;
-            let e = fs.field_strength_to_electric_field();
-            if e.magnitude() * me_factor > 1.0 {
-                let rotate = Matrix::from(Quaternion::from_rotation_arc(
-                    Vector3::Z_AXIS,
-                    e.normalized(),
-                ));
-                let length = Matrix::scale(vec3(1.0, 1.0, (e.magnitude() * me_factor).log10()));
-                let data = JustLocalData {
-                    color: RGBA::red(),
-                    model_view_perspective: view_perspective
-                        * Matrix::translation(pos.spatial())
-                        * rotate
-                        * length,
-                };
-                self.just_shader
-                    .draw(&self.backend, &self.arrow_shape, &data);
-            }
-
-            let m = fs.field_strength_to_magnetic_field();
-            if m.magnitude() * me_factor > 1.0 {
-                let rotate = Matrix::from(Quaternion::from_rotation_arc(
-                    Vector3::Z_AXIS,
-                    m.normalized(),
-                ));
-                let length = Matrix::scale(vec3(1.0, 1.0, (m.magnitude() * me_factor).log10()));
-                let data = JustLocalData {
-                    color: RGBA::blue(),
-                    model_view_perspective: view_perspective
-                        * Matrix::translation(pos.spatial())
-                        * rotate
-                        * length,
-                };
-                self.just_shader
-                    .draw(&self.backend, &self.arrow_shape, &data);
-            }
-        }
-        self.backend.flush();
-
-        Ok(())
+        self.0.tick(timestamp)
     }
 }

@@ -125,7 +125,7 @@ impl LorentzShader {
             include_str!("assets/lorentz_vertex_shader.glsl"),
             include_str!("assets/fragment_shader.glsl"),
         )?;
-        let (vbo, ebo) = make_buffer(&gl, program)?;
+        let (vbo, ebo) = make_buffer(gl, program)?;
 
         let mut vertex_attrib = Vec::new();
         vertex_attrib.push(VertexAttrib::new(
@@ -224,7 +224,7 @@ impl JustShader {
             include_str!("assets/just_vertex_shader.glsl"),
             include_str!("assets/fragment_shader.glsl"),
         )?;
-        let (vbo, ebo) = make_buffer(&gl, program)?;
+        let (vbo, ebo) = make_buffer(gl, program)?;
 
         let mut vertex_attrib = Vec::new();
         vertex_attrib.push(VertexAttrib::new(
