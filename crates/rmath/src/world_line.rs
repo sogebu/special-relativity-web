@@ -2,7 +2,7 @@ use crate::{Vector3, Vector4};
 
 pub trait WorldLine {
     /// x is observer's position
-    fn past_intersection(&self, x: Vector4) -> (Vector4, Vector3, Vector3);
+    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)>;
 }
 
 pub struct StaticWorldLine {
@@ -17,13 +17,38 @@ impl StaticWorldLine {
 }
 
 impl WorldLine for StaticWorldLine {
-    fn past_intersection(&self, x: Vector4) -> (Vector4, Vector3, Vector3) {
+    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
         let t = x.t - (x.spatial() - self.pos).magnitude();
-        (
+        Some((
             Vector4::from_tv(t, self.pos),
             Vector3::zero(),
             Vector3::zero(),
-        )
+        ))
+    }
+}
+
+pub struct CutOffWorldLine<W> {
+    world_line: W,
+    appeared: f64,
+}
+
+impl<W> CutOffWorldLine<W> {
+    pub fn new(world_line: W, appeared: f64) -> CutOffWorldLine<W> {
+        CutOffWorldLine {
+            world_line,
+            appeared,
+        }
+    }
+}
+
+impl<W: WorldLine> WorldLine for CutOffWorldLine<W> {
+    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
+        let (x, u, a) = self.world_line.past_intersection(x)?;
+        if x.t < self.appeared {
+            None
+        } else {
+            Some((x, u, a))
+        }
     }
 }
 
@@ -103,14 +128,14 @@ impl LineOscillateWorldLine {
 }
 
 impl WorldLine for LineOscillateWorldLine {
-    fn past_intersection(&self, x: Vector4) -> (Vector4, Vector3, Vector3) {
+    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
         let t = self.newton(x);
         let (sin, cos) = (self.omega * t).sin_cos();
-        (
+        Some((
             Vector4::from_tv(t, self.center + self.amplitude * sin),
             self.amplitude * (self.omega * cos),
             self.amplitude * (-self.omega * self.omega * sin),
-        )
+        ))
     }
 }
 
@@ -124,10 +149,24 @@ mod tests {
     #[test]
     fn static_world_line() {
         let wl = StaticWorldLine::new(Vector3::new(1.0, 2.0, 3.0));
-        let (x, u, a) = wl.past_intersection(Vector4::from_tv(1.0, Vector3::new(-2.0, 2.0, -1.0)));
+        let (x, u, a) = wl
+            .past_intersection(Vector4::from_tv(1.0, Vector3::new(-2.0, 2.0, -1.0)))
+            .unwrap();
         assert_relative_eq!(x, Vector4::from_tv(-4.0, Vector3::new(1.0, 2.0, 3.0)));
         assert_eq!(u, Vector3::zero());
         assert_eq!(a, Vector3::zero());
+    }
+
+    #[test]
+    fn cut_off_world_line() {
+        let wl = StaticWorldLine::new(Vector3::new(1.0, 2.0, 3.0));
+        let wl = CutOffWorldLine::new(wl, -1.0);
+        let (x, _, _) = wl
+            .past_intersection(Vector4::from_tv(4.5, Vector3::new(-2.0, 2.0, -1.0)))
+            .unwrap();
+        assert_relative_eq!(x, Vector4::from_tv(-0.5, Vector3::new(1.0, 2.0, 3.0)));
+        let p = wl.past_intersection(Vector4::from_tv(3.5, Vector3::new(-1.5, 2.0, -1.0)));
+        assert!(p.is_none());
     }
 
     #[test]
@@ -155,7 +194,7 @@ mod tests {
                 rng.gen_range(-1000.0..1000.0),
                 rng.gen_range(-1000.0..1000.0),
             );
-            let (px, pu, _) = wl.past_intersection(x);
+            let (px, pu, _) = wl.past_intersection(x).unwrap();
             assert!(
                 (x - px).lorentz_norm2().abs() < 1e-8,
                 "x={:?}\npx={:?}\nnorm={}\nu={}",
