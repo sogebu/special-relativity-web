@@ -139,42 +139,38 @@ impl InternalApp {
             let fs = lorentz * fs * lorentz.transposed();
 
             let pos = lorentz * (pos_on_player_plc - self.player.position());
-            let me_factor = 1.0;
+            let me_factor = 10.0;
             let e = fs.field_strength_to_electric_field();
-            if e.magnitude() * me_factor > 1.0 {
-                let rotate = Matrix::from(Quaternion::from_rotation_arc(
-                    Vector3::Z_AXIS,
-                    e.normalized(),
-                ));
-                let length = Matrix::scale(vec3(1.0, 1.0, (e.magnitude() * me_factor).log10()));
-                let data = JustLocalData {
-                    color: RGBA::red(),
-                    model_view_perspective: view_perspective
-                        * Matrix::translation(pos.spatial())
-                        * rotate
-                        * length,
-                };
-                self.just_shader
-                    .draw(&self.backend, &self.arrow_shape, &data);
-            }
+            let rotate = Matrix::from(Quaternion::from_rotation_arc(
+                Vector3::Z_AXIS,
+                e.normalized(),
+            ));
+            let length = Matrix::scale(vec3(1.0, 1.0, (1.0 + e.magnitude() * me_factor).log10()));
+            let data = JustLocalData {
+                color: RGBA::red(),
+                model_view_perspective: view_perspective
+                    * Matrix::translation(pos.spatial())
+                    * rotate
+                    * length,
+            };
+            self.just_shader
+                .draw(&self.backend, &self.arrow_shape, &data);
 
             let m = fs.field_strength_to_magnetic_field();
-            if m.magnitude() * me_factor > 1.0 {
-                let rotate = Matrix::from(Quaternion::from_rotation_arc(
-                    Vector3::Z_AXIS,
-                    m.normalized(),
-                ));
-                let length = Matrix::scale(vec3(1.0, 1.0, (m.magnitude() * me_factor).log10()));
-                let data = JustLocalData {
-                    color: RGBA::blue(),
-                    model_view_perspective: view_perspective
-                        * Matrix::translation(pos.spatial())
-                        * rotate
-                        * length,
-                };
-                self.just_shader
-                    .draw(&self.backend, &self.arrow_shape, &data);
-            }
+            let rotate = Matrix::from(Quaternion::from_rotation_arc(
+                Vector3::Z_AXIS,
+                m.normalized(),
+            ));
+            let length = Matrix::scale(vec3(1.0, 1.0, (1.0 + m.magnitude() * me_factor).log10()));
+            let data = JustLocalData {
+                color: RGBA::blue(),
+                model_view_perspective: view_perspective
+                    * Matrix::translation(pos.spatial())
+                    * rotate
+                    * length,
+            };
+            self.just_shader
+                .draw(&self.backend, &self.arrow_shape, &data);
         }
         self.backend.flush();
 
