@@ -24,7 +24,7 @@ pub struct InternalApp {
     arrow_shape: Shape,
     charge_shape: Shape,
     measurement_points: Vec<StaticWorldLine>,
-    charge: Charge,
+    charges: Vec<Charge>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
@@ -53,10 +53,15 @@ impl InternalApp {
                 )));
             }
         }
-        let a = vec3(1.0, 0.0, 0.0);
-        let wl = LineOscillateWorldLine::new(vec3(0.0, 0.0, 0.0), a, 0.1).unwrap();
-        let charge = Charge {
+        let wl =
+            LineOscillateWorldLine::new(vec3(0.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1).unwrap();
+        let charge1 = Charge {
             q: 1.0,
+            world_line: CutOffWorldLine::new(wl, -200.0),
+        };
+        let wl = LineOscillateWorldLine::new(vec3(0., 2.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1).unwrap();
+        let charge2 = Charge {
+            q: -1.0,
             world_line: CutOffWorldLine::new(wl, -200.0),
         };
 
@@ -70,7 +75,7 @@ impl InternalApp {
                 .build()
                 .into(),
             charge_shape: shape::IcosahedronOption::new().radius(0.1).build().into(),
-            charge,
+            charges: vec![charge1, charge2],
             measurement_points,
             key_manager: KeyManager::new(),
             last_tick: None,
@@ -108,16 +113,16 @@ impl InternalApp {
                 * self.player.rot_matrix();
         let lorentz = self.player.lorentz_matrix();
 
-        if let Some((charge_x, _, _)) = self
-            .charge
-            .world_line
-            .past_intersection(self.player.position())
-        {
+        for charge in self.charges.iter() {
+            let Some((x, _, _)) = charge.world_line.past_intersection(self.player.position())
+            else {
+                continue;
+            };
             let charge_data = LorentzLocalData {
                 color: RGBA::yellow(),
                 lorentz,
                 view_perspective,
-                model: transition_matrix * Matrix::translation(charge_x.spatial()),
+                model: transition_matrix * Matrix::translation(x.spatial()),
             };
             self.lorentz_shader
                 .bind_shared_data(&self.backend, &self.charge_shape);
@@ -129,23 +134,38 @@ impl InternalApp {
             .bind_shared_data(&self.backend, &self.arrow_shape);
         for m in self.measurement_points.iter() {
             let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position()).unwrap();
-            let Some((charge_x, charge_u, charge_a)) =
-                self.charge.world_line.past_intersection(pos_on_player_plc)
-            else {
+
+            let charges = self
+                .charges
+                .iter()
+                .filter_map(|c| {
+                    c.world_line
+                        .past_intersection(pos_on_player_plc)
+                        .and_then(|x| Some((c.q, x)))
+                })
+                .collect::<Vec<_>>();
+            if charges.is_empty() {
                 continue;
-            };
-            let l = charge_x - pos_on_player_plc;
-            let fs = Matrix::field_strength(self.charge.q, l.spatial(), charge_u, charge_a);
-            let fs = lorentz * fs * lorentz.transposed();
+            }
+            let mut fs = Matrix::zero();
+            for (q, (x, u, a)) in charges {
+                let l = x - pos_on_player_plc;
+                fs = fs
+                    + lorentz * Matrix::field_strength(q, l.spatial(), u, a) * lorentz.transposed();
+            }
 
             let pos = lorentz * (pos_on_player_plc - self.player.position());
-            let me_factor = 10.0;
+            let me_factor = 100.0;
             let e = fs.field_strength_to_electric_field();
             let rotate = Matrix::from(Quaternion::from_rotation_arc(
                 Vector3::Z_AXIS,
                 e.normalized(),
             ));
-            let length = Matrix::scale(vec3(1.0, 1.0, (1.0 + e.magnitude() * me_factor).log10()));
+            let length = Matrix::scale(vec3(
+                1.0,
+                1.0,
+                (1.0 + (1.0 + e.magnitude() * me_factor).log10()).log10(),
+            ));
             let data = JustLocalData {
                 color: RGBA::red(),
                 model_view_perspective: view_perspective
@@ -161,7 +181,11 @@ impl InternalApp {
                 Vector3::Z_AXIS,
                 m.normalized(),
             ));
-            let length = Matrix::scale(vec3(1.0, 1.0, (1.0 + m.magnitude() * me_factor).log10()));
+            let length = Matrix::scale(vec3(
+                1.0,
+                1.0,
+                (1.0 + (1.0 + m.magnitude() * me_factor).log10()).log10(),
+            ));
             let data = JustLocalData {
                 color: RGBA::blue(),
                 model_view_perspective: view_perspective
