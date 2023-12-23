@@ -2,7 +2,10 @@ use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
 use color::RGBA;
-use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
+use rmath::{
+    vec3, CutOffWorldLine, Deg, LineOscillateWorldLine, Matrix, Quaternion, StaticWorldLine,
+    Vector3, WorldLine,
+};
 
 use crate::{
     backend::{Backend, JustLocalData, JustShader, LorentzLocalData, LorentzShader, Shader, Shape},
@@ -29,7 +32,7 @@ pub struct InternalApp {
 
 struct Charge {
     q: f64,
-    world_line: StaticWorldLine,
+    world_line: CutOffWorldLine<LineOscillateWorldLine>,
 }
 
 impl InternalApp {
@@ -39,22 +42,22 @@ impl InternalApp {
         let lorentz_shader = LorentzShader::new(&backend)?;
         let just_shader = JustShader::new(&backend)?;
 
-        let num = 20;
+        let num = 100;
         let mut measurement_points = Vec::new();
         for x in -num..=num {
             for y in -num..=num {
-                for z in -num..=num {
-                    measurement_points.push(StaticWorldLine::new(vec3(
-                        x as f64 * 3.0,
-                        y as f64 * 3.0,
-                        z as f64 * 6.0,
-                    )));
-                }
+                measurement_points.push(StaticWorldLine::new(vec3(
+                    x as f64 * 0.4,
+                    y as f64 * 0.4,
+                    0.1,
+                )));
             }
         }
+        let a = vec3(1.0, 0.0, 0.0);
+        let wl = LineOscillateWorldLine::new(vec3(0.0, 0.0, 0.0), a, 0.1).unwrap();
         let charge = Charge {
             q: 1.0,
-            world_line: StaticWorldLine::new(vec3(0.0, 0.0, 0.0)),
+            world_line: CutOffWorldLine::new(wl, -200.0),
         };
 
         Ok(InternalApp {
@@ -62,11 +65,11 @@ impl InternalApp {
             lorentz_shader,
             just_shader,
             arrow_shape: shape::ArrowOption::new()
-                .shaft_radius(0.03)
-                .head_radius(0.1)
+                .shaft_radius(0.01)
+                .head_radius(0.04)
                 .build()
                 .into(),
-            charge_shape: shape::IcosahedronOption::new().build().into(),
+            charge_shape: shape::IcosahedronOption::new().radius(0.1).build().into(),
             charge,
             measurement_points,
             key_manager: KeyManager::new(),
@@ -105,29 +108,38 @@ impl InternalApp {
                 * self.player.rot_matrix();
         let lorentz = self.player.lorentz_matrix();
 
-        let charge_data = LorentzLocalData {
-            color: RGBA::yellow(),
-            lorentz,
-            view_perspective,
-            model: transition_matrix * Matrix::translation(self.charge.world_line.pos),
-        };
-        self.lorentz_shader
-            .bind_shared_data(&self.backend, &self.charge_shape);
-        self.lorentz_shader
-            .draw(&self.backend, &self.charge_shape, &charge_data);
+        if let Some((charge_x, _, _)) = self
+            .charge
+            .world_line
+            .past_intersection(self.player.position())
+        {
+            let charge_data = LorentzLocalData {
+                color: RGBA::yellow(),
+                lorentz,
+                view_perspective,
+                model: transition_matrix * Matrix::translation(charge_x.spatial()),
+            };
+            self.lorentz_shader
+                .bind_shared_data(&self.backend, &self.charge_shape);
+            self.lorentz_shader
+                .draw(&self.backend, &self.charge_shape, &charge_data);
+        }
 
         self.just_shader
             .bind_shared_data(&self.backend, &self.arrow_shape);
         for m in self.measurement_points.iter() {
-            let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position());
-            let (charge_x, charge_u, charge_a) =
-                self.charge.world_line.past_intersection(pos_on_player_plc);
+            let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position()).unwrap();
+            let Some((charge_x, charge_u, charge_a)) =
+                self.charge.world_line.past_intersection(pos_on_player_plc)
+            else {
+                continue;
+            };
             let l = charge_x - pos_on_player_plc;
             let fs = Matrix::field_strength(self.charge.q, l.spatial(), charge_u, charge_a);
             let fs = lorentz * fs * lorentz.transposed();
 
             let pos = lorentz * (pos_on_player_plc - self.player.position());
-            let me_factor = 1000.0;
+            let me_factor = 1.0;
             let e = fs.field_strength_to_electric_field();
             if e.magnitude() * me_factor > 1.0 {
                 let rotate = Matrix::from(Quaternion::from_rotation_arc(

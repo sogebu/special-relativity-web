@@ -17,7 +17,7 @@ impl Player {
         Player {
             phase_space: PhaseSpace::new(
                 Vector3::zero(),
-                Vector4::from_tv(0.0, vec3(0.0, 0.0, 20.0)),
+                Vector4::from_tv(0.0, vec3(0.0, 0.0, 10.0)),
             ),
             quaternion: Quaternion::one(),
         }
