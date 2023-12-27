@@ -22,6 +22,7 @@ pub struct InternalApp {
     lorentz_shader: LorentzShader,
     just_shader: JustShader,
     arrow_shape: Shape,
+    arrow_config: ArrowConfig,
     charge_shape: Shape,
     measurement_points: Vec<StaticWorldLine>,
     charges: Vec<Charge>,
@@ -65,15 +66,14 @@ impl InternalApp {
             world_line: CutOffWorldLine::new(wl, -200.0),
         };
 
+        let arrow_config = ArrowConfig::default();
+
         Ok(InternalApp {
             backend,
             lorentz_shader,
             just_shader,
-            arrow_shape: shape::ArrowOption::new()
-                .shaft_radius(0.01)
-                .head_radius(0.04)
-                .build()
-                .into(),
+            arrow_shape: arrow_config.shape_data(),
+            arrow_config,
             charge_shape: shape::IcosahedronOption::new().radius(0.1).build().into(),
             charges: vec![charge1, charge2],
             measurement_points,
@@ -150,54 +150,71 @@ impl InternalApp {
             let mut fs = Matrix::zero();
             for (q, (x, u, a)) in charges {
                 let l = x - pos_on_player_plc;
-                fs = fs
-                    + lorentz * Matrix::field_strength(q, l.spatial(), u, a) * lorentz.transposed();
+                fs = fs + Matrix::field_strength(q, l.spatial(), u, a);
             }
+            fs = lorentz * fs * lorentz.transposed();
 
             let pos = lorentz * (pos_on_player_plc - self.player.position());
-            let me_factor = 100.0;
+            let projection = view_perspective * Matrix::translation(pos.spatial());
             let e = fs.field_strength_to_electric_field();
-            let rotate = Matrix::from(Quaternion::from_rotation_arc(
-                Vector3::Z_AXIS,
-                e.normalized(),
-            ));
-            let length = Matrix::scale(vec3(
-                1.0,
-                1.0,
-                (1.0 + (1.0 + e.magnitude() * me_factor).log10()).log10(),
-            ));
-            let data = JustLocalData {
-                color: RGBA::red(),
-                model_view_perspective: view_perspective
-                    * Matrix::translation(pos.spatial())
-                    * rotate
-                    * length,
-            };
-            self.just_shader
-                .draw(&self.backend, &self.arrow_shape, &data);
-
+            self.draw_arrow(e, RGBA::red(), projection);
             let m = fs.field_strength_to_magnetic_field();
-            let rotate = Matrix::from(Quaternion::from_rotation_arc(
-                Vector3::Z_AXIS,
-                m.normalized(),
-            ));
-            let length = Matrix::scale(vec3(
-                1.0,
-                1.0,
-                (1.0 + (1.0 + m.magnitude() * me_factor).log10()).log10(),
-            ));
-            let data = JustLocalData {
-                color: RGBA::blue(),
-                model_view_perspective: view_perspective
-                    * Matrix::translation(pos.spatial())
-                    * rotate
-                    * length,
-            };
-            self.just_shader
-                .draw(&self.backend, &self.arrow_shape, &data);
+            self.draw_arrow(m, RGBA::blue(), projection);
         }
         self.backend.flush();
 
         Ok(())
+    }
+
+    fn draw_arrow(&self, v: Vector3, color: RGBA, projection: Matrix) {
+        let rotate = Matrix::from(Quaternion::from_rotation_arc(
+            Vector3::Z_AXIS,
+            v.normalized(),
+        ));
+        let data = JustLocalData {
+            color,
+            model_view_perspective: projection
+                * rotate
+                * Matrix::scale(Vector3::new(1.0, 1.0, self.arrow_config.arrow_length(v))),
+        };
+        self.just_shader
+            .draw(&self.backend, &self.arrow_shape, &data);
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct ArrowConfig {
+    shaft_radius: f32,
+    head_radius: f32,
+    log_count: u8,
+    length_factor: f64,
+}
+
+impl Default for ArrowConfig {
+    fn default() -> Self {
+        ArrowConfig {
+            shaft_radius: 0.01,
+            head_radius: 0.04,
+            log_count: 2,
+            length_factor: 0.1,
+        }
+    }
+}
+
+impl ArrowConfig {
+    pub fn shape_data(&self) -> Shape {
+        shape::ArrowOption::new()
+            .shaft_radius(self.shaft_radius)
+            .head_radius(self.head_radius)
+            .build()
+            .into()
+    }
+
+    pub fn arrow_length(&self, v: Vector3) -> f64 {
+        let mut length = v.magnitude() * 1e6;
+        for _ in 0..self.log_count {
+            length = (1.0 + length).ln();
+        }
+        length * self.length_factor
     }
 }
