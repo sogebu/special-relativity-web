@@ -139,12 +139,103 @@ impl WorldLine for LineOscillateWorldLine {
     }
 }
 
+pub struct DiscreteWorldLine {
+    x: Vec<Vector4>,
+}
+
+impl DiscreteWorldLine {
+    pub fn new() -> DiscreteWorldLine {
+        DiscreteWorldLine { x: Vec::new() }
+    }
+
+    pub fn push(&mut self, x: Vector4) {
+        self.x.push(x);
+    }
+
+    fn find_future_nearest(&self, x: Vector4) -> Option<usize> {
+        if self.x.len() <= 2 {
+            return None;
+        }
+        // lo = past = norm is negative
+        let mut lo = 1;
+        let norm_lo = (self.x[lo] - x).lorentz_norm2();
+        if norm_lo > 0.0 {
+            return None;
+        }
+        // hi = future = norm is positive
+        let mut hi = self.x.len() - 1;
+        let norm_hi = (self.x[hi] - x).lorentz_norm2();
+        if norm_hi < 0.0 {
+            return None;
+        }
+        for (i, xx) in self.x.iter().copied().enumerate() {
+            println!("{}: {}", i, (xx - x).lorentz_norm2());
+        }
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            let norm = (self.x[mid] - x).lorentz_norm2();
+            if norm >= 0.0 {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+
+        Some(hi)
+    }
+}
+
+impl WorldLine for DiscreteWorldLine {
+    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
+        let i = self.find_future_nearest(x)?;
+        let x0 = self.x[i - 2]; // next to nearest past
+        let x1 = self.x[i - 1]; // nearest past
+        let x2 = self.x[i]; // most future
+
+        let a = -(x2 - x1).lorentz_norm2();
+        let b = -(x2 - x1).lorentz_dot(x - x1);
+        let c = -(x - x1).lorentz_norm2();
+        let lambda = c / (b + (b * b - a * c).sqrt());
+
+        let tau0 = (-(x1 - x0).lorentz_norm2()).sqrt();
+        let tau1 = (-(x2 - x1).lorentz_norm2()).sqrt();
+        let u0 = (x1 - x0).spatial() / tau0;
+        let u1 = (x2 - x1).spatial() / tau1;
+        let acc = (u1 - u0) * (2.0 / (tau0 + tau1));
+
+        Some((x1 * (1.0 - lambda) + x2 * lambda, u1, acc))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use approx::assert_relative_eq;
     use rand::Rng;
     use rand_pcg::Mcg128Xsl64;
+
+    #[test]
+    fn discrete_world_line_zero() {
+        use crate::PhaseSpace;
+        let mut wl = DiscreteWorldLine::new();
+        let mut p = PhaseSpace::new(Vector3::zero(), Vector4::zero());
+        for _ in 0..4 {
+            wl.push(p.position);
+            p.tick(0.5, Vector3::zero());
+        }
+        let (x, u, a) = wl
+            .past_intersection(Vector4::from_tv(2.0, Vector3::new(1.0, 0.0, 0.0)))
+            .unwrap();
+        assert_relative_eq!(x, Vector4::from_tv(1.0, Vector3::zero()));
+        assert_relative_eq!(u, Vector3::zero());
+        assert_relative_eq!(a, Vector3::zero());
+        let (x, u, a) = wl
+            .past_intersection(Vector4::from_tv(2.25, Vector3::new(1.0, 0.0, 0.0)))
+            .unwrap();
+        assert_relative_eq!(x, Vector4::from_tv(1.25, Vector3::zero()));
+        assert_relative_eq!(u, Vector3::zero());
+        assert_relative_eq!(a, Vector3::zero());
+    }
 
     #[test]
     fn static_world_line() {
