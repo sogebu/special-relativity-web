@@ -5,6 +5,7 @@ pub trait WorldLine {
     fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)>;
 }
 
+#[derive(Debug, Clone)]
 pub struct StaticWorldLine {
     /// in world frame
     pub pos: Vector3,
@@ -27,6 +28,7 @@ impl WorldLine for StaticWorldLine {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CutOffWorldLine<W> {
     world_line: W,
     appeared: f64,
@@ -53,6 +55,7 @@ impl<W: WorldLine> WorldLine for CutOffWorldLine<W> {
 }
 
 /// p(t) = center + amplitude * sin(ωt)
+#[derive(Debug, Clone)]
 pub struct LineOscillateWorldLine {
     center: Vector3,
     amplitude: Vector3,
@@ -139,6 +142,7 @@ impl WorldLine for LineOscillateWorldLine {
     }
 }
 
+#[derive(Debug, Default, Clone)]
 pub struct DiscreteWorldLine {
     x: Vec<Vector4>,
 }

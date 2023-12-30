@@ -141,7 +141,7 @@ impl InternalApp {
                 .filter_map(|c| {
                     c.world_line
                         .past_intersection(pos_on_player_plc)
-                        .and_then(|x| Some((c.q, x)))
+                        .map(|x| (c.q, x))
                 })
                 .collect::<Vec<_>>();
             if charges.is_empty() {
