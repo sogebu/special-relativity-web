@@ -43,14 +43,14 @@ impl InternalApp {
         let lorentz_shader = LorentzShader::new(&backend)?;
         let just_shader = JustShader::new(&backend)?;
 
-        let num = 100;
+        let num = 50;
         let mut measurement_points = Vec::new();
         for x in -num..=num {
             for y in -num..=num {
                 measurement_points.push(StaticWorldLine::new(vec3(
-                    x as f64 * 0.4,
-                    y as f64 * 0.4,
-                    0.1,
+                    x as f64 * 0.5,
+                    y as f64 * 0.5,
+                    0.0,
                 )));
             }
         }
