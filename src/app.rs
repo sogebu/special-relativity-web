@@ -195,7 +195,7 @@ impl Default for ArrowConfig {
         ArrowConfig {
             shaft_radius: 0.01,
             head_radius: 0.04,
-            log_count: 2,
+            log_count: 1,
             length_factor: 0.1,
         }
     }
@@ -211,7 +211,7 @@ impl ArrowConfig {
     }
 
     pub fn arrow_length(&self, v: Vector3) -> f64 {
-        let mut length = v.magnitude() * 1e6;
+        let mut length = v.magnitude() * 1e3;
         for _ in 0..self.log_count {
             length = (1.0 + length).ln();
         }
