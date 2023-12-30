@@ -52,7 +52,7 @@ impl IcosahedronOption {
                 [x - a, y + b, z], // 10
                 [x - a, y - b, z], // 11
             ],
-            indices: vec![
+            triangles: vec![
                 [0, 2, 4],
                 [2, 0, 5],
                 [3, 1, 6],

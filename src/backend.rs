@@ -62,7 +62,7 @@ struct Vertex {
 
 pub struct Shape {
     vertices: Vec<Vertex>,
-    indices: Vec<[u32; 3]>,
+    triangles: Vec<[u32; 3]>,
 }
 
 impl Shape {
@@ -78,7 +78,7 @@ impl Shape {
             gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ebo));
             gl.buffer_data_u8_slice(
                 glow::ELEMENT_ARRAY_BUFFER,
-                bytemuck::cast_slice(&self.indices),
+                bytemuck::cast_slice(&self.triangles),
                 glow::STATIC_READ,
             );
         }
@@ -94,7 +94,7 @@ impl From<shape::Data> for Shape {
             .collect();
         Shape {
             vertices,
-            indices: value.indices,
+            triangles: value.triangles,
         }
     }
 }
@@ -194,7 +194,7 @@ impl Shader for LorentzShader {
             );
             backend.gl.draw_elements(
                 glow::TRIANGLES,
-                (shared_data.indices.len() * 3) as i32,
+                (shared_data.triangles.len() * 3) as i32,
                 glow::UNSIGNED_INT,
                 0,
             );
@@ -285,7 +285,7 @@ impl Shader for JustShader {
             );
             backend.gl.draw_elements(
                 glow::TRIANGLES,
-                (shared_data.indices.len() * 3) as i32,
+                (shared_data.triangles.len() * 3) as i32,
                 glow::UNSIGNED_INT,
                 0,
             );

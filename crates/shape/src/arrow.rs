@@ -60,7 +60,7 @@ impl ArrowOption {
     pub fn build(&self) -> Data {
         let [rx, ry, rz] = self.root;
         let mut vertices = Vec::new();
-        let mut indices = Vec::new();
+        let mut triangles = Vec::new();
 
         let calc_xy = |i: usize, r: f32| {
             let theta = std::f64::consts::TAU * i as f64 / self.div as f64;
@@ -77,7 +77,7 @@ impl ArrowOption {
         }
         // face of bottom
         for i in 0..self.div {
-            indices.push([0, 1 + ((i + 1) % self.div) as u32, 1 + i as u32]);
+            triangles.push([0, 1 + ((i + 1) % self.div) as u32, 1 + i as u32]);
         }
 
         for i in 0..self.div {
@@ -90,8 +90,8 @@ impl ArrowOption {
             let b = 1 + ((i + 1) % self.div) as u32;
             let c = 1 + (self.div + i) as u32;
             let d = 1 + (self.div + (i + 1) % self.div) as u32;
-            indices.push([a, b, d]);
-            indices.push([d, c, a]);
+            triangles.push([a, b, d]);
+            triangles.push([d, c, a]);
         }
 
         for i in 0..self.div {
@@ -107,11 +107,14 @@ impl ArrowOption {
             let c = 1 + (self.div * 2 + i) as u32;
             let d = 1 + (self.div * 2 + (i + 1) % self.div) as u32;
             let e = 1 + (self.div * 3) as u32;
-            indices.push([a, b, d]);
-            indices.push([d, c, a]);
-            indices.push([c, d, e]);
+            triangles.push([a, b, d]);
+            triangles.push([d, c, a]);
+            triangles.push([c, d, e]);
         }
 
-        Data { vertices, indices }
+        Data {
+            vertices,
+            triangles,
+        }
     }
 }

@@ -44,7 +44,7 @@ impl CubeOption {
                 [x - half, y - half, z - half],
                 [x + half, y - half, z - half],
             ],
-            indices: vec![
+            triangles: vec![
                 [0, 1, 2],
                 [0, 2, 3],
                 [0, 5, 1],
