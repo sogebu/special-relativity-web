@@ -2,8 +2,6 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssi
 
 use approx::{AbsDiffEq, RelativeEq};
 
-use crate::matrix::Matrix;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
 pub struct Vector3 {
@@ -19,12 +17,6 @@ pub struct Vector4 {
     pub y: f64,
     pub z: f64,
     pub t: f64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PhaseSpace {
-    pub velocity: Vector3,
-    pub position: Vector4,
 }
 
 impl Vector3 {
@@ -164,23 +156,6 @@ impl Vector4 {
     /// The time-component if always zero.
     pub fn from_acceleration(a: Vector3) -> Vector4 {
         Vector4::new(a.x, a.y, a.z, 0.0)
-    }
-}
-
-impl PhaseSpace {
-    /// Construct PhaseSpace instance
-    pub const fn new(velocity: Vector3, position: Vector4) -> PhaseSpace {
-        PhaseSpace { velocity, position }
-    }
-
-    /// Calculate the time evolution for one step based on
-    /// the acceleration and the time tick width ``ds``
-    /// given in the rest system.
-    pub fn tick(&mut self, ds: f64, acceleration: Vector3) {
-        let lorentz = Matrix::lorentz(-self.velocity);
-        let acceleration = lorentz * Vector4::from_acceleration(acceleration);
-        self.position += Vector4::from_velocity(self.velocity) * ds;
-        self.velocity += acceleration.spatial() * ds;
     }
 }
 
