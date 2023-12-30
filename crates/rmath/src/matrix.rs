@@ -255,19 +255,20 @@ impl Add for Matrix {
 mod tests {
     use super::*;
 
+    const M: Matrix = Matrix::new(
+        [1.0, 2.0, 3.0, 4.0],
+        [5.0, 6.0, 7.0, 8.0],
+        [9.0, 10.0, 11.0, 12.0],
+        [13.0, 14.0, 15.0, 16.0],
+    );
+
     #[test]
     fn mat_mul() {
-        let m = Matrix::new(
-            [1.0, 2.0, 3.0, 4.0],
-            [5.0, 6.0, 7.0, 8.0],
-            [9.0, 10.0, 11.0, 12.0],
-            [13.0, 14.0, 15.0, 16.0],
-        );
-        assert_eq!(m * Matrix::ident(), m);
-        assert_eq!(Matrix::ident() * m, m);
-        assert_eq!(m * Matrix::zero(), Matrix::zero());
+        assert_eq!(M * Matrix::ident(), M);
+        assert_eq!(Matrix::ident() * M, M);
+        assert_eq!(M * Matrix::zero(), Matrix::zero());
         assert_eq!(
-            m * m,
+            M * M,
             Matrix::new(
                 [90., 100., 110., 120.],
                 [202., 228., 254., 280.],
@@ -278,22 +279,24 @@ mod tests {
     }
 
     #[test]
-    fn mat_add() {
-        let m1 = Matrix::new(
-            [1.0, 2.0, 3.0, 4.0],
-            [5.0, 6.0, 7.0, 8.0],
-            [9.0, 10.0, 11.0, 12.0],
-            [13.0, 14.0, 15.0, 16.0],
+    fn mat_vec_mul() {
+        assert_eq!(
+            M * Vector4::new(1.0, 2.0, 3.0, 4.0),
+            Vector4::new(30.0, 70.0, 110.0, 150.0)
         );
+    }
+
+    #[test]
+    fn mat_add() {
         let m2 = Matrix::new(
             [1.5, 2.5, 3.5, 4.5],
             [5.5, 6.5, 7.5, 8.5],
             [9.5, 10.5, 11.5, 12.5],
             [13.5, 14.5, 15.5, 16.5],
         );
-        assert_eq!(m1 + Matrix::zero(), m1);
+        assert_eq!(M + Matrix::zero(), M);
         assert_eq!(
-            m1 + m2,
+            M + m2,
             Matrix::new(
                 [2.5, 4.5, 6.5, 8.5],
                 [10.5, 12.5, 14.5, 16.5],
@@ -305,20 +308,22 @@ mod tests {
 
     #[test]
     fn mul_broadcast() {
-        let m = Matrix::new(
-            [1.0, 2.0, 3.0, 4.0],
-            [5.0, 6.0, 7.0, 8.0],
-            [9.0, 10.0, 11.0, 12.0],
-            [13.0, 14.0, 15.0, 16.0],
-        );
         assert_eq!(
-            m * -2.0,
+            M * -2.0,
             Matrix::new(
                 [-2.0, -4.0, -6.0, -8.0],
                 [-10.0, -12.0, -14.0, -16.0],
                 [-18.0, -20.0, -22.0, -24.0],
                 [-26.0, -28.0, -30.0, -32.0],
             )
+        );
+    }
+
+    #[test]
+    fn scale() {
+        assert_eq!(
+            Matrix::scale(Vector3::new(-0.5, 2.0, 1.5)) * Vector3::new(2.0, 3.0, 4.0),
+            Vector3::new(-1.0, 6.0, 6.0)
         );
     }
 
