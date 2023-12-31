@@ -92,7 +92,7 @@ impl CubeOption {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Vertex;
+    use crate::{VertexA, VertexB};
 
     #[test]
     fn no_normal() {
@@ -103,8 +103,23 @@ mod tests {
 
     #[test]
     fn face_normal() {
-        let cube = CubeOption::new().build::<Vertex>();
+        let cube = CubeOption::new().build::<VertexA>();
         assert_eq!(cube.vertices.len(), 24);
+        assert_eq!(cube.vertices[0].normal, [0.0, 0.0, 1.0]);
+        assert_eq!(cube.triangles.len(), 12);
+    }
+
+    #[test]
+    fn vert_normal() {
+        let cube = CubeOption::new()
+            .build::<VertexB>()
+            .vertex_converted::<VertexA>();
+        assert_eq!(cube.vertices.len(), 8);
+        for v in cube.vertices.iter() {
+            for x in v.normal {
+                assert_eq!(x.abs(), (1f32 / 3.0).sqrt());
+            }
+        }
         assert_eq!(cube.triangles.len(), 12);
     }
 }

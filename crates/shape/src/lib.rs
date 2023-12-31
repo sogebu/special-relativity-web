@@ -18,12 +18,38 @@ impl<V> Data<V> {
             triangles: Vec::with_capacity(t),
         }
     }
+
+    pub fn append(&mut self, other: Data<V>) {
+        let n = self.vertices.len() as u32;
+        self.vertices.extend(other.vertices);
+        self.triangles.extend(
+            other
+                .triangles
+                .iter()
+                .map(|&[i, j, k]| [n + i, n + j, n + k]),
+        );
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct Vertex {
+impl<V: Copy> Data<V> {
+    pub fn vertex_converted<W: From<V>>(&self) -> Data<W> {
+        Data {
+            vertices: self.vertices.iter().map(|&v| v.into()).collect(),
+            triangles: self.triangles.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct VertexA {
     pub position: [f32; 3],
     pub normal: [f32; 3],
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct VertexB {
+    pub position: [f32; 3],
+    pub normal: Vector3,
 }
 
 pub trait AddFace {
@@ -55,29 +81,66 @@ impl AddFace for Data<[f32; 3]> {
     }
 }
 
-impl AddFace for Data<Vertex> {
+impl AddFace for Data<VertexA> {
     fn add_face(&mut self, face: &Face) {
         let base = self.vertices.len() as u32;
         for i in 1..face.vertices.len() as u32 - 1 {
             self.triangles.push([base, base + i, base + i + 1]);
         }
-        let normal = face.normal();
+        let normal = face.normal().into();
         self.vertices.extend(
             face.vertices
                 .iter()
-                .map(|&position| Vertex { position, normal }),
+                .map(|&position| VertexA { position, normal }),
         )
     }
 }
 
+impl AddFace for Data<VertexB> {
+    fn add_face(&mut self, face: &Face) {
+        let normal = face.normal();
+        let mut indices = Vec::with_capacity(face.vertices.len());
+        'OUT: for &v in face.vertices.iter() {
+            for (i, p) in self.vertices.iter_mut().enumerate() {
+                if p.position == v {
+                    p.normal += normal;
+                    indices.push(i);
+                    continue 'OUT;
+                }
+            }
+            indices.push(self.vertices.len());
+            self.vertices.push(VertexB {
+                position: v,
+                normal,
+            });
+        }
+
+        let i0 = indices[0] as u32;
+        for i in 1..face.vertices.len() - 1 {
+            let i1 = indices[i] as u32;
+            let i2 = indices[i + 1] as u32;
+            self.triangles.push([i0, i1, i2]);
+        }
+    }
+}
+
 impl Face {
-    pub fn normal(&self) -> [f32; 3] {
+    pub fn normal(&self) -> Vector3 {
         let i = Vector3::from(self.vertices[0]);
         let j = Vector3::from(self.vertices[1]);
         let k = Vector3::from(self.vertices[2]);
         let a = j - i;
         let b = k - j;
-        a.cross(b).normalized().into()
+        a.cross(b).normalized()
+    }
+}
+
+impl From<VertexB> for VertexA {
+    fn from(v: VertexB) -> Self {
+        VertexA {
+            position: v.position,
+            normal: v.normal.normalized().into(),
+        }
     }
 }
 
@@ -94,7 +157,7 @@ impl Data<[f32; 3]> {
     }
 }
 
-impl Data<Vertex> {
+impl Data<VertexA> {
     #[cfg(feature = "obj")]
     pub fn write_as_obj<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
         for v in self.vertices.iter() {
