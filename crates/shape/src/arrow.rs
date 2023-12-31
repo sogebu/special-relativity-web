@@ -1,4 +1,4 @@
-use crate::{AddFace, Data, Face, VertexB};
+use crate::{AddFace, Data, Face, VertexPositionCalcNormal};
 use rmath::Vector3;
 
 pub struct ArrowOption {
@@ -60,7 +60,7 @@ impl ArrowOption {
 
     pub fn build<V>(&self) -> Data<V>
     where
-        V: From<VertexB>,
+        V: From<VertexPositionCalcNormal>,
         Data<V>: AddFace,
     {
         let [rx, ry, rz] = self.root;
@@ -77,13 +77,13 @@ impl ArrowOption {
         let mut vertices = Vec::with_capacity(1 + self.div * 3);
         let mut triangles = Vec::with_capacity(self.div * 6);
         let normal = Vector3::new(0.0, 0.0, -1.0);
-        vertices.push(VertexB {
+        vertices.push(VertexPositionCalcNormal {
             position: [rx, ry, rz],
             normal,
         });
         for i in 0..self.div {
             let (x, y) = calc_xy(i, self.shaft_radius);
-            vertices.push(VertexB {
+            vertices.push(VertexPositionCalcNormal {
                 position: [x, y, rz],
                 normal,
             });
@@ -97,7 +97,8 @@ impl ArrowOption {
         };
 
         // side of shaft
-        let mut shaft_side = Data::<VertexB>::with_capacity(self.div * 2, self.div * 2);
+        let mut shaft_side =
+            Data::<VertexPositionCalcNormal>::with_capacity(self.div * 2, self.div * 2);
         for i in 0..self.div {
             let (x1, y1) = calc_xy(i, self.shaft_radius);
             let (x2, y2) = calc_xy(i + 1, self.shaft_radius);
@@ -116,11 +117,11 @@ impl ArrowOption {
         for i in 0..self.div {
             let (x1, y1) = calc_xy(i, self.shaft_radius);
             let (x2, y2) = calc_xy(i, self.head_radius);
-            vertices.push(VertexB {
+            vertices.push(VertexPositionCalcNormal {
                 position: [x1, y1, rz + self.shaft_length],
                 normal,
             });
-            vertices.push(VertexB {
+            vertices.push(VertexPositionCalcNormal {
                 position: [x2, y2, rz + self.shaft_length],
                 normal,
             });
@@ -140,7 +141,7 @@ impl ArrowOption {
 
         // head
         let o = [rx, ry, rz + self.shaft_length + self.head_length];
-        let mut head = Data::<VertexB>::with_capacity(self.div + 1, self.div);
+        let mut head = Data::<VertexPositionCalcNormal>::with_capacity(self.div + 1, self.div);
         for i in 0..self.div {
             let (x1, y1) = calc_xy(i, self.head_radius);
             let (x2, y2) = calc_xy(i + 1, self.head_radius);
@@ -158,25 +159,27 @@ impl ArrowOption {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{VertexA, VertexB};
+    use crate::{VertexPosition, VertexPositionCalcNormal, VertexPositionNormal};
 
     #[test]
     fn no_normal() {
-        let cube = ArrowOption::new().div(5).build::<[f32; 3]>().dedup();
+        let cube = ArrowOption::new().div(5).build::<VertexPosition>().dedup();
         assert_eq!(cube.vertices.len(), 1 + 5 * 3 + 1);
         assert_eq!(cube.triangles.len(), 5 * 6);
     }
 
     #[test]
     fn face_normal() {
-        let cube = ArrowOption::new().div(6).build::<VertexA>();
+        let cube = ArrowOption::new().div(6).build::<VertexPositionNormal>();
         assert_eq!(cube.vertices.len(), 1 + 6 * 6 + 1);
         assert_eq!(cube.triangles.len(), 6 * 6);
     }
 
     #[test]
     fn vert_normal() {
-        let cube = ArrowOption::new().div(7).build::<VertexB>();
+        let cube = ArrowOption::new()
+            .div(7)
+            .build::<VertexPositionCalcNormal>();
         assert_eq!(cube.vertices.len(), 1 + 7 * 6 + 1);
         assert_eq!(cube.triangles.len(), 7 * 6);
     }

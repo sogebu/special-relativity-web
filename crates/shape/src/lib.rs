@@ -40,8 +40,8 @@ impl<V: Copy> Data<V> {
     }
 }
 
-impl Data<[f32; 3]> {
-    pub fn dedup(&self) -> Data<[f32; 3]> {
+impl Data<VertexPosition> {
+    pub fn dedup(&self) -> Data<VertexPosition> {
         let mut vertices = Vec::new();
         let mut indices = Vec::new();
         'OUT: for v in self.vertices.iter() {
@@ -71,14 +71,19 @@ impl Data<[f32; 3]> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct VertexA {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VertexPosition {
+    pub position: [f32; 3],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VertexPositionNormal {
     pub position: [f32; 3],
     pub normal: [f32; 3],
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct VertexB {
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VertexPositionCalcNormal {
     pub position: [f32; 3],
     pub normal: Vector3,
 }
@@ -91,15 +96,15 @@ pub struct Face {
     pub vertices: Vec<[f32; 3]>,
 }
 
-impl AddFace for Data<[f32; 3]> {
+impl AddFace for Data<VertexPosition> {
     fn add_face(&mut self, face: &Face) {
-        fn push_vertex(data: &mut Data<[f32; 3]>, v: [f32; 3]) -> u32 {
-            for (i, &p) in data.vertices.iter().enumerate() {
-                if v == p {
+        fn push_vertex(data: &mut Data<VertexPosition>, p: [f32; 3]) -> u32 {
+            for (i, &v) in data.vertices.iter().enumerate() {
+                if p == v.position {
                     return i as u32;
                 }
             }
-            data.vertices.push(v);
+            data.vertices.push(VertexPosition { position: p });
             data.vertices.len() as u32 - 1
         }
 
@@ -112,7 +117,7 @@ impl AddFace for Data<[f32; 3]> {
     }
 }
 
-impl AddFace for Data<VertexA> {
+impl AddFace for Data<VertexPositionNormal> {
     fn add_face(&mut self, face: &Face) {
         let base = self.vertices.len() as u32;
         for i in 1..face.vertices.len() as u32 - 1 {
@@ -122,12 +127,12 @@ impl AddFace for Data<VertexA> {
         self.vertices.extend(
             face.vertices
                 .iter()
-                .map(|&position| VertexA { position, normal }),
+                .map(|&position| VertexPositionNormal { position, normal }),
         )
     }
 }
 
-impl AddFace for Data<VertexB> {
+impl AddFace for Data<VertexPositionCalcNormal> {
     fn add_face(&mut self, face: &Face) {
         let normal = face.normal();
         let mut indices = Vec::with_capacity(face.vertices.len());
@@ -140,7 +145,7 @@ impl AddFace for Data<VertexB> {
                 }
             }
             indices.push(self.vertices.len());
-            self.vertices.push(VertexB {
+            self.vertices.push(VertexPositionCalcNormal {
                 position: v,
                 normal,
             });
@@ -166,31 +171,35 @@ impl Face {
     }
 }
 
-impl From<VertexB> for VertexA {
-    fn from(v: VertexB) -> Self {
-        VertexA {
+impl From<VertexPositionCalcNormal> for VertexPositionNormal {
+    fn from(v: VertexPositionCalcNormal) -> Self {
+        VertexPositionNormal {
             position: v.position,
             normal: v.normal.normalized().into(),
         }
     }
 }
 
-impl From<VertexA> for [f32; 3] {
-    fn from(v: VertexA) -> Self {
-        v.position
+impl From<VertexPositionNormal> for VertexPosition {
+    fn from(v: VertexPositionNormal) -> Self {
+        VertexPosition {
+            position: v.position,
+        }
     }
 }
 
-impl From<VertexB> for [f32; 3] {
-    fn from(v: VertexB) -> Self {
-        v.position
+impl From<VertexPositionCalcNormal> for VertexPosition {
+    fn from(v: VertexPositionCalcNormal) -> Self {
+        VertexPosition {
+            position: v.position,
+        }
     }
 }
 
-impl Data<[f32; 3]> {
+impl Data<VertexPosition> {
     #[cfg(feature = "obj")]
     pub fn write_as_obj<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
-        for [x, y, z] in self.vertices.iter() {
+        for [x, y, z] in self.vertices.iter().map(|v| v.position) {
             write!(w, "v {} {} {}\n", x, y, z)?;
         }
         for &[x, y, z] in self.triangles.iter() {
@@ -200,7 +209,7 @@ impl Data<[f32; 3]> {
     }
 }
 
-impl Data<VertexA> {
+impl Data<VertexPositionNormal> {
     #[cfg(feature = "obj")]
     pub fn write_as_obj<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
         for v in self.vertices.iter() {

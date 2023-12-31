@@ -89,18 +89,18 @@ impl IcosahedronOption {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{VertexA, VertexB};
+    use crate::{VertexPosition, VertexPositionCalcNormal, VertexPositionNormal};
 
     #[test]
     fn no_normal() {
-        let cube = IcosahedronOption::new().build::<[f32; 3]>();
+        let cube = IcosahedronOption::new().build::<VertexPosition>();
         assert_eq!(cube.vertices.len(), 12);
         assert_eq!(cube.triangles.len(), 20);
     }
 
     #[test]
     fn face_normal() {
-        let cube = IcosahedronOption::new().build::<VertexA>();
+        let cube = IcosahedronOption::new().build::<VertexPositionNormal>();
         assert_eq!(cube.vertices.len(), 60);
         assert_eq!(cube.triangles.len(), 20);
     }
@@ -108,8 +108,8 @@ mod tests {
     #[test]
     fn vert_normal() {
         let cube = IcosahedronOption::new()
-            .build::<VertexB>()
-            .vertex_converted::<VertexA>();
+            .build::<VertexPositionCalcNormal>()
+            .vertex_converted::<VertexPositionNormal>();
         assert_eq!(cube.vertices.len(), 12);
         assert_eq!(cube.triangles.len(), 20);
     }
