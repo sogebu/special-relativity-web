@@ -8,7 +8,9 @@ use rmath::{
 };
 
 use crate::{
-    backend::{Backend, JustLocalData, JustShader, LorentzLocalData, LorentzShader, Shader, Shape},
+    backend::{
+        Backend, JustLocalData, JustShader, LorentzLocalData, LorentzShader, Shader, Shape, Vertex,
+    },
     key::KeyManager,
     player::Player,
 };
@@ -21,9 +23,9 @@ pub struct InternalApp {
     backend: Backend,
     lorentz_shader: LorentzShader,
     just_shader: JustShader,
-    arrow_shape: Shape,
+    arrow_shape: Shape<Vertex>,
     arrow_config: ArrowConfig,
-    charge_shape: Shape,
+    charge_shape: Shape<Vertex>,
     measurement_points: Vec<StaticWorldLine>,
     charges: Vec<Charge>,
     key_manager: KeyManager,
@@ -74,7 +76,10 @@ impl InternalApp {
             just_shader,
             arrow_shape: arrow_config.shape_data(),
             arrow_config,
-            charge_shape: shape::IcosahedronOption::new().radius(0.1).build().into(),
+            charge_shape: shape::IcosahedronOption::new()
+                .radius(0.1)
+                .build::<shape::VertexPosition>()
+                .into(),
             charges: vec![charge1, charge2],
             measurement_points,
             key_manager: KeyManager::new(),
@@ -202,11 +207,12 @@ impl Default for ArrowConfig {
 }
 
 impl ArrowConfig {
-    pub fn shape_data(&self) -> Shape {
+    pub fn shape_data(&self) -> Shape<Vertex> {
         shape::ArrowOption::new()
             .shaft_radius(self.shaft_radius)
             .head_radius(self.head_radius)
-            .build()
+            .build::<shape::VertexPosition>()
+            .dedup()
             .into()
     }
 
