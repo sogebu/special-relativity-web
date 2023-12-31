@@ -40,7 +40,7 @@ impl IcosahedronOption {
         let phi = (1.0 + 5.0f64.sqrt()) / 2.0;
         let a = ((r as f64) / (phi * phi + 1.0).sqrt()) as f32;
         let b = ((r as f64) * phi / (phi * phi + 1.0).sqrt()) as f32;
-        let vertices = vec![
+        let vertices = [
             [x, y + a, z + b], // 0
             [x, y + a, z - b], // 1
             [x, y - a, z + b], // 2
@@ -54,7 +54,7 @@ impl IcosahedronOption {
             [x - a, y + b, z], // 10
             [x - a, y - b, z], // 11
         ];
-        let triangles = vec![
+        let triangles = [
             [0, 2, 4],
             [2, 0, 5],
             [3, 1, 6],

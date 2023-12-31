@@ -1,4 +1,5 @@
-use crate::Data;
+use crate::{AddFace, Data, Face, VertexB};
+use rmath::Vector3;
 
 pub struct ArrowOption {
     div: usize,
@@ -57,64 +58,126 @@ impl ArrowOption {
         self
     }
 
-    pub fn build(&self) -> Data<[f32; 3]> {
+    pub fn build<V>(&self) -> Data<V>
+    where
+        V: From<VertexB>,
+        Data<V>: AddFace,
+    {
         let [rx, ry, rz] = self.root;
-        let mut vertices = Vec::new();
-        let mut triangles = Vec::new();
 
         let calc_xy = |i: usize, r: f32| {
-            let theta = std::f64::consts::TAU * i as f64 / self.div as f64;
+            let theta = std::f64::consts::TAU * (i % self.div) as f64 / self.div as f64;
             let (sin, cos) = theta.sin_cos();
-            let x = rx + r * sin as f32;
-            let y = ry + r * cos as f32;
+            let x = rx + r * cos as f32;
+            let y = ry + r * sin as f32;
             (x, y)
         };
 
-        vertices.push([rx, ry, rz]);
+        // bottom
+        let mut vertices = Vec::with_capacity(1 + self.div * 3);
+        let mut triangles = Vec::with_capacity(self.div * 6);
+        let normal = Vector3::new(0.0, 0.0, -1.0);
+        vertices.push(VertexB {
+            position: [rx, ry, rz],
+            normal,
+        });
         for i in 0..self.div {
             let (x, y) = calc_xy(i, self.shaft_radius);
-            vertices.push([x, y, rz]);
+            vertices.push(VertexB {
+                position: [x, y, rz],
+                normal,
+            });
         }
-        // face of bottom
         for i in 0..self.div {
             triangles.push([0, 1 + ((i + 1) % self.div) as u32, 1 + i as u32]);
         }
-
-        for i in 0..self.div {
-            let (x, y) = calc_xy(i, self.shaft_radius);
-            vertices.push([x, y, rz + self.shaft_length]);
-        }
-        // face of shaft side
-        for i in 0..self.div {
-            let a = 1 + i as u32;
-            let b = 1 + ((i + 1) % self.div) as u32;
-            let c = 1 + (self.div + i) as u32;
-            let d = 1 + (self.div + (i + 1) % self.div) as u32;
-            triangles.push([a, b, d]);
-            triangles.push([d, c, a]);
-        }
-
-        for i in 0..self.div {
-            let (x, y) = calc_xy(i, self.head_radius);
-            vertices.push([x, y, rz + self.shaft_length]);
-        }
-        vertices.push([rx, ry, rz + self.shaft_length + self.head_length]);
-
-        // face of head
-        for i in 0..self.div {
-            let a = 1 + (self.div + i) as u32;
-            let b = 1 + (self.div + (i + 1) % self.div) as u32;
-            let c = 1 + (self.div * 2 + i) as u32;
-            let d = 1 + (self.div * 2 + (i + 1) % self.div) as u32;
-            let e = 1 + (self.div * 3) as u32;
-            triangles.push([a, b, d]);
-            triangles.push([d, c, a]);
-            triangles.push([c, d, e]);
-        }
-
-        Data {
+        let mut bottom = Data {
             vertices,
             triangles,
+        };
+
+        // side of shaft
+        let mut shaft_side = Data::<VertexB>::with_capacity(self.div * 2, self.div * 2);
+        for i in 0..self.div {
+            let (x1, y1) = calc_xy(i, self.shaft_radius);
+            let (x2, y2) = calc_xy(i + 1, self.shaft_radius);
+            let z1 = rz;
+            let z2 = rz + self.shaft_length;
+            shaft_side.add_face(&Face {
+                vertices: vec![[x1, y1, z1], [x2, y2, z1], [x2, y2, z2], [x1, y1, z2]],
+            });
         }
+        bottom.append(shaft_side);
+
+        // bottom of head
+        let mut vertices = Vec::with_capacity(self.div * 2);
+        let mut triangles = Vec::with_capacity(self.div * 2);
+        let normal = Vector3::new(0.0, 0.0, -1.0);
+        for i in 0..self.div {
+            let (x1, y1) = calc_xy(i, self.shaft_radius);
+            let (x2, y2) = calc_xy(i, self.head_radius);
+            vertices.push(VertexB {
+                position: [x1, y1, rz + self.shaft_length],
+                normal,
+            });
+            vertices.push(VertexB {
+                position: [x2, y2, rz + self.shaft_length],
+                normal,
+            });
+
+            let i1 = i as u32 * 2;
+            let j1 = i as u32 * 2 + 1;
+            let i2 = ((i + 1) % self.div) as u32 * 2;
+            let j2 = ((i + 1) % self.div) as u32 * 2 + 1;
+            triangles.push([i1, i2, j2]);
+            triangles.push([i1, j2, j1]);
+        }
+        let head_bottom = Data {
+            vertices,
+            triangles,
+        };
+        bottom.append(head_bottom);
+
+        // head
+        let o = [rx, ry, rz + self.shaft_length + self.head_length];
+        let mut head = Data::<VertexB>::with_capacity(self.div + 1, self.div);
+        for i in 0..self.div {
+            let (x1, y1) = calc_xy(i, self.head_radius);
+            let (x2, y2) = calc_xy(i + 1, self.head_radius);
+            let z = rz + self.shaft_length;
+            head.add_face(&Face {
+                vertices: vec![[x1, y1, z], o, [x2, y2, z]],
+            });
+        }
+        bottom.append(head);
+
+        bottom.vertex_converted()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{VertexA, VertexB};
+
+    #[test]
+    fn no_normal() {
+        let cube = ArrowOption::new().div(5).build::<[f32; 3]>().dedup();
+        assert_eq!(cube.vertices.len(), 1 + 5 * 3 + 1);
+        assert_eq!(cube.triangles.len(), 5 * 6);
+    }
+
+    #[test]
+    fn face_normal() {
+        let cube = ArrowOption::new().div(6).build::<VertexA>();
+        assert_eq!(cube.vertices.len(), 1 + 6 * 6 + 1);
+        assert_eq!(cube.triangles.len(), 6 * 6);
+    }
+
+    #[test]
+    fn vert_normal() {
+        let cube = ArrowOption::new().div(7).build::<VertexB>();
+        assert_eq!(cube.vertices.len(), 1 + 7 * 6 + 1);
+        assert_eq!(cube.triangles.len(), 7 * 6);
     }
 }

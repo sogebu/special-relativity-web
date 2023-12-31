@@ -40,6 +40,37 @@ impl<V: Copy> Data<V> {
     }
 }
 
+impl Data<[f32; 3]> {
+    pub fn dedup(&self) -> Data<[f32; 3]> {
+        let mut vertices = Vec::new();
+        let mut indices = Vec::new();
+        'OUT: for v in self.vertices.iter() {
+            for (i, p) in vertices.iter().enumerate() {
+                if v == p {
+                    indices.push(i);
+                    continue 'OUT;
+                }
+            }
+            indices.push(vertices.len());
+            vertices.push(*v);
+        }
+        Data {
+            vertices,
+            triangles: self
+                .triangles
+                .iter()
+                .map(|&[i, j, k]| {
+                    [
+                        indices[i as usize] as u32,
+                        indices[j as usize] as u32,
+                        indices[k as usize] as u32,
+                    ]
+                })
+                .collect(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct VertexA {
     pub position: [f32; 3],
@@ -141,6 +172,18 @@ impl From<VertexB> for VertexA {
             position: v.position,
             normal: v.normal.normalized().into(),
         }
+    }
+}
+
+impl From<VertexA> for [f32; 3] {
+    fn from(v: VertexA) -> Self {
+        v.position
+    }
+}
+
+impl From<VertexB> for [f32; 3] {
+    fn from(v: VertexB) -> Self {
+        v.position
     }
 }
 
