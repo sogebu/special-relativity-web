@@ -95,14 +95,29 @@ impl Quaternion {
         Vector3::new(zx - sy, yz + sx, 1.0 - x2 - y2)
     }
 
+    /// Squared length
+    pub fn magnitude2(&self) -> f64 {
+        self.s * self.s + self.x * self.x + self.y * self.y + self.z * self.z
+    }
+
+    /// Get normalized ``Quaternion``
+    pub fn normalized(&self) -> Quaternion {
+        let l = self.magnitude2().sqrt();
+        Quaternion::new(self.s / l, self.x / l, self.y / l, self.z / l)
+    }
+
+    /// Get inverse ``Quaternion``
+    pub fn inverse(&self) -> Quaternion {
+        let l2 = self.magnitude2();
+        Quaternion::new(self.s / l2, -self.x / l2, -self.y / l2, -self.z / l2)
+    }
+
     /// Get the rotation for transforming `from` to `to`.
     ///
     /// Ref: https://docs.rs/glam/latest/glam/f64/struct.DQuat.html#method.from_rotation_arc
     pub fn from_rotation_arc(from: Vector3, to: Vector3) -> Quaternion {
         let c = from.cross(to);
-        let (x, y, z, s) = (c.x, c.y, c.z, 1.0 + from.dot(to));
-        let l = (x * x + y * y + z * z + s * s).sqrt();
-        Quaternion::new(s / l, x / l, y / l, z / l)
+        Quaternion::new(1.0 + from.dot(to), c.x, c.y, c.z).normalized()
     }
 }
 
@@ -191,6 +206,19 @@ mod tests {
         assert_relative_eq!(
             q * Vector3::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2, 0.0),
             Vector3::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2, 0.0),
+        );
+    }
+
+    #[test]
+    fn inverse() {
+        let q = Quaternion::from_axis(Deg(90.0), Vector3::new(1.0, 0.0, 0.0));
+        assert_relative_eq!(
+            q * Vector3::new(0.0, 1.0, 1.0),
+            Vector3::new(0.0, -1.0, 1.0),
+        );
+        assert_relative_eq!(
+            q.inverse() * Vector3::new(0.0, 1.0, 1.0),
+            Vector3::new(0.0, 1.0, -1.0),
         );
     }
 }
