@@ -1,4 +1,4 @@
-use crate::Data;
+use crate::{AddFace, Data, Face};
 
 #[derive(Debug)]
 pub struct CubeOption {
@@ -30,34 +30,81 @@ impl CubeOption {
         self
     }
 
-    pub fn build(&self) -> Data {
+    pub fn build<V>(&self) -> Data<V>
+    where
+        Data<V>: AddFace,
+    {
+        let mut data = Data::<V>::with_capacity(8, 12);
         let [x, y, z] = self.center;
-        let half = self.size / 2.0;
-        Data {
+        let h = self.size / 2.0;
+        data.add_face(&Face {
             vertices: vec![
-                [x + half, y + half, z + half],
-                [x - half, y + half, z + half],
-                [x - half, y - half, z + half],
-                [x + half, y - half, z + half],
-                [x + half, y + half, z - half],
-                [x - half, y + half, z - half],
-                [x - half, y - half, z - half],
-                [x + half, y - half, z - half],
+                [x + h, y + h, z + h],
+                [x - h, y + h, z + h],
+                [x - h, y - h, z + h],
+                [x + h, y - h, z + h],
             ],
-            triangles: vec![
-                [0, 1, 2],
-                [0, 2, 3],
-                [0, 5, 1],
-                [0, 4, 5],
-                [0, 7, 4],
-                [0, 3, 7],
-                [6, 1, 5],
-                [6, 2, 1],
-                [6, 5, 4],
-                [6, 4, 7],
-                [6, 7, 3],
-                [6, 3, 2],
+        });
+        data.add_face(&Face {
+            vertices: vec![
+                [x + h, y + h, z + h],
+                [x + h, y + h, z - h],
+                [x - h, y + h, z - h],
+                [x - h, y + h, z + h],
             ],
-        }
+        });
+        data.add_face(&Face {
+            vertices: vec![
+                [x + h, y + h, z + h],
+                [x + h, y - h, z + h],
+                [x + h, y - h, z - h],
+                [x + h, y + h, z - h],
+            ],
+        });
+        data.add_face(&Face {
+            vertices: vec![
+                [x - h, y - h, z - h],
+                [x - h, y - h, z + h],
+                [x - h, y + h, z + h],
+                [x - h, y + h, z - h],
+            ],
+        });
+        data.add_face(&Face {
+            vertices: vec![
+                [x - h, y - h, z - h],
+                [x - h, y + h, z - h],
+                [x + h, y + h, z - h],
+                [x + h, y - h, z - h],
+            ],
+        });
+        data.add_face(&Face {
+            vertices: vec![
+                [x - h, y - h, z - h],
+                [x + h, y - h, z - h],
+                [x + h, y - h, z + h],
+                [x - h, y - h, z + h],
+            ],
+        });
+        data
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Vertex;
+
+    #[test]
+    fn no_normal() {
+        let cube = CubeOption::new().build::<[f32; 3]>();
+        assert_eq!(cube.vertices.len(), 8);
+        assert_eq!(cube.triangles.len(), 12);
+    }
+
+    #[test]
+    fn face_normal() {
+        let cube = CubeOption::new().build::<Vertex>();
+        assert_eq!(cube.vertices.len(), 24);
+        assert_eq!(cube.triangles.len(), 12);
     }
 }

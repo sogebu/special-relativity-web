@@ -259,6 +259,18 @@ macro_rules! impl_vector {
 impl_vector!(Vector3 { x, y, z }, vec3);
 impl_vector!(Vector4 { x, y, z, t }, vec4);
 
+impl From<[f32; 3]> for Vector3 {
+    fn from(value: [f32; 3]) -> Self {
+        Vector3::new(value[0] as f64, value[1] as f64, value[2] as f64)
+    }
+}
+
+impl From<Vector3> for [f32; 3] {
+    fn from(value: Vector3) -> Self {
+        [value.x as f32, value.y as f32, value.z as f32]
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

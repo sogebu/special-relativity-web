@@ -6,6 +6,19 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rmath = { path = "../rmath" }
 
 [features]
 obj = []
+
+[[example]]
+name = "arrow"
+required-features = ["obj"]
+
+[[example]]
+name = "cube"
+required-features = ["obj"]
+
+[[example]]
+name = "icosahedron"
+required-features = ["obj"]

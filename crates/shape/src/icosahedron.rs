@@ -31,7 +31,7 @@ impl IcosahedronOption {
     }
 
     /// Ref: https://en.wikipedia.org/wiki/Regular_icosahedron
-    pub fn build(&self) -> Data {
+    pub fn build(&self) -> Data<[f32; 3]> {
         let [x, y, z] = self.center;
         let r = self.radius;
         let phi = (1.0 + 5.0f64.sqrt()) / 2.0;

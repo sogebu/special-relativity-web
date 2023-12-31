@@ -57,7 +57,7 @@ impl ArrowOption {
         self
     }
 
-    pub fn build(&self) -> Data {
+    pub fn build(&self) -> Data<[f32; 3]> {
         let [rx, ry, rz] = self.root;
         let mut vertices = Vec::new();
         let mut triangles = Vec::new();
