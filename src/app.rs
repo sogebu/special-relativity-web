@@ -9,7 +9,8 @@ use rmath::{
 
 use crate::{
     backend::{
-        Backend, JustLocalData, JustShader, LorentzLocalData, LorentzShader, Shader, Shape, Vertex,
+        Backend, JustLocalData, LorentzLocalData, LorentzShader, Shader, Shape, SimpleShader,
+        Vertex,
     },
     key::KeyManager,
     player::Player,
@@ -22,7 +23,7 @@ fn wasm_error(s: String) -> JsValue {
 pub struct InternalApp {
     backend: Backend,
     lorentz_shader: LorentzShader,
-    just_shader: JustShader,
+    just_shader: SimpleShader,
     arrow_shape: Shape<Vertex>,
     arrow_config: ArrowConfig,
     charge_shape: Shape<Vertex>,
@@ -43,7 +44,7 @@ impl InternalApp {
     pub fn new(context: WebGl2RenderingContext) -> Result<InternalApp, JsValue> {
         let backend = Backend::new(context).map_err(wasm_error)?;
         let lorentz_shader = LorentzShader::new(&backend)?;
-        let just_shader = JustShader::new(&backend)?;
+        let just_shader = SimpleShader::new(&backend)?;
 
         let num = 50;
         let mut measurement_points = Vec::new();
@@ -113,7 +114,7 @@ impl InternalApp {
 
         let (width, height) = self.backend.get_viewport_size();
         let transition_matrix = self.player.transition_matrix();
-        let view_perspective =
+        let view_projection =
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0)
                 * self.player.rot_matrix();
         let lorentz = self.player.lorentz_matrix();
@@ -126,7 +127,7 @@ impl InternalApp {
             let charge_data = LorentzLocalData {
                 color: RGBA::yellow(),
                 lorentz,
-                view_perspective,
+                view_projection,
                 model: transition_matrix * Matrix::translation(x.spatial()),
             };
             self.lorentz_shader
@@ -160,7 +161,7 @@ impl InternalApp {
             fs = lorentz * fs * lorentz.transposed();
 
             let pos = lorentz * (pos_on_player_plc - self.player.position());
-            let projection = view_perspective * Matrix::translation(pos.spatial());
+            let projection = view_projection * Matrix::translation(pos.spatial());
             let e = fs.field_strength_to_electric_field();
             self.draw_arrow(e, RGBA::red(), projection);
             let m = fs.field_strength_to_magnetic_field();
@@ -178,7 +179,7 @@ impl InternalApp {
         ));
         let data = JustLocalData {
             color,
-            model_view_perspective: projection
+            model_view_projection: projection
                 * rotate
                 * Matrix::scale(Vector3::new(1.0, 1.0, self.arrow_config.arrow_length(v))),
         };

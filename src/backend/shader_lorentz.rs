@@ -15,14 +15,14 @@ pub struct LorentzShader {
     color_location: UniformLocation,
     model_matrix_location: UniformLocation,
     lorentz_matrix_location: UniformLocation,
-    view_perspective_location: UniformLocation,
+    view_projection_location: UniformLocation,
 }
 
 pub struct LorentzLocalData {
     pub color: RGBA,
     pub model: Matrix,
     pub lorentz: Matrix,
-    pub view_perspective: Matrix,
+    pub view_projection: Matrix,
 }
 
 impl LorentzShader {
@@ -52,7 +52,7 @@ impl LorentzShader {
             color_location: get_uniform_location(gl, program, "uniform_color")?,
             model_matrix_location: get_uniform_location(gl, program, "model")?,
             lorentz_matrix_location: get_uniform_location(gl, program, "lorentz")?,
-            view_perspective_location: get_uniform_location(gl, program, "view_perspective")?,
+            view_projection_location: get_uniform_location(gl, program, "view_projection")?,
             vertex_attrib,
         })
     }
@@ -96,9 +96,9 @@ impl Shader for LorentzShader {
                 &local_data.lorentz.open_gl(),
             );
             gl.uniform_matrix_4_f32_slice(
-                Some(&self.view_perspective_location),
+                Some(&self.view_projection_location),
                 false,
-                &local_data.view_perspective.open_gl(),
+                &local_data.view_projection.open_gl(),
             );
             backend.gl.draw_elements(
                 glow::TRIANGLES,

@@ -17,7 +17,7 @@ impl Matrix {
         }
     }
 
-    /// Get OpenGL matrix format array
+    /// Get OpenGL mat4 format array
     /// * Column major order
     /// * 32 bit floating point number
     ///
@@ -57,6 +57,42 @@ impl Matrix {
             self.rows[1][3] as f32,
             self.rows[2][3] as f32,
             self.rows[3][3] as f32,
+        ]
+    }
+
+    /// Get OpenGL mat3 format array
+    /// * Rotation part
+    /// * Column major order
+    /// * 32 bit floating point number
+    ///
+    /// ```rust
+    /// # use rmath::Matrix;
+    /// let m = Matrix::new(
+    ///     [1.0, 2.0, 3.0, 4.0],
+    ///     [5.0, 6.0, 7.0, 8.0],
+    ///     [9.0, 10.0, 11.0, 12.0],
+    ///     [13.0, 14.0, 15.0, 16.0],
+    /// );
+    /// assert_eq!(
+    ///     m.open_gl_mat3(),
+    ///     [
+    ///         1.0, 5.0, 9.0,
+    ///         2.0, 6.0, 10.0,
+    ///         3.0, 7.0, 11.0,
+    ///     ]
+    /// );
+    /// ```
+    pub const fn open_gl_mat3(&self) -> [f32; 9] {
+        [
+            self.rows[0][0] as f32,
+            self.rows[1][0] as f32,
+            self.rows[2][0] as f32,
+            self.rows[0][1] as f32,
+            self.rows[1][1] as f32,
+            self.rows[2][1] as f32,
+            self.rows[0][2] as f32,
+            self.rows[1][2] as f32,
+            self.rows[2][2] as f32,
         ]
     }
 

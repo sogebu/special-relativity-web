@@ -6,26 +6,26 @@ use glow::{HasContext, UniformLocation, WebBufferKey, WebProgramKey};
 use memoffset::offset_of;
 use rmath::Matrix;
 
-pub struct JustShader {
+pub struct SimpleShader {
     program: WebProgramKey,
     vbo: WebBufferKey,
     ebo: WebBufferKey,
     vertex_attrib: Vec<VertexAttrib>,
     color_location: UniformLocation,
-    model_view_perspective_location: UniformLocation,
+    model_view_projection_location: UniformLocation,
 }
 
 pub struct JustLocalData {
     pub color: RGBA,
-    pub model_view_perspective: Matrix,
+    pub model_view_projection: Matrix,
 }
 
-impl JustShader {
-    pub fn new(backend: &Backend) -> Result<JustShader, String> {
+impl SimpleShader {
+    pub fn new(backend: &Backend) -> Result<SimpleShader, String> {
         let gl = &backend.gl;
         let program = make_program(
             gl,
-            include_str!("glsl/just_vertex_shader.glsl"),
+            include_str!("glsl/simple_vertex_shader.glsl"),
             include_str!("glsl/fragment_shader.glsl"),
         )?;
         let (vbo, ebo) = make_buffer(gl, program)?;
@@ -40,22 +40,22 @@ impl JustShader {
             offset_of!(Vertex, position),
         )?);
 
-        Ok(JustShader {
+        Ok(SimpleShader {
             program,
             vbo,
             ebo,
             color_location: get_uniform_location(gl, program, "uniform_color")?,
-            model_view_perspective_location: get_uniform_location(
+            model_view_projection_location: get_uniform_location(
                 gl,
                 program,
-                "model_view_perspective",
+                "model_view_projection",
             )?,
             vertex_attrib,
         })
     }
 }
 
-impl Shader for JustShader {
+impl Shader for SimpleShader {
     type SharedData = Shape<Vertex>;
     type LocalData = JustLocalData;
 
@@ -83,9 +83,9 @@ impl Shader for JustShader {
                 local_data.color.a,
             );
             gl.uniform_matrix_4_f32_slice(
-                Some(&self.model_view_perspective_location),
+                Some(&self.model_view_projection_location),
                 false,
-                &local_data.model_view_perspective.open_gl(),
+                &local_data.model_view_projection.open_gl(),
             );
             backend.gl.draw_elements(
                 glow::TRIANGLES,
