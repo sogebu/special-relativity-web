@@ -43,6 +43,10 @@ impl RGB {
     pub fn rgba(&self, a: f32) -> RGBA {
         RGBA::new_unchecked(self.r, self.g, self.b, clamp(a))
     }
+
+    pub const fn as_array(&self) -> [f32; 3] {
+        [self.r, self.g, self.b]
+    }
 }
 
 impl RGBA {
@@ -61,6 +65,10 @@ impl RGBA {
 
     pub const fn rbg(&self) -> RGB {
         RGB::new_unchecked(self.r, self.g, self.b)
+    }
+
+    pub const fn as_array(&self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
     }
 }
 

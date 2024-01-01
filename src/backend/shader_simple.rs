@@ -75,13 +75,7 @@ impl Shader for SimpleShader {
     ) {
         let gl = &backend.gl;
         unsafe {
-            gl.uniform_4_f32(
-                Some(&self.color_location),
-                local_data.color.r,
-                local_data.color.g,
-                local_data.color.b,
-                local_data.color.a,
-            );
+            gl.uniform_4_f32_slice(Some(&self.color_location), &local_data.color.as_array());
             gl.uniform_matrix_4_f32_slice(
                 Some(&self.model_view_projection_location),
                 false,
