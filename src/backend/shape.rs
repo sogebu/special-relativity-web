@@ -3,10 +3,18 @@ use glow::{Context, HasContext, WebBufferKey, WebProgramKey};
 
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 #[repr(C)]
-pub struct Vertex {
+pub struct VertexPosition {
     pub position: [f32; 3],
 }
 
+#[derive(Debug, Clone, Copy, Zeroable, Pod)]
+#[repr(C)]
+pub struct VertexPositionNormal {
+    pub position: [f32; 3],
+    pub normal: [f32; 3],
+}
+
+#[derive(Debug)]
 pub struct Shape<V> {
     vertices: Vec<V>,
     triangles: Vec<[u32; 3]>,
@@ -41,10 +49,19 @@ where
     }
 }
 
-impl From<shape::VertexPosition> for Vertex {
+impl From<shape::VertexPosition> for VertexPosition {
     fn from(v: shape::VertexPosition) -> Self {
-        Vertex {
+        VertexPosition {
             position: v.position,
+        }
+    }
+}
+
+impl From<shape::VertexPositionNormal> for VertexPositionNormal {
+    fn from(v: shape::VertexPositionNormal) -> Self {
+        VertexPositionNormal {
+            position: v.position,
+            normal: v.normal,
         }
     }
 }

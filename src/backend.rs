@@ -1,3 +1,4 @@
+mod shader_lighting;
 mod shader_lorentz;
 mod shader_simple;
 mod shape;
@@ -5,7 +6,7 @@ mod shape;
 use glow::{Context, HasContext, WebBufferKey, WebProgramKey, WebShaderKey};
 use web_sys::{WebGl2RenderingContext, WebGlUniformLocation};
 
-pub use self::{shader_lorentz::*, shader_simple::*, shape::*};
+pub use self::{shader_lighting::*, shader_lorentz::*, shader_simple::*, shape::*};
 pub struct Backend {
     gl: Context,
 }

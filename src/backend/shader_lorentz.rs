@@ -2,7 +2,8 @@ use glow::{HasContext, UniformLocation, WebBufferKey, WebProgramKey};
 use memoffset::offset_of;
 
 use super::{
-    get_uniform_location, make_buffer, make_program, Backend, Shader, Shape, Vertex, VertexAttrib,
+    get_uniform_location, make_buffer, make_program, Backend, Shader, Shape, VertexAttrib,
+    VertexPosition,
 };
 use color::RGBA;
 use rmath::Matrix;
@@ -41,8 +42,8 @@ impl LorentzShader {
             program,
             "vert_local_position",
             3,
-            std::mem::size_of::<Vertex>(),
-            offset_of!(Vertex, position),
+            std::mem::size_of::<VertexPosition>(),
+            offset_of!(VertexPosition, position),
         )?);
 
         Ok(LorentzShader {
@@ -59,7 +60,7 @@ impl LorentzShader {
 }
 
 impl Shader for LorentzShader {
-    type SharedData = Shape<Vertex>;
+    type SharedData = Shape<VertexPosition>;
     type LocalData = LorentzLocalData;
 
     fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData) {

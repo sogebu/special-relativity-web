@@ -34,6 +34,10 @@ impl Player {
         Matrix::from(self.quaternion)
     }
 
+    pub fn inv_rot_matrix(&self) -> Matrix {
+        Matrix::from(self.quaternion.inverse())
+    }
+
     pub fn transition_matrix(&self) -> Matrix {
         Matrix::translation(-self.phase_space.position.spatial())
     }

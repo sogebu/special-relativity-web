@@ -9,8 +9,8 @@ use rmath::{
 
 use crate::{
     backend::{
-        Backend, JustLocalData, LorentzLocalData, LorentzShader, Shader, Shape, SimpleShader,
-        Vertex,
+        Backend, JustLocalData, LightingLocalData, LightingShader, LorentzLocalData, LorentzShader,
+        Shader, Shape, SimpleShader, VertexPosition, VertexPositionNormal,
     },
     key::KeyManager,
     player::Player,
@@ -23,10 +23,12 @@ fn wasm_error(s: String) -> JsValue {
 pub struct InternalApp {
     backend: Backend,
     lorentz_shader: LorentzShader,
-    just_shader: SimpleShader,
-    arrow_shape: Shape<Vertex>,
+    simple_shader: SimpleShader,
+    lighting_shader: LightingShader,
+    arrow_shape: Shape<VertexPosition>,
     arrow_config: ArrowConfig,
-    charge_shape: Shape<Vertex>,
+    charge_shape: Shape<VertexPosition>,
+    arrow_shape2: Shape<VertexPositionNormal>,
     measurement_points: Vec<StaticWorldLine>,
     charges: Vec<Charge>,
     key_manager: KeyManager,
@@ -44,7 +46,8 @@ impl InternalApp {
     pub fn new(context: WebGl2RenderingContext) -> Result<InternalApp, JsValue> {
         let backend = Backend::new(context).map_err(wasm_error)?;
         let lorentz_shader = LorentzShader::new(&backend)?;
-        let just_shader = SimpleShader::new(&backend)?;
+        let simple_shader = SimpleShader::new(&backend)?;
+        let lighting_shader = LightingShader::new(&backend)?;
 
         let num = 50;
         let mut measurement_points = Vec::new();
@@ -74,12 +77,17 @@ impl InternalApp {
         Ok(InternalApp {
             backend,
             lorentz_shader,
-            just_shader,
+            simple_shader,
+            lighting_shader,
             arrow_shape: arrow_config.shape_data(),
             arrow_config,
             charge_shape: shape::IcosahedronOption::new()
                 .radius(0.1)
                 .build::<shape::VertexPosition>()
+                .into(),
+            arrow_shape2: shape::CubeOption::new()
+                .build::<shape::VertexPositionCalcNormal>()
+                .vertex_converted::<shape::VertexPositionNormal>()
                 .into(),
             charges: vec![charge1, charge2],
             measurement_points,
@@ -136,7 +144,7 @@ impl InternalApp {
                 .draw(&self.backend, &self.charge_shape, &charge_data);
         }
 
-        self.just_shader
+        self.simple_shader
             .bind_shared_data(&self.backend, &self.arrow_shape);
         for m in self.measurement_points.iter() {
             let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position()).unwrap();
@@ -167,6 +175,21 @@ impl InternalApp {
             let m = fs.field_strength_to_magnetic_field();
             self.draw_arrow(m, RGBA::blue(), projection);
         }
+
+        self.lighting_shader
+            .bind_shared_data(&self.backend, &self.arrow_shape2);
+        let q = self.player.inv_rot_matrix();
+        let data = LightingLocalData {
+            color: RGBA::red(),
+            model_view_projection: view_projection
+                * transition_matrix
+                * Matrix::translation(vec3(1.0, 1.0, -1.0))
+                * Matrix::scale(vec3(1.0, 1.0, 1.0)),
+            normal: q,
+        };
+        self.lighting_shader
+            .draw(&self.backend, &self.arrow_shape2, &data);
+
         self.backend.flush();
 
         Ok(())
@@ -183,7 +206,7 @@ impl InternalApp {
                 * rotate
                 * Matrix::scale(Vector3::new(1.0, 1.0, self.arrow_config.arrow_length(v))),
         };
-        self.just_shader
+        self.simple_shader
             .draw(&self.backend, &self.arrow_shape, &data);
     }
 }
@@ -208,7 +231,7 @@ impl Default for ArrowConfig {
 }
 
 impl ArrowConfig {
-    pub fn shape_data(&self) -> Shape<Vertex> {
+    pub fn shape_data(&self) -> Shape<VertexPosition> {
         shape::ArrowOption::new()
             .shaft_radius(self.shaft_radius)
             .head_radius(self.head_radius)
