@@ -29,7 +29,7 @@ impl LightingShader {
         let program = make_program(
             gl,
             include_str!("glsl/lighting_vertex_shader.glsl"),
-            include_str!("glsl/lighting_fragment_shader.glsl"),
+            include_str!("glsl/fragment_shader.glsl"),
         )?;
         let (vbo, ebo) = make_buffer(gl, program)?;
 
