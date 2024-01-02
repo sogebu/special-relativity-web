@@ -6,11 +6,12 @@ use rmath::{
     vec3, CutOffWorldLine, Deg, LineOscillateWorldLine, Matrix, Quaternion, StaticWorldLine,
     Vector3, WorldLine,
 };
+use shape::BuildData;
 
 use crate::{
     backend::{
-        Backend, JustLocalData, LightingLocalData, LightingShader, LorentzLocalData, LorentzShader,
-        Shader, Shape, SimpleShader, VertexPosition, VertexPositionNormal,
+        Backend, LightingLocalData, LightingShader, LorentzLocalData, LorentzShader, Shader, Shape,
+        SimpleLocalData, SimpleShader, VertexPosition, VertexPositionNormal,
     },
     key::KeyManager,
     player::Player,
@@ -25,15 +26,16 @@ pub struct InternalApp {
     lorentz_shader: LorentzShader,
     simple_shader: SimpleShader,
     lighting_shader: LightingShader,
-    arrow_shape: Shape<VertexPosition>,
+    arrow_shape_no_normal: Shape<VertexPosition>,
+    arrow_shape_with_normal: Shape<VertexPositionNormal>,
     arrow_config: ArrowConfig,
     charge_shape: Shape<VertexPosition>,
-    arrow_shape2: Shape<VertexPositionNormal>,
     measurement_points: Vec<StaticWorldLine>,
     charges: Vec<Charge>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
+    lighting_on: bool,
 }
 
 struct Charge {
@@ -73,27 +75,24 @@ impl InternalApp {
         };
 
         let arrow_config = ArrowConfig::default();
-
         Ok(InternalApp {
             backend,
             lorentz_shader,
             simple_shader,
             lighting_shader,
-            arrow_shape: arrow_config.shape_data(),
+            arrow_shape_no_normal: arrow_config.shape_data().build_no_normal().into(),
+            arrow_shape_with_normal: arrow_config.shape_data().build_smooth().into(),
             arrow_config,
             charge_shape: shape::IcosahedronOption::new()
                 .radius(0.1)
-                .build::<shape::VertexPosition>()
-                .into(),
-            arrow_shape2: shape::CubeOption::new()
-                .build::<shape::VertexPositionCalcNormal>()
-                .vertex_converted::<shape::VertexPositionNormal>()
+                .build_no_normal()
                 .into(),
             charges: vec![charge1, charge2],
             measurement_points,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
+            lighting_on: true,
         })
     }
 
@@ -126,6 +125,7 @@ impl InternalApp {
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0)
                 * self.player.rot_matrix();
         let lorentz = self.player.lorentz_matrix();
+        let normal = self.player.inv_rot_matrix();
 
         for charge in self.charges.iter() {
             let Some((x, _, _)) = charge.world_line.past_intersection(self.player.position())
@@ -144,8 +144,13 @@ impl InternalApp {
                 .draw(&self.backend, &self.charge_shape, &charge_data);
         }
 
-        self.simple_shader
-            .bind_shared_data(&self.backend, &self.arrow_shape);
+        if self.lighting_on {
+            self.lighting_shader
+                .bind_shared_data(&self.backend, &self.arrow_shape_with_normal);
+        } else {
+            self.simple_shader
+                .bind_shared_data(&self.backend, &self.arrow_shape_no_normal);
+        }
         for m in self.measurement_points.iter() {
             let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position()).unwrap();
 
@@ -171,43 +176,39 @@ impl InternalApp {
             let pos = lorentz * (pos_on_player_plc - self.player.position());
             let projection = view_projection * Matrix::translation(pos.spatial());
             let e = fs.field_strength_to_electric_field();
-            self.draw_arrow(e, RGBA::red(), projection);
+            self.draw_arrow(e, RGBA::red(), projection, normal);
             let m = fs.field_strength_to_magnetic_field();
-            self.draw_arrow(m, RGBA::blue(), projection);
+            self.draw_arrow(m, RGBA::blue(), projection, normal);
         }
-
-        self.lighting_shader
-            .bind_shared_data(&self.backend, &self.arrow_shape2);
-        let q = self.player.inv_rot_matrix();
-        let data = LightingLocalData {
-            color: RGBA::red(),
-            model_view_projection: view_projection
-                * transition_matrix
-                * Matrix::translation(vec3(1.0, 1.0, -1.0))
-                * Matrix::scale(vec3(1.0, 1.0, 1.0)),
-            normal: q,
-        };
-        self.lighting_shader
-            .draw(&self.backend, &self.arrow_shape2, &data);
-
         self.backend.flush();
 
         Ok(())
     }
 
-    fn draw_arrow(&self, v: Vector3, color: RGBA, projection: Matrix) {
+    fn draw_arrow(&self, v: Vector3, color: RGBA, projection: Matrix, normal: Matrix) {
         let rotate = Matrix::from(Quaternion::from_rotation_arc(
             Vector3::Z_AXIS,
             v.normalized(),
         ));
-        let data = JustLocalData {
-            color,
-            model_view_projection: projection
-                * rotate
-                * Matrix::scale(Vector3::new(1.0, 1.0, self.arrow_config.arrow_length(v))),
-        };
-        self.simple_shader
-            .draw(&self.backend, &self.arrow_shape, &data);
+        let model_view_projection = projection
+            * rotate
+            * Matrix::scale(Vector3::new(1.0, 1.0, self.arrow_config.arrow_length(v)));
+        if self.lighting_on {
+            let data = LightingLocalData {
+                color,
+                model_view_projection,
+                normal: normal * rotate,
+            };
+            self.lighting_shader
+                .draw(&self.backend, &self.arrow_shape_with_normal, &data);
+        } else {
+            let data = SimpleLocalData {
+                color,
+                model_view_projection,
+            };
+            self.simple_shader
+                .draw(&self.backend, &self.arrow_shape_no_normal, &data);
+        }
     }
 }
 
@@ -222,8 +223,8 @@ pub struct ArrowConfig {
 impl Default for ArrowConfig {
     fn default() -> Self {
         ArrowConfig {
-            shaft_radius: 0.01,
-            head_radius: 0.04,
+            shaft_radius: 0.02,
+            head_radius: 0.05,
             log_count: 1,
             length_factor: 0.1,
         }
@@ -231,13 +232,10 @@ impl Default for ArrowConfig {
 }
 
 impl ArrowConfig {
-    pub fn shape_data(&self) -> Shape<VertexPosition> {
+    pub fn shape_data(&self) -> shape::ArrowOption {
         shape::ArrowOption::new()
             .shaft_radius(self.shaft_radius)
             .head_radius(self.head_radius)
-            .build::<shape::VertexPosition>()
-            .dedup()
-            .into()
     }
 
     pub fn arrow_length(&self, v: Vector3) -> f64 {

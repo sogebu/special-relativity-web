@@ -16,7 +16,7 @@ pub struct SimpleShader {
     model_view_projection_location: UniformLocation,
 }
 
-pub struct JustLocalData {
+pub struct SimpleLocalData {
     pub color: RGBA,
     pub model_view_projection: Matrix,
 }
@@ -58,7 +58,7 @@ impl SimpleShader {
 
 impl Shader for SimpleShader {
     type SharedData = Shape<VertexPosition>;
-    type LocalData = JustLocalData;
+    type LocalData = SimpleLocalData;
 
     fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData) {
         let gl = &backend.gl;

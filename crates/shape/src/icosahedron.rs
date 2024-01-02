@@ -1,4 +1,4 @@
-use crate::{AddFace, Data, Face};
+use crate::{AddFace, BuildData, Data, Face, VertexPositionCalcNormal};
 
 #[derive(Debug)]
 pub struct IcosahedronOption {
@@ -20,19 +20,22 @@ impl IcosahedronOption {
         Default::default()
     }
 
-    pub fn radius(&mut self, radius: f32) -> &mut IcosahedronOption {
+    pub fn radius(mut self, radius: f32) -> IcosahedronOption {
         self.radius = radius;
         self
     }
 
-    pub fn center(&mut self, center: [f32; 3]) -> &mut IcosahedronOption {
+    pub fn center(mut self, center: [f32; 3]) -> IcosahedronOption {
         self.center = center;
         self
     }
+}
 
+impl BuildData for IcosahedronOption {
     /// Ref: https://en.wikipedia.org/wiki/Regular_icosahedron
-    pub fn build<V>(&self) -> Data<V>
+    fn build<V>(&self) -> Data<V>
     where
+        V: From<VertexPositionCalcNormal>,
         Data<V>: AddFace,
     {
         let [x, y, z] = self.center;
@@ -93,23 +96,21 @@ mod tests {
 
     #[test]
     fn no_normal() {
-        let cube = IcosahedronOption::new().build::<VertexPosition>();
+        let cube = IcosahedronOption::new().build_no_normal();
         assert_eq!(cube.vertices.len(), 12);
         assert_eq!(cube.triangles.len(), 20);
     }
 
     #[test]
     fn face_normal() {
-        let cube = IcosahedronOption::new().build::<VertexPositionNormal>();
+        let cube = IcosahedronOption::new().build_sharp();
         assert_eq!(cube.vertices.len(), 60);
         assert_eq!(cube.triangles.len(), 20);
     }
 
     #[test]
     fn vert_normal() {
-        let cube = IcosahedronOption::new()
-            .build::<VertexPositionCalcNormal>()
-            .vertex_converted::<VertexPositionNormal>();
+        let cube = IcosahedronOption::new().build_smooth();
         assert_eq!(cube.vertices.len(), 12);
         assert_eq!(cube.triangles.len(), 20);
     }

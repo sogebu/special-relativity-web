@@ -11,6 +11,26 @@ pub struct Data<V> {
     pub triangles: Vec<[u32; 3]>,
 }
 
+pub trait BuildData {
+    fn build<V>(&self) -> Data<V>
+    where
+        V: From<VertexPositionCalcNormal>,
+        Data<V>: AddFace;
+
+    fn build_sharp(&self) -> Data<VertexPositionNormal> {
+        self.build::<VertexPositionNormal>()
+    }
+
+    fn build_smooth(&self) -> Data<VertexPositionNormal> {
+        self.build::<VertexPositionCalcNormal>()
+            .vertex_converted::<VertexPositionNormal>()
+    }
+
+    fn build_no_normal(&self) -> Data<VertexPosition> {
+        self.build::<VertexPosition>()
+    }
+}
+
 impl<V> Data<V> {
     pub fn with_capacity(v: usize, t: usize) -> Data<V> {
         Data {

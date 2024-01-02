@@ -1,4 +1,4 @@
-use crate::{AddFace, Data, Face, VertexPositionCalcNormal};
+use crate::{AddFace, BuildData, Data, Face, VertexPosition, VertexPositionCalcNormal};
 use rmath::Vector3;
 
 pub struct ArrowOption {
@@ -28,37 +28,39 @@ impl ArrowOption {
         Default::default()
     }
 
-    pub fn div(&mut self, div: usize) -> &mut ArrowOption {
+    pub fn div(mut self, div: usize) -> ArrowOption {
         self.div = div;
         self
     }
 
-    pub fn root(&mut self, root: [f32; 3]) -> &mut ArrowOption {
+    pub fn root(mut self, root: [f32; 3]) -> ArrowOption {
         self.root = root;
         self
     }
 
-    pub fn shaft_length(&mut self, shaft_length: f32) -> &mut ArrowOption {
+    pub fn shaft_length(mut self, shaft_length: f32) -> ArrowOption {
         self.shaft_length = shaft_length;
         self
     }
 
-    pub fn shaft_radius(&mut self, shaft_radius: f32) -> &mut ArrowOption {
+    pub fn shaft_radius(mut self, shaft_radius: f32) -> ArrowOption {
         self.shaft_radius = shaft_radius;
         self
     }
 
-    pub fn head_length(&mut self, head_length: f32) -> &mut ArrowOption {
+    pub fn head_length(mut self, head_length: f32) -> ArrowOption {
         self.head_length = head_length;
         self
     }
 
-    pub fn head_radius(&mut self, head_radius: f32) -> &mut ArrowOption {
+    pub fn head_radius(mut self, head_radius: f32) -> ArrowOption {
         self.head_radius = head_radius;
         self
     }
+}
 
-    pub fn build<V>(&self) -> Data<V>
+impl BuildData for ArrowOption {
+    fn build<V>(&self) -> Data<V>
     where
         V: From<VertexPositionCalcNormal>,
         Data<V>: AddFace,
@@ -154,6 +156,10 @@ impl ArrowOption {
 
         bottom.vertex_converted()
     }
+
+    fn build_no_normal(&self) -> Data<VertexPosition> {
+        self.build::<VertexPosition>().dedup()
+    }
 }
 
 #[cfg(test)]
@@ -163,23 +169,21 @@ mod tests {
 
     #[test]
     fn no_normal() {
-        let cube = ArrowOption::new().div(5).build::<VertexPosition>().dedup();
+        let cube = ArrowOption::new().div(5).build_no_normal();
         assert_eq!(cube.vertices.len(), 1 + 5 * 3 + 1);
         assert_eq!(cube.triangles.len(), 5 * 6);
     }
 
     #[test]
     fn face_normal() {
-        let cube = ArrowOption::new().div(6).build::<VertexPositionNormal>();
+        let cube = ArrowOption::new().div(6).build_sharp();
         assert_eq!(cube.vertices.len(), 1 + 6 * 6 + 1);
         assert_eq!(cube.triangles.len(), 6 * 6);
     }
 
     #[test]
     fn vert_normal() {
-        let cube = ArrowOption::new()
-            .div(7)
-            .build::<VertexPositionCalcNormal>();
+        let cube = ArrowOption::new().div(7).build_smooth();
         assert_eq!(cube.vertices.len(), 1 + 7 * 6 + 1);
         assert_eq!(cube.triangles.len(), 7 * 6);
     }
