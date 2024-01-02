@@ -92,7 +92,6 @@ impl BuildData for IcosahedronOption {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{VertexPosition, VertexPositionCalcNormal, VertexPositionNormal};
 
     #[test]
     fn no_normal() {

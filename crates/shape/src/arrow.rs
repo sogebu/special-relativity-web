@@ -149,7 +149,7 @@ impl BuildData for ArrowOption {
             let (x2, y2) = calc_xy(i + 1, self.head_radius);
             let z = rz + self.shaft_length;
             head.add_face(&Face {
-                vertices: vec![[x1, y1, z], o, [x2, y2, z]],
+                vertices: vec![[x2, y2, z], o, [x1, y1, z]],
             });
         }
         bottom.append(head);
@@ -165,7 +165,6 @@ impl BuildData for ArrowOption {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{VertexPosition, VertexPositionCalcNormal, VertexPositionNormal};
 
     #[test]
     fn no_normal() {

@@ -95,7 +95,6 @@ impl BuildData for CubeOption {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{VertexPosition, VertexPositionCalcNormal, VertexPositionNormal};
 
     #[test]
     fn no_normal() {
