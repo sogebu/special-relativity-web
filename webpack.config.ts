@@ -29,6 +29,9 @@ const config: webpack.Configuration = {
     extensions: ['.ts', '.js'],
   },
   mode: "production",
+  performance: {
+    hints: false,
+  },
 }
 
 export default config;

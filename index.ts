@@ -12,6 +12,8 @@ if (!context) {
 }
 context.viewport(0, 0, canvas.width, canvas.height);
 
+const info = document.getElementById("info")!;
+
 const app = new App(context);
 
 document.addEventListener('keydown', (event) => {
@@ -26,6 +28,7 @@ window.addEventListener('blur', (event) => {
 
 function step(timestamp: DOMHighResTimeStamp): void {
   app.tick(timestamp);
+  info.innerText = app.info();
   window.requestAnimationFrame(step);
 }
 

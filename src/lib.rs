@@ -42,4 +42,9 @@ impl App {
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
         self.0.tick(timestamp)
     }
+
+    #[wasm_bindgen]
+    pub fn info(&self) -> String {
+        self.0.info()
+    }
 }

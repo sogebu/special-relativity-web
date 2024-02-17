@@ -101,7 +101,6 @@ impl InternalApp {
         self.backend.clear();
 
         let (width, height) = self.backend.get_viewport_size();
-        let transition_matrix = self.player.transition_matrix();
         let view_projection =
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0)
                 * self.player.rot_matrix();
@@ -115,11 +114,10 @@ impl InternalApp {
             else {
                 continue;
             };
+            let pos = lorentz * (x - self.player.position());
             let charge_data = LightingLocalData {
                 color: RGBA::yellow(),
-                model_view_projection: view_projection
-                    * transition_matrix
-                    * Matrix::translation(x.spatial()),
+                model_view_projection: view_projection * Matrix::translation(pos.spatial()),
                 normal,
             };
             self.lighting_shader
@@ -168,6 +166,16 @@ impl InternalApp {
         self.backend.flush();
 
         Ok(())
+    }
+
+    pub fn info(&self) -> String {
+        format!(
+            r"player x = {:?}
+player v = {:?}
+",
+            self.player.position(),
+            self.player.velocity()
+        )
     }
 
     fn draw_arrow(&self, v: Vector3, color: RGBA, projection: Matrix, normal: Matrix) {
@@ -255,7 +263,7 @@ impl Charge {
 impl ChargeSet {
     fn new() -> ChargeSet {
         let c1 = Charge::new(1.0, vec4(0.0, 2.0, 0.0, -12.0), vec3(-0.45, 0.0, 0.0));
-        let c2 = Charge::new(-1.0, vec4(0.0, -2.0, 0.0, -12.0), vec3(0.45, 0.0, 0.0));
+        let c2 = Charge::new(1.0, vec4(0.0, -2.0, 0.0, -12.0), vec3(0.45, 0.0, 0.0));
         ChargeSet {
             charges: vec![c1, c2],
         }

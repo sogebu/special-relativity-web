@@ -50,6 +50,10 @@ impl Player {
         self.phase_space.position
     }
 
+    pub fn velocity(&self) -> Vector3 {
+        self.phase_space.velocity
+    }
+
     fn get_user_input_acceleration(&self, key: &KeyManager) -> Vector3 {
         let mut d = Vector3::zero();
         // forward
