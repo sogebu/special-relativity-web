@@ -17,6 +17,15 @@ impl Matrix {
         }
     }
 
+    pub const fn eta() -> Matrix {
+        Matrix::new(
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, -1.0],
+        )
+    }
+
     /// Get OpenGL mat4 format array
     /// * Column major order
     /// * 32 bit floating point number

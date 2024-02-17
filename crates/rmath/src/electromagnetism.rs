@@ -47,11 +47,7 @@ impl Matrix {
     }
 
     pub fn field_strength_to_magnetic_field(&self) -> Vector3 {
-        Vector3::new(
-            self.rows[1][2] - self.rows[2][1],
-            self.rows[2][0] - self.rows[0][2],
-            self.rows[0][1] - self.rows[1][0],
-        )
+        Vector3::new(self.rows[1][2], self.rows[2][0], self.rows[0][1])
     }
 }
 

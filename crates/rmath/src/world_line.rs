@@ -156,6 +156,26 @@ impl DiscreteWorldLine {
         self.x.push(x);
     }
 
+    fn find_t_past_hi_point(&self, t: f64) -> Option<usize> {
+        let lo = 1;
+        if self.x[lo].t > t {
+            return None;
+        }
+        let mut hi = self.x.len() - 1;
+        if self.x[hi].t <= t {
+            return Some(hi);
+        }
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            if self.x[mid].t >= t {
+                hi = mid;
+            } else {
+                return Some(mid);
+            }
+        }
+        Some(lo)
+    }
+
     fn find_future_nearest(&self, x: Vector4) -> Option<usize> {
         if self.x.len() <= 2 {
             return None;
@@ -167,13 +187,10 @@ impl DiscreteWorldLine {
             return None;
         }
         // hi = future = norm is positive
-        let mut hi = self.x.len() - 1;
+        let mut hi = self.find_t_past_hi_point(x.t)?;
         let norm_hi = (self.x[hi] - x).lorentz_norm2();
         if norm_hi < 0.0 {
             return None;
-        }
-        for (i, xx) in self.x.iter().copied().enumerate() {
-            println!("{}: {}", i, (xx - x).lorentz_norm2());
         }
         while lo < hi {
             let mid = (lo + hi) / 2;
@@ -223,7 +240,7 @@ mod tests {
         use crate::PhaseSpace;
         let mut wl = DiscreteWorldLine::new();
         let mut p = PhaseSpace::new(Vector3::zero(), Vector4::zero());
-        for _ in 0..4 {
+        for _ in 0..100 {
             wl.push(p.position);
             p.tick(0.5, Vector3::zero());
         }

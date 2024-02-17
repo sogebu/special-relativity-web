@@ -21,6 +21,11 @@ impl PhaseSpace {
         self.position += Vector4::from_velocity(self.velocity) * ds;
         self.velocity += acceleration.spatial() * ds;
     }
+
+    pub fn tick_in_world_frame(&mut self, ds: f64, acceleration: Vector3) {
+        self.position += Vector4::from_velocity(self.velocity) * ds;
+        self.velocity += acceleration * ds;
+    }
 }
 
 #[cfg(test)]
