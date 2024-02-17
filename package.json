@@ -11,15 +11,15 @@
     "special-relativity-web": "./pkg"
   },
   "devDependencies": {
-    "@types/webpack": "^5.28.4",
+    "@types/webpack": "^5.28.5",
     "@wasm-tool/wasm-pack-plugin": "^1.7.0",
-    "gh-pages": "^6.0.0",
-    "html-webpack-plugin": "^5.5.3",
-    "ts-loader": "^9.5.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2",
-    "webpack": "^5.89.0",
+    "gh-pages": "^6.1.1",
+    "html-webpack-plugin": "^5.6.0",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.2",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1"
+    "webpack-dev-server": "^5.0.2"
   }
 }
