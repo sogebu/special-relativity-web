@@ -116,7 +116,7 @@ impl InternalApp {
             };
             let pos = lorentz * (x - self.player.position());
             let charge_data = LightingLocalData {
-                color: RGBA::yellow(),
+                color: RGBA::gold(),
                 model_view_projection: view_projection * Matrix::translation(pos.spatial()),
                 normal,
             };
@@ -157,10 +157,10 @@ impl InternalApp {
             let pos = lorentz * (pos_on_player_plc - self.player.position());
             let projection = view_projection * Matrix::translation(pos.spatial());
             let ele = fs.field_strength_to_electric_field();
-            self.draw_arrow(ele, RGBA::red(), projection, normal);
+            self.draw_arrow(ele, RGBA::magenta(), projection, normal);
             let mag = fs.field_strength_to_magnetic_field();
             if mag.magnitude2() > 0.0 {
-                self.draw_arrow(mag, RGBA::blue(), projection, normal);
+                self.draw_arrow(mag, RGBA::cyan(), projection, normal);
             }
         }
         self.backend.flush();
@@ -169,13 +169,19 @@ impl InternalApp {
     }
 
     pub fn info(&self) -> String {
-        format!(
-            r"player x = {:?}
-player v = {:?}
-",
-            self.player.position(),
-            self.player.velocity()
-        )
+        let mut s = String::new();
+        s.push_str(&format!("player x = {:?}\n", self.player.position()));
+        s.push_str(&format!("player x = {:?}\n", self.player.velocity()));
+        for (i, charge) in self.charges.charges.iter().enumerate() {
+            let Some((x, u, a)) = charge.world_line.past_intersection(self.player.position())
+            else {
+                continue;
+            };
+            s.push_str(&format!("charge {i} x = {:?}\n", x));
+            s.push_str(&format!("charge {i} u = {:?}\n", u.magnitude()));
+            s.push_str(&format!("charge {i} gamma = {:?}\n", u.gamma()));
+        }
+        s
     }
 
     fn draw_arrow(&self, v: Vector3, color: RGBA, projection: Matrix, normal: Matrix) {
@@ -216,7 +222,7 @@ impl Default for ArrowConfig {
         ArrowConfig {
             shaft_radius: 0.02,
             head_radius: 0.05,
-            log_count: 1,
+            log_count: 2,
             length_factor: 0.1,
         }
     }
@@ -262,15 +268,17 @@ impl Charge {
 
 impl ChargeSet {
     fn new() -> ChargeSet {
-        let c1 = Charge::new(1.0, vec4(0.0, 2.0, 0.0, -12.0), vec3(-0.45, 0.0, 0.0));
-        let c2 = Charge::new(1.0, vec4(0.0, -2.0, 0.0, -12.0), vec3(0.45, 0.0, 0.0));
+        let u = 0.5;
+        let r = 2.0;
+        let c1 = Charge::new(-1.0, vec4(u * 2.0, r, 0.0, -12.0), vec3(-u, 0.0, 0.0));
+        let c2 = Charge::new(1.0, vec4(-u * 2.0, -r, 0.0, -12.0), vec3(u, 0.0, 0.0));
         ChargeSet {
             charges: vec![c1, c2],
         }
     }
 
     fn tick(&mut self, until: Vector4) {
-        let ds = 1.0 / 100.0;
+        let ds = 1.0 / 1000.0;
         while !self.charges.iter().all(|c| {
             c.phase_space.position.t >= until.t
                 || (c.phase_space.position - until).lorentz_norm2() >= 0.0
