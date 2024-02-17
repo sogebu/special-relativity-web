@@ -80,5 +80,6 @@ mod tests {
         assert!(e.magnitude() > 0.0);
         assert!(m.magnitude() > 0.0);
         assert_relative_eq!(e.dot(m), 0.0);
+        assert_relative_eq!((-l.normalized()).cross(e), m);
     }
 }

@@ -157,23 +157,12 @@ impl DiscreteWorldLine {
     }
 
     fn find_t_past_hi_point(&self, t: f64) -> Option<usize> {
-        let lo = 1;
-        if self.x[lo].t > t {
-            return None;
-        }
-        let mut hi = self.x.len() - 1;
-        if self.x[hi].t <= t {
-            return Some(hi);
-        }
-        while lo < hi {
-            let mid = (lo + hi) / 2;
-            if self.x[mid].t >= t {
-                hi = mid;
-            } else {
-                return Some(mid);
+        for i in (0..self.x.len()).rev() {
+            if self.x[i].t <= t {
+                return Some(i);
             }
         }
-        Some(lo)
+        None
     }
 
     fn find_future_nearest(&self, x: Vector4) -> Option<usize> {
@@ -181,6 +170,7 @@ impl DiscreteWorldLine {
             return None;
         }
         // lo = past = norm is negative
+        // most post point is space-like = ng
         let mut lo = 1;
         let norm_lo = (self.x[lo] - x).lorentz_norm2();
         if norm_lo > 0.0 {
@@ -201,7 +191,6 @@ impl DiscreteWorldLine {
                 lo = mid + 1;
             }
         }
-
         Some(hi)
     }
 }
