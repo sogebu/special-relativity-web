@@ -119,6 +119,10 @@ impl Quaternion {
         let c = from.cross(to);
         Quaternion::new(1.0 + from.dot(to), c.x, c.y, c.z).normalized()
     }
+
+    pub fn is_nan(&self) -> bool {
+        self.s.is_nan() || self.x.is_nan() || self.y.is_nan() || self.z.is_nan()
+    }
 }
 
 impl Mul for Quaternion {
@@ -207,6 +211,24 @@ mod tests {
             q * Vector3::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2, 0.0),
             Vector3::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2, 0.0),
         );
+    }
+
+    #[test]
+    fn from_rotation_arc_random() {
+        for x in [-1.0, 0.0, 1.0] {
+            for y in [-1.0, 0.0, 1.0] {
+                for z in [-1.0, 0.0, 1.0] {
+                    if (x, y, z) == (0.0, 0.0, 0.0) {
+                        continue;
+                    }
+                    let q = Quaternion::from_rotation_arc(
+                        Vector3::Z_AXIS,
+                        Vector3::new(x, y, z).normalized(),
+                    );
+                    assert_relative_eq!(q * Vector3::Z_AXIS, Vector3::new(x, y, z).normalized());
+                }
+            }
+        }
     }
 
     #[test]
