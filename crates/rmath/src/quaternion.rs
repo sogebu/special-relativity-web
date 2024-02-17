@@ -116,8 +116,17 @@ impl Quaternion {
     ///
     /// Ref: https://docs.rs/glam/latest/glam/f64/struct.DQuat.html#method.from_rotation_arc
     pub fn from_rotation_arc(from: Vector3, to: Vector3) -> Quaternion {
-        let c = from.cross(to);
-        Quaternion::new(1.0 + from.dot(to), c.x, c.y, c.z).normalized()
+        const ONE_MINUS_EPS: f64 = 1.0 - 2.0 * core::f64::EPSILON;
+        let dot = from.dot(to);
+        if dot > ONE_MINUS_EPS {
+            return Quaternion::one();
+        } else if dot < -ONE_MINUS_EPS {
+            // どうせ from は Z_AXIS なので
+            Quaternion::from_axis(Rad(std::f64::consts::PI), Vector3::X_AXIS)
+        } else {
+            let c = from.cross(to);
+            Quaternion::new(1.0 + from.dot(to), c.x, c.y, c.z).normalized()
+        }
     }
 
     pub fn is_nan(&self) -> bool {
