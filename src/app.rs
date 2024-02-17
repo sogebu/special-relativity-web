@@ -278,7 +278,7 @@ impl ChargeSet {
     }
 
     fn tick(&mut self, until: Vector4) {
-        let ds = 1.0 / 1000.0;
+        let ds = 1.0 / 100.0;
         while !self.charges.iter().all(|c| {
             c.phase_space.position.t >= until.t
                 || (c.phase_space.position - until).lorentz_norm2() >= 0.0
