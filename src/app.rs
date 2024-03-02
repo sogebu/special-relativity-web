@@ -157,10 +157,10 @@ impl InternalApp {
             let pos = lorentz * (pos_on_player_plc - self.player.position());
             let projection = view_projection * Matrix::translation(pos.spatial());
             let ele = fs.field_strength_to_electric_field();
-            self.draw_arrow(ele, RGBA::magenta(), projection, normal);
+            self.draw_arrow(ele, RGBA::green(), projection, normal);
             let mag = fs.field_strength_to_magnetic_field();
             if mag.magnitude2() > 0.0 {
-                self.draw_arrow(mag, RGBA::cyan(), projection, normal);
+                self.draw_arrow(mag, RGBA::orange(), projection, normal);
             }
         }
         self.backend.flush();
@@ -214,8 +214,6 @@ impl InternalApp {
 
 #[derive(Copy, Clone)]
 pub struct ArrowConfig {
-    shaft_radius: f32,
-    head_radius: f32,
     log_count: u8,
     length_factor: f64,
 }
@@ -223,8 +221,6 @@ pub struct ArrowConfig {
 impl Default for ArrowConfig {
     fn default() -> Self {
         ArrowConfig {
-            shaft_radius: 0.02,
-            head_radius: 0.05,
             log_count: 2,
             length_factor: 0.1,
         }
@@ -234,8 +230,9 @@ impl Default for ArrowConfig {
 impl ArrowConfig {
     pub fn shape_data(&self) -> shape::ArrowOption {
         shape::ArrowOption::new()
-            .shaft_radius(self.shaft_radius)
-            .head_radius(self.head_radius)
+            .shaft_radius(0.02)
+            .head_radius(0.02)
+            .head_length(0.3)
     }
 
     pub fn arrow_length(&self, v: Vector3) -> f64 {
