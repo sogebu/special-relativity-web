@@ -38,10 +38,6 @@ impl Player {
         Matrix::from(self.quaternion.inverse())
     }
 
-    pub fn transition_matrix(&self) -> Matrix {
-        Matrix::translation(-self.phase_space.position.spatial())
-    }
-
     pub fn lorentz_matrix(&self) -> Matrix {
         Matrix::lorentz(self.phase_space.velocity)
     }

@@ -170,16 +170,19 @@ impl InternalApp {
 
     pub fn info(&self) -> String {
         let mut s = String::new();
-        s.push_str(&format!("player x = {:?}\n", self.player.position()));
-        s.push_str(&format!("player x = {:?}\n", self.player.velocity()));
+        s.push_str(&format!("player x = {}\n", self.player.position()));
+        s.push_str(&format!("player u = {}\n", self.player.velocity()));
+        s.push_str(&format!(
+            "player gamma = {:.3}\n",
+            self.player.velocity().gamma()
+        ));
         for (i, charge) in self.charges.charges.iter().enumerate() {
-            let Some((x, u, a)) = charge.world_line.past_intersection(self.player.position())
+            let Some((x, u, _)) = charge.world_line.past_intersection(self.player.position())
             else {
                 continue;
             };
-            s.push_str(&format!("charge {i} x = {:?}\n", x));
-            s.push_str(&format!("charge {i} u = {:?}\n", u.magnitude()));
-            s.push_str(&format!("charge {i} gamma = {:?}\n", u.gamma()));
+            s.push_str(&format!("charge {i} x = {}\n", x));
+            s.push_str(&format!("charge {i} gamma = {:.3}\n", u.gamma()));
         }
         s
     }

@@ -1,4 +1,7 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use std::{
+    fmt,
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
+};
 
 use approx::{AbsDiffEq, RelativeEq};
 
@@ -268,6 +271,21 @@ impl From<[f32; 3]> for Vector3 {
 impl From<Vector3> for [f32; 3] {
     fn from(value: Vector3) -> Self {
         [value.x as f32, value.y as f32, value.z as f32]
+    }
+}
+
+impl fmt::Display for Vector3 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&format!("({:.2}, {:.2}, {:.2})", self.x, self.y, self.z))
+    }
+}
+
+impl fmt::Display for Vector4 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&format!(
+            "({:.2}; {:.2}, {:.2}, {:.2})",
+            self.t, self.x, self.y, self.z
+        ))
     }
 }
 
