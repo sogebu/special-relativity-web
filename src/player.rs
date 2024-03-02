@@ -73,7 +73,12 @@ impl Player {
         if key.is_pressed("x") {
             d += self.quaternion.up();
         }
-        d.safe_normalized()
+        d = d.safe_normalized();
+        // break
+        if key.is_pressed("r") {
+            d -= self.phase_space.velocity * 10.0;
+        }
+        d
     }
 
     fn get_viscous_acceleration(&self) -> Vector3 {

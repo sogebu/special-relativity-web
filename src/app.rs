@@ -3,8 +3,8 @@ use web_sys::WebGl2RenderingContext;
 
 use color::RGBA;
 use rmath::{
-    vec3, vec4, Deg, DiscreteWorldLine, Matrix, PhaseSpace, Quaternion, StaticWorldLine, Vector3,
-    Vector4, WorldLine,
+    vec3, vec4, Deg, DiscreteWorldLine, LineOscillateWorldLine, Matrix, PhaseSpace, Quaternion,
+    StaticWorldLine, Vector3, Vector4, WorldLine,
 };
 use shape::BuildData;
 
@@ -30,7 +30,7 @@ pub struct InternalApp {
     arrow_config: ArrowConfig,
     charge_shape: Shape<VertexPositionNormal>,
     measurement_points: Vec<StaticWorldLine>,
-    charges: EomChargeSet,
+    charges: Box<dyn ChargeSet>,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
@@ -48,10 +48,28 @@ impl InternalApp {
         let mut measurement_points = Vec::new();
         for x in -num..=num {
             for y in -num..=num {
+                if y as f64 * 0.5 < -5.0 {
+                    continue;
+                }
                 measurement_points.push(StaticWorldLine::new(vec3(
                     x as f64 * 0.5,
                     y as f64 * 0.5,
                     0.0,
+                )));
+            }
+        }
+        for x in -num..=num {
+            for z in -num..=num {
+                if z == 0 {
+                    continue;
+                }
+                if z as f64 * 0.5 < 0.0 {
+                    continue;
+                }
+                measurement_points.push(StaticWorldLine::new(vec3(
+                    x as f64 * 0.5,
+                    -5.0,
+                    z as f64 * 0.5,
                 )));
             }
         }
@@ -67,7 +85,7 @@ impl InternalApp {
                 .radius(0.1)
                 .build_sharp()
                 .into(),
-            charges: EomChargeSet::new(),
+            charges: Box::new(LineOscillateEomCharge::new()),
             measurement_points,
             key_manager: KeyManager::new(),
             last_tick: None,
@@ -80,11 +98,14 @@ impl InternalApp {
     pub fn reset_charge(&mut self, setup: &str) {
         self.player = Player::new();
         match setup {
-            "eom1" => {
-                self.charges = EomChargeSet::new();
+            "eom" => {
+                self.charges = Box::new(EomChargeSet::new());
             }
-            "eom2" => {
-                self.charges = EomChargeSet::new2();
+            "line_o" => {
+                self.charges = Box::new(LineOscillateCharge::new());
+            }
+            "o_eom" => {
+                self.charges = Box::new(LineOscillateEomCharge::new());
             }
             _ => (),
         }
@@ -123,11 +144,7 @@ impl InternalApp {
 
         self.lighting_shader
             .bind_shared_data(&self.backend, &self.charge_shape);
-        for charge in self.charges.charges.iter() {
-            let Some((x, _, _)) = charge.world_line.past_intersection(self.player.position())
-            else {
-                continue;
-            };
+        for (_, (x, _, _)) in self.charges.iter(self.player.position()) {
             let pos = lorentz * (x - self.player.position());
             let charge_data = LightingLocalData {
                 color: RGBA::gold(),
@@ -148,16 +165,7 @@ impl InternalApp {
         for m in self.measurement_points.iter() {
             let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position()).unwrap();
 
-            let charges = self
-                .charges
-                .charges
-                .iter()
-                .filter_map(|c| {
-                    c.world_line
-                        .past_intersection(pos_on_player_plc)
-                        .map(|x| (c.q, x))
-                })
-                .collect::<Vec<_>>();
+            let charges = self.charges.iter(pos_on_player_plc);
             if charges.is_empty() {
                 continue;
             }
@@ -190,14 +198,7 @@ impl InternalApp {
             "player gamma = {:.3}\n",
             self.player.velocity().gamma()
         ));
-        for (i, charge) in self.charges.charges.iter().enumerate() {
-            let Some((x, u, _)) = charge.world_line.past_intersection(self.player.position())
-            else {
-                continue;
-            };
-            s.push_str(&format!("charge {i} x = {}\n", x));
-            s.push_str(&format!("charge {i} gamma = {:.3}\n", u.gamma()));
-        }
+        self.charges.info(&mut s, self.player.position());
         s
     }
 
@@ -258,6 +259,14 @@ impl ArrowConfig {
     }
 }
 
+trait ChargeSet {
+    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))>;
+
+    fn tick(&mut self, _until: Vector4) {}
+
+    fn info(&self, _s: &mut String, _player_pos: Vector4) {}
+}
+
 struct EomCharge {
     q: f64,
     phase_space: PhaseSpace,
@@ -290,15 +299,18 @@ impl EomChargeSet {
             charges: vec![c1, c2],
         }
     }
+}
 
-    fn new2() -> EomChargeSet {
-        let u = 0.5;
-        let r = 2.0;
-        let c1 = EomCharge::new(-1.0, vec4(u * 2.0, r, 0.0, -12.0), vec3(u, 0.0, 0.0));
-        let c2 = EomCharge::new(1.0, vec4(-u * 2.0, -r, 0.0, -12.0), vec3(-u, 0.0, 0.0));
-        EomChargeSet {
-            charges: vec![c1, c2],
-        }
+impl ChargeSet for EomChargeSet {
+    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+        self.charges
+            .iter()
+            .filter_map(move |c| {
+                c.world_line
+                    .past_intersection(player_pos)
+                    .and_then(|x| Some((c.q, x)))
+            })
+            .collect()
     }
 
     fn tick(&mut self, until: Vector4) {
@@ -337,6 +349,143 @@ impl EomChargeSet {
                         a,
                     );
             }
+            let force = fs
+                * (Matrix::eta() * Vector4::from_velocity(phase_space.velocity))
+                * self.charges[i].q;
+            self.charges[i]
+                .phase_space
+                .tick_in_world_frame(ds, force.spatial());
+            let pos = self.charges[i].phase_space.position;
+            self.charges[i].world_line.push(pos);
+        }
+    }
+
+    fn info(&self, s: &mut String, player_pos: Vector4) {
+        for (i, charge) in self.charges.iter().enumerate() {
+            let Some((x, u, _)) = charge.world_line.past_intersection(player_pos) else {
+                continue;
+            };
+            s.push_str(&format!("charge {i} x = {}\n", x));
+            s.push_str(&format!("charge {i} gamma = {:.3}\n", u.gamma()));
+        }
+    }
+}
+
+struct LineOscillateCharge {
+    q: f64,
+    world_line: LineOscillateWorldLine,
+}
+
+impl LineOscillateCharge {
+    pub fn new() -> LineOscillateCharge {
+        LineOscillateCharge {
+            q: 1.0,
+            world_line: LineOscillateWorldLine::new(
+                Vector3::new(0.0, 0.0, 0.0),
+                Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
+                0.1,
+            )
+            .unwrap(),
+        }
+    }
+}
+
+impl ChargeSet for LineOscillateCharge {
+    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+        self.world_line
+            .past_intersection(player_pos)
+            .into_iter()
+            .map(|x| (self.q, x))
+            .collect()
+    }
+}
+
+struct LineOscillateEomCharge {
+    q: f64,
+    world_line: LineOscillateWorldLine,
+    charges: Vec<EomCharge>,
+}
+
+impl LineOscillateEomCharge {
+    fn new() -> LineOscillateEomCharge {
+        let r = 2.0;
+        let c1 = EomCharge::new(-1.0, vec4(0.0, r, 0.0, -12.0), vec3(0.8, 0.0, 0.0));
+        LineOscillateEomCharge {
+            q: 1.0,
+            world_line: LineOscillateWorldLine::new(
+                Vector3::new(0.0, 0.0, 0.0),
+                Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
+                0.1,
+            )
+            .unwrap(),
+            charges: vec![c1],
+        }
+    }
+}
+
+impl ChargeSet for LineOscillateEomCharge {
+    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+        let mut v = self
+            .world_line
+            .past_intersection(player_pos)
+            .into_iter()
+            .map(|x| (self.q, x))
+            .collect::<Vec<_>>();
+        v.extend(self.charges.iter().filter_map(move |c| {
+            c.world_line
+                .past_intersection(player_pos)
+                .and_then(|x| Some((c.q, x)))
+        }));
+        v
+    }
+
+    fn tick(&mut self, until: Vector4) {
+        let ds = 1.0 / 100.0;
+        while !self.charges.iter().all(|c| {
+            c.phase_space.position.t >= until.t
+                || (c.phase_space.position - until).lorentz_norm2() >= 0.0
+        }) {
+            let i = self
+                .charges
+                .iter()
+                .enumerate()
+                .min_by(|(_, ci), (_, cj)| {
+                    ci.phase_space
+                        .position
+                        .t
+                        .total_cmp(&cj.phase_space.position.t)
+                })
+                .map(|(i, _)| i)
+                .unwrap();
+            let phase_space = self.charges[i].phase_space;
+            let mut fs = Matrix::zero();
+            for (j, c) in self.charges.iter().enumerate() {
+                // ignore form self
+                if i == j {
+                    continue;
+                }
+                let Some((x, u, a)) = c.world_line.past_intersection(phase_space.position) else {
+                    continue;
+                };
+                fs = fs
+                    + Matrix::field_strength(
+                        c.q,
+                        x.spatial() - phase_space.position.spatial(),
+                        u,
+                        a,
+                    );
+            }
+
+            if let Some((x, u, a)) = self.world_line.past_intersection(phase_space.position) {
+                fs = fs
+                    + Matrix::field_strength(
+                        self.q,
+                        x.spatial() - phase_space.position.spatial(),
+                        u,
+                        a,
+                    );
+            }
+
             let force = fs
                 * (Matrix::eta() * Vector4::from_velocity(phase_space.velocity))
                 * self.charges[i].q;

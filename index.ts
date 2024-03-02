@@ -41,6 +41,9 @@ const preset1 = document.getElementById("preset1") as HTMLSelectElement;
 preset1.onchange = presetChange;
 const preset2 = document.getElementById("preset2") as HTMLSelectElement;
 preset2.onchange = presetChange;
+const preset3 = document.getElementById("preset3") as HTMLSelectElement;
+preset3.onchange = presetChange;
+
 
 function step(timestamp: DOMHighResTimeStamp): void {
     app.tick(timestamp);
