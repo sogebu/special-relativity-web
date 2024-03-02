@@ -5,20 +5,34 @@
     <title>Sogebu Special Relativity</title>
 </head>
 <body>
-<div><canvas id="canvas"></canvas></div>
 <div>
-    <div style="display: inline-block">
-    <p>操作方法</p>
-    <dl>
-        <dt>前/後/左/右 移動</dt><dd>W/S/A/D</dd>
-        <dt>上/下 移動</dt><dd>X/Z</dd>
-        <dt>左/右/上/下 旋回</dt><dd>←/→/↑/↓</dd>
-        <dt>左/右 ロール</dt><dd>Q/E</dd>
-    </dl>
+    <canvas id="canvas"></canvas>
+</div>
+<div>
+    <div style="display: inline-block; vertical-align: top">
+        <p>操作方法</p>
+        <dl>
+            <dt>前/後/左/右 移動</dt>
+            <dd>W/S/A/D</dd>
+            <dt>上/下 移動</dt>
+            <dd>X/Z</dd>
+            <dt>左/右/上/下 旋回</dt>
+            <dd>←/→/↑/↓</dd>
+            <dt>左/右 ロール</dt>
+            <dd>Q/E</dd>
+        </dl>
     </div>
-    <div style="display: inline-block; margin: 0 100px">
-        <p>情報</p>
-        <div id="info"></div>
+    <div style="display: inline-block; margin: 0 100px; vertical-align: top">
+        <input type="radio" id="preset1" name="preset" value="eom1" checked="checked">
+        <label for="preset1">Equation of Motion 1</label><br>
+        <input type="radio" id="preset2" name="preset" value="eom2">
+        <label for="preset2">Equation of Motion 2</label><br>
+    </div>
+    <div style="display: inline-block; margin: 0 100px; vertical-align: top">
+        <details>
+            <summary>位置とか速度とか</summary>
+            <div id="info"></div>
+        </details>
     </div>
 </div>
 </body>

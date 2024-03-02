@@ -23,6 +23,10 @@ impl App {
         Ok(App(InternalApp::new(context)?))
     }
 
+    pub fn reset_charge(&mut self, setup: &str) {
+        self.0.reset_charge(setup);
+    }
+
     #[wasm_bindgen]
     pub fn key_down(&mut self, key: String) {
         self.0.key_down(key);

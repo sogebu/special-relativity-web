@@ -30,7 +30,7 @@ pub struct InternalApp {
     arrow_config: ArrowConfig,
     charge_shape: Shape<VertexPositionNormal>,
     measurement_points: Vec<StaticWorldLine>,
-    charges: ChargeSet,
+    charges: EomChargeSet,
     key_manager: KeyManager,
     last_tick: Option<f64>,
     player: Player,
@@ -67,13 +67,27 @@ impl InternalApp {
                 .radius(0.1)
                 .build_sharp()
                 .into(),
-            charges: ChargeSet::new(),
+            charges: EomChargeSet::new(),
             measurement_points,
             key_manager: KeyManager::new(),
             last_tick: None,
             player: Player::new(),
             lighting_on: true,
         })
+    }
+
+    #[inline(always)]
+    pub fn reset_charge(&mut self, setup: &str) {
+        self.player = Player::new();
+        match setup {
+            "eom1" => {
+                self.charges = EomChargeSet::new();
+            }
+            "eom2" => {
+                self.charges = EomChargeSet::new2();
+            }
+            _ => (),
+        }
     }
 
     #[inline(always)]
@@ -244,21 +258,21 @@ impl ArrowConfig {
     }
 }
 
-struct Charge {
+struct EomCharge {
     q: f64,
     phase_space: PhaseSpace,
     world_line: DiscreteWorldLine,
 }
 
-struct ChargeSet {
-    charges: Vec<Charge>,
+struct EomChargeSet {
+    charges: Vec<EomCharge>,
 }
 
-impl Charge {
-    fn new(q: f64, x: Vector4, u: Vector3) -> Charge {
+impl EomCharge {
+    fn new(q: f64, x: Vector4, u: Vector3) -> EomCharge {
         let mut wl = DiscreteWorldLine::new();
         wl.push(x);
-        Charge {
+        EomCharge {
             q,
             phase_space: PhaseSpace::new(u, x),
             world_line: wl,
@@ -266,13 +280,23 @@ impl Charge {
     }
 }
 
-impl ChargeSet {
-    fn new() -> ChargeSet {
+impl EomChargeSet {
+    fn new() -> EomChargeSet {
         let u = 0.5;
         let r = 2.0;
-        let c1 = Charge::new(-1.0, vec4(u * 2.0, r, 0.0, -12.0), vec3(-u, 0.0, 0.0));
-        let c2 = Charge::new(1.0, vec4(-u * 2.0, -r, 0.0, -12.0), vec3(u, 0.0, 0.0));
-        ChargeSet {
+        let c1 = EomCharge::new(-1.0, vec4(u * 2.0, r, 0.0, -12.0), vec3(-u, 0.0, 0.0));
+        let c2 = EomCharge::new(1.0, vec4(-u * 2.0, -r, 0.0, -12.0), vec3(u, 0.0, 0.0));
+        EomChargeSet {
+            charges: vec![c1, c2],
+        }
+    }
+
+    fn new2() -> EomChargeSet {
+        let u = 0.5;
+        let r = 2.0;
+        let c1 = EomCharge::new(-1.0, vec4(u * 2.0, r, 0.0, -12.0), vec3(u, 0.0, 0.0));
+        let c2 = EomCharge::new(1.0, vec4(-u * 2.0, -r, 0.0, -12.0), vec3(-u, 0.0, 0.0));
+        EomChargeSet {
             charges: vec![c1, c2],
         }
     }
