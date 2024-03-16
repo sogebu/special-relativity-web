@@ -26,6 +26,43 @@ window.addEventListener('blur', () => {
     app.window_blue();
 });
 
+const buttonUp = document.getElementById("button-up")!;
+const buttonDown = document.getElementById("button-down")!;
+const buttonLeft = document.getElementById("button-left")!;
+const buttonRight = document.getElementById("button-right")!;
+buttonUp.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+    app.key_down("arrowup");
+});
+buttonUp.addEventListener("touchend", (event) => {
+    event.preventDefault();
+    app.key_up("arrowup");
+});
+buttonDown.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+    app.key_down("arrowdown");
+});
+buttonDown.addEventListener("touchend", (event) => {
+    event.preventDefault();
+    app.key_up("arrowdown");
+});
+buttonLeft.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+    app.key_down("arrowleft");
+});
+buttonLeft.addEventListener("touchend", (event) => {
+    event.preventDefault();
+    app.key_up("arrowleft");
+});
+buttonRight.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+    app.key_down("arrowright");
+});
+buttonRight.addEventListener("touchend", (event) => {
+    event.preventDefault();
+    app.key_up("arrowright");
+});
+
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;
 
 const presetChange = () => {

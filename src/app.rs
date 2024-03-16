@@ -285,6 +285,13 @@ impl EomCharge {
             world_line: wl,
         }
     }
+
+    fn tick(&mut self, fs: Matrix, ds: f64) {
+        let force =
+            fs * (Matrix::eta() * Vector4::from_velocity(self.phase_space.velocity)) * self.q;
+        self.phase_space.tick_in_world_frame(ds, force.spatial());
+        self.world_line.push(self.phase_space.position);
+    }
 }
 
 impl EomChargeSet {
@@ -343,14 +350,7 @@ impl ChargeSet for EomChargeSet {
                         a,
                     );
             }
-            let force = fs
-                * (Matrix::eta() * Vector4::from_velocity(phase_space.velocity))
-                * self.charges[i].q;
-            self.charges[i]
-                .phase_space
-                .tick_in_world_frame(ds, force.spatial());
-            let pos = self.charges[i].phase_space.position;
-            self.charges[i].world_line.push(pos);
+            self.charges[i].tick(fs, ds);
         }
     }
 
@@ -479,15 +479,7 @@ impl ChargeSet for LineOscillateEomCharge {
                         a,
                     );
             }
-
-            let force = fs
-                * (Matrix::eta() * Vector4::from_velocity(phase_space.velocity))
-                * self.charges[i].q;
-            self.charges[i]
-                .phase_space
-                .tick_in_world_frame(ds, force.spatial());
-            let pos = self.charges[i].phase_space.position;
-            self.charges[i].world_line.push(pos);
+            self.charges[i].tick(fs, ds);
         }
     }
 }
