@@ -13,7 +13,10 @@ use rmath::{
 };
 use shape::BuildData;
 
-use crate::{key::KeyManager, player::Player};
+use crate::{
+    key::{KeyManager, TouchManager},
+    player::Player,
+};
 
 fn wasm_error(s: String) -> JsValue {
     s.into()
@@ -30,6 +33,7 @@ pub struct InternalApp {
     measurement_points: Vec<StaticWorldLine>,
     charges: Box<dyn ChargeSet>,
     key_manager: KeyManager,
+    touch_manager: TouchManager,
     last_tick: Option<f64>,
     player: Player,
     lighting_on: bool,
@@ -71,6 +75,9 @@ impl InternalApp {
                 )));
             }
         }
+
+        let (width, height) = backend.get_viewport_size();
+
         let arrow_config = ArrowConfig::default();
         Ok(InternalApp {
             backend,
@@ -86,6 +93,7 @@ impl InternalApp {
             charges: Box::new(LineOscillateEomCharge::new()),
             measurement_points,
             key_manager: KeyManager::new(),
+            touch_manager: TouchManager::new(width as f64, height as f64),
             last_tick: None,
             player: Player::new(),
             lighting_on: true,
@@ -125,10 +133,25 @@ impl InternalApp {
     }
 
     #[inline(always)]
+    pub fn touch_start(&mut self, x: &[f64], y: &[f64]) {
+        self.touch_manager.touch_start(x, y);
+    }
+
+    #[inline(always)]
+    pub fn touch_move(&mut self, x: &[f64], y: &[f64]) {
+        self.touch_manager.touch_move(x, y);
+    }
+
+    #[inline(always)]
+    pub fn touch_end(&mut self) {
+        self.touch_manager.touch_end();
+    }
+
+    #[inline(always)]
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
         let last_tick = self.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
-        self.player.tick(dt, &self.key_manager);
+        self.player.tick(dt, &self.key_manager, &self.touch_manager);
         self.charges.tick(self.player.position());
 
         self.backend.clear();
@@ -184,6 +207,8 @@ impl InternalApp {
             }
         }
         self.backend.flush();
+
+        self.touch_manager.tick();
 
         Ok(())
     }

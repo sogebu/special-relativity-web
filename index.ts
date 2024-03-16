@@ -4,8 +4,17 @@ const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
 if (!canvas) {
     throw new Error("No 'canvas'");
 }
-canvas.width = 1200;
-canvas.height = 800;
+
+const screenWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+const screenHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+if (screenWidth < screenHeight) {
+    canvas.width = screenWidth;
+    canvas.height = screenHeight * 0.8;
+} else {
+    canvas.width = 1200;
+    canvas.height = 800;
+}
+
 const context = canvas.getContext("webgl2");
 if (!context) {
     throw new Error("webgl2 not supported");
@@ -26,6 +35,30 @@ window.addEventListener('blur', () => {
     app.window_blue();
 });
 
+canvas.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    const x = [];
+    const y = [];
+    for (let i = 0; i < event.touches.length; i++) {
+        x.push(event.touches[i].clientX);
+        y.push(event.touches[i].clientY);
+    }
+    app.touch_start(new Float64Array(x), new Float64Array(y));
+});
+canvas.addEventListener('touchmove', (event) => {
+    event.preventDefault();
+    const x = [];
+    const y = [];
+    for (let i = 0; i < event.touches.length; i++) {
+        x.push(event.touches[i].clientX);
+        y.push(event.touches[i].clientY);
+    }
+    app.touch_move(new Float64Array(x), new Float64Array(y));
+});
+canvas.addEventListener('touchend', () => {
+    app.touch_end();
+});
+
 const buttonUp = document.getElementById("button-up")!;
 const buttonDown = document.getElementById("button-down")!;
 const buttonLeft = document.getElementById("button-left")!;
@@ -35,7 +68,6 @@ buttonUp.addEventListener("touchstart", (event) => {
     app.key_down("arrowup");
 });
 buttonUp.addEventListener("touchend", (event) => {
-    event.preventDefault();
     app.key_up("arrowup");
 });
 buttonDown.addEventListener("touchstart", (event) => {
@@ -43,7 +75,6 @@ buttonDown.addEventListener("touchstart", (event) => {
     app.key_down("arrowdown");
 });
 buttonDown.addEventListener("touchend", (event) => {
-    event.preventDefault();
     app.key_up("arrowdown");
 });
 buttonLeft.addEventListener("touchstart", (event) => {
@@ -51,7 +82,6 @@ buttonLeft.addEventListener("touchstart", (event) => {
     app.key_down("arrowleft");
 });
 buttonLeft.addEventListener("touchend", (event) => {
-    event.preventDefault();
     app.key_up("arrowleft");
 });
 buttonRight.addEventListener("touchstart", (event) => {
@@ -59,7 +89,6 @@ buttonRight.addEventListener("touchstart", (event) => {
     app.key_down("arrowright");
 });
 buttonRight.addEventListener("touchend", (event) => {
-    event.preventDefault();
     app.key_up("arrowright");
 });
 

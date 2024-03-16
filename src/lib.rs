@@ -42,6 +42,21 @@ impl App {
     }
 
     #[wasm_bindgen]
+    pub fn touch_start(&mut self, x: &[f64], y: &[f64]) {
+        self.0.touch_start(x, y);
+    }
+
+    #[wasm_bindgen]
+    pub fn touch_move(&mut self, x: &[f64], y: &[f64]) {
+        self.0.touch_move(x, y);
+    }
+
+    #[wasm_bindgen]
+    pub fn touch_end(&mut self) {
+        self.0.touch_end();
+    }
+
+    #[wasm_bindgen]
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
         self.0.tick(timestamp)
     }

@@ -1,5 +1,5 @@
-use crate::key::KeyManager;
-use rmath::{vec3, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
+use crate::key::{KeyManager, TouchManager};
+use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
 
 pub struct Player {
     phase_space: PhaseSpace,
@@ -23,11 +23,11 @@ impl Player {
         }
     }
 
-    pub fn tick(&mut self, dt: f64, key: &KeyManager) {
+    pub fn tick(&mut self, dt: f64, key: &KeyManager, touch: &TouchManager) {
         let a =
             self.get_user_input_acceleration(key) * 0.5 + self.get_viscous_acceleration() * 0.05;
         self.phase_space.tick(dt, a);
-        self.quaternion *= self.get_rotation_velocity(dt, key);
+        self.quaternion *= self.get_rotation_velocity(dt, key, touch);
     }
 
     pub fn rot_matrix(&self) -> Matrix {
@@ -85,7 +85,7 @@ impl Player {
         -self.phase_space.velocity
     }
 
-    fn get_rotation_velocity(&self, dt: f64, key: &KeyManager) -> Quaternion {
+    fn get_rotation_velocity(&self, dt: f64, key: &KeyManager, touch: &TouchManager) -> Quaternion {
         let mut right = 0.0;
         if key.is_pressed("arrowright") {
             right += 1.0;
@@ -108,6 +108,15 @@ impl Player {
             role -= 1.0;
         }
         if (right, up, role) == (0.0, 0.0, 0.0) {
+            if let Some((dx, dy)) = touch.single_move() {
+                let mag = (dx * dx + dy * dy).sqrt();
+                if mag > 1e-4 {
+                    let dx = -dx / mag;
+                    let dy = -dy / mag;
+                    let axis = self.quaternion.up() * dx + self.quaternion.right() * dy;
+                    return Quaternion::from_axis(Deg(90.0 * mag), axis);
+                }
+            }
             Quaternion::one()
         } else {
             let axis = self.quaternion.up() * right - self.quaternion.right() * up
