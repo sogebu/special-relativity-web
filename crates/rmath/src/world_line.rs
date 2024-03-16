@@ -63,6 +63,7 @@ pub struct LineOscillateWorldLine {
 }
 
 impl LineOscillateWorldLine {
+    #[allow(clippy::result_unit_err)]
     pub fn new(
         center: Vector3,
         amplitude: Vector3,
@@ -157,12 +158,11 @@ impl DiscreteWorldLine {
     }
 
     fn find_t_past_hi_point(&self, t: f64) -> Option<usize> {
-        for i in (0..self.x.len()).rev() {
-            if self.x[i].t <= t {
-                return Some(i);
-            }
-        }
-        None
+        self.x
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(i, x)| if x.t <= t { Some(i) } else { None })
     }
 
     fn find_future_nearest(&self, x: Vector4) -> Option<usize> {

@@ -2,7 +2,7 @@ use crate::{AddFace, BuildData, Data, Face, VertexPosition, VertexPositionCalcNo
 use rmath::Vector3;
 
 pub struct ArrowOption {
-    div: usize,
+    division_n: usize,
     root: [f32; 3],
     shaft_length: f32,
     shaft_radius: f32,
@@ -13,7 +13,7 @@ pub struct ArrowOption {
 impl Default for ArrowOption {
     fn default() -> Self {
         ArrowOption {
-            div: 16,
+            division_n: 16,
             root: [0.0; 3],
             shaft_length: 2.0,
             shaft_radius: 0.25,
@@ -28,8 +28,8 @@ impl ArrowOption {
         Default::default()
     }
 
-    pub fn div(mut self, div: usize) -> ArrowOption {
-        self.div = div;
+    pub fn division_n(mut self, division_n: usize) -> ArrowOption {
+        self.division_n = division_n;
         self
     }
 
@@ -68,7 +68,8 @@ impl BuildData for ArrowOption {
         let [rx, ry, rz] = self.root;
 
         let calc_xy = |i: usize, r: f32| {
-            let theta = std::f64::consts::TAU * (i % self.div) as f64 / self.div as f64;
+            let theta =
+                std::f64::consts::TAU * (i % self.division_n) as f64 / self.division_n as f64;
             let (sin, cos) = theta.sin_cos();
             let x = rx + r * cos as f32;
             let y = ry + r * sin as f32;
@@ -76,22 +77,22 @@ impl BuildData for ArrowOption {
         };
 
         // bottom
-        let mut vertices = Vec::with_capacity(1 + self.div * 3);
-        let mut triangles = Vec::with_capacity(self.div * 6);
+        let mut vertices = Vec::with_capacity(1 + self.division_n * 3);
+        let mut triangles = Vec::with_capacity(self.division_n * 6);
         let normal = Vector3::new(0.0, 0.0, -1.0);
         vertices.push(VertexPositionCalcNormal {
             position: [rx, ry, rz],
             normal,
         });
-        for i in 0..self.div {
+        for i in 0..self.division_n {
             let (x, y) = calc_xy(i, self.shaft_radius);
             vertices.push(VertexPositionCalcNormal {
                 position: [x, y, rz],
                 normal,
             });
         }
-        for i in 0..self.div {
-            triangles.push([0, 1 + ((i + 1) % self.div) as u32, 1 + i as u32]);
+        for i in 0..self.division_n {
+            triangles.push([0, 1 + ((i + 1) % self.division_n) as u32, 1 + i as u32]);
         }
         let mut bottom = Data {
             vertices,
@@ -99,9 +100,11 @@ impl BuildData for ArrowOption {
         };
 
         // side of shaft
-        let mut shaft_side =
-            Data::<VertexPositionCalcNormal>::with_capacity(self.div * 2, self.div * 2);
-        for i in 0..self.div {
+        let mut shaft_side = Data::<VertexPositionCalcNormal>::with_capacity(
+            self.division_n * 2,
+            self.division_n * 2,
+        );
+        for i in 0..self.division_n {
             let (x1, y1) = calc_xy(i, self.shaft_radius);
             let (x2, y2) = calc_xy(i + 1, self.shaft_radius);
             let z1 = rz;
@@ -113,10 +116,10 @@ impl BuildData for ArrowOption {
         bottom.append(shaft_side);
 
         // bottom of head
-        let mut vertices = Vec::with_capacity(self.div * 2);
-        let mut triangles = Vec::with_capacity(self.div * 2);
+        let mut vertices = Vec::with_capacity(self.division_n * 2);
+        let mut triangles = Vec::with_capacity(self.division_n * 2);
         let normal = Vector3::new(0.0, 0.0, -1.0);
-        for i in 0..self.div {
+        for i in 0..self.division_n {
             let (x1, y1) = calc_xy(i, self.shaft_radius);
             let (x2, y2) = calc_xy(i, self.head_radius);
             vertices.push(VertexPositionCalcNormal {
@@ -130,8 +133,8 @@ impl BuildData for ArrowOption {
 
             let i1 = i as u32 * 2;
             let j1 = i as u32 * 2 + 1;
-            let i2 = ((i + 1) % self.div) as u32 * 2;
-            let j2 = ((i + 1) % self.div) as u32 * 2 + 1;
+            let i2 = ((i + 1) % self.division_n) as u32 * 2;
+            let j2 = ((i + 1) % self.division_n) as u32 * 2 + 1;
             triangles.push([i1, i2, j2]);
             triangles.push([i1, j2, j1]);
         }
@@ -143,8 +146,9 @@ impl BuildData for ArrowOption {
 
         // head
         let o = [rx, ry, rz + self.shaft_length + self.head_length];
-        let mut head = Data::<VertexPositionCalcNormal>::with_capacity(self.div + 1, self.div);
-        for i in 0..self.div {
+        let mut head =
+            Data::<VertexPositionCalcNormal>::with_capacity(self.division_n + 1, self.division_n);
+        for i in 0..self.division_n {
             let (x1, y1) = calc_xy(i, self.head_radius);
             let (x2, y2) = calc_xy(i + 1, self.head_radius);
             let z = rz + self.shaft_length;

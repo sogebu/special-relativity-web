@@ -119,7 +119,7 @@ impl Quaternion {
         const ONE_MINUS_EPS: f64 = 1.0 - 2.0 * core::f64::EPSILON;
         let dot = from.dot(to);
         if dot > ONE_MINUS_EPS {
-            return Quaternion::one();
+            Quaternion::one()
         } else if dot < -ONE_MINUS_EPS {
             // どうせ from は Z_AXIS なので
             Quaternion::from_axis(Rad(std::f64::consts::PI), Vector3::X_AXIS)

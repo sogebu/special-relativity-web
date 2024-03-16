@@ -303,11 +303,7 @@ impl ChargeSet for EomChargeSet {
     fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
         self.charges
             .iter()
-            .filter_map(move |c| {
-                c.world_line
-                    .past_intersection(player_pos)
-                    .and_then(|x| Some((c.q, x)))
-            })
+            .filter_map(move |c| c.world_line.past_intersection(player_pos).map(|x| (c.q, x)))
             .collect()
     }
 
@@ -429,11 +425,11 @@ impl ChargeSet for LineOscillateEomCharge {
             .into_iter()
             .map(|x| (self.q, x))
             .collect::<Vec<_>>();
-        v.extend(self.charges.iter().filter_map(move |c| {
-            c.world_line
-                .past_intersection(player_pos)
-                .and_then(|x| Some((c.q, x)))
-        }));
+        v.extend(
+            self.charges
+                .iter()
+                .filter_map(move |c| c.world_line.past_intersection(player_pos).map(|x| (c.q, x))),
+        );
         v
     }
 
