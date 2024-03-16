@@ -1,19 +1,19 @@
-use crate::backend::{
+use crate::{
     get_uniform_location, make_buffer, make_program, Backend, Shader, Shape, VertexAttrib,
     VertexPosition,
 };
 use color::RGBA;
-use glow::{HasContext, UniformLocation, WebBufferKey, WebProgramKey};
+use glow::HasContext;
 use memoffset::offset_of;
 use rmath::Matrix;
 
-pub struct SimpleShader {
-    program: WebProgramKey,
-    vbo: WebBufferKey,
-    ebo: WebBufferKey,
+pub struct SimpleShader<C: HasContext> {
+    program: C::Program,
+    vbo: C::Buffer,
+    ebo: C::Buffer,
     vertex_attrib: Vec<VertexAttrib>,
-    color_location: UniformLocation,
-    model_view_projection_location: UniformLocation,
+    color_location: C::UniformLocation,
+    model_view_projection_location: C::UniformLocation,
 }
 
 pub struct SimpleLocalData {
@@ -21,8 +21,8 @@ pub struct SimpleLocalData {
     pub model_view_projection: Matrix,
 }
 
-impl SimpleShader {
-    pub fn new(backend: &Backend) -> Result<SimpleShader, String> {
+impl<C: HasContext> SimpleShader<C> {
+    pub fn new(backend: &Backend<C>) -> Result<SimpleShader<C>, String> {
         let gl = &backend.gl;
         let program = make_program(
             gl,
@@ -56,11 +56,11 @@ impl SimpleShader {
     }
 }
 
-impl Shader for SimpleShader {
+impl<C: HasContext> Shader<C> for SimpleShader<C> {
     type SharedData = Shape<VertexPosition>;
     type LocalData = SimpleLocalData;
 
-    fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData) {
+    fn bind_shared_data(&self, backend: &Backend<C>, data: &Self::SharedData) {
         let gl = &backend.gl;
         data.bind(gl, self.program, self.vbo, self.ebo);
         for va in self.vertex_attrib.iter() {
@@ -70,7 +70,7 @@ impl Shader for SimpleShader {
 
     fn draw(
         &self,
-        backend: &Backend,
+        backend: &Backend<C>,
         shared_data: &Self::SharedData,
         local_data: &Self::LocalData,
     ) {

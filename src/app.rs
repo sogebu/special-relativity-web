@@ -1,6 +1,11 @@
+use glow::Context;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
+use backend::{
+    Backend, LightingLocalData, LightingShader, Shader, Shape, SimpleLocalData, SimpleShader,
+    VertexPosition, VertexPositionNormal,
+};
 use color::RGBA;
 use rmath::{
     vec3, vec4, Deg, DiscreteWorldLine, LineOscillateWorldLine, Matrix, PhaseSpace, Quaternion,
@@ -8,23 +13,16 @@ use rmath::{
 };
 use shape::BuildData;
 
-use crate::{
-    backend::{
-        Backend, LightingLocalData, LightingShader, Shader, Shape, SimpleLocalData, SimpleShader,
-        VertexPosition, VertexPositionNormal,
-    },
-    key::KeyManager,
-    player::Player,
-};
+use crate::{key::KeyManager, player::Player};
 
 fn wasm_error(s: String) -> JsValue {
     s.into()
 }
 
 pub struct InternalApp {
-    backend: Backend,
-    simple_shader: SimpleShader,
-    lighting_shader: LightingShader,
+    backend: Backend<Context>,
+    simple_shader: SimpleShader<Context>,
+    lighting_shader: LightingShader<Context>,
     arrow_shape_no_normal: Shape<VertexPosition>,
     arrow_shape_with_normal: Shape<VertexPositionNormal>,
     arrow_config: ArrowConfig,
@@ -39,8 +37,8 @@ pub struct InternalApp {
 
 impl InternalApp {
     #[inline(always)]
-    pub fn new(context: WebGl2RenderingContext) -> Result<InternalApp, JsValue> {
-        let backend = Backend::new(context).map_err(wasm_error)?;
+    pub fn new(webgl2: WebGl2RenderingContext) -> Result<InternalApp, JsValue> {
+        let backend = Backend::new(Context::from_webgl2_context(webgl2)).map_err(wasm_error)?;
         let simple_shader = SimpleShader::new(&backend)?;
         let lighting_shader = LightingShader::new(&backend)?;
 

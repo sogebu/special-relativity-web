@@ -4,7 +4,6 @@ use web_sys::{console, WebGl2RenderingContext};
 use crate::app::InternalApp;
 
 mod app;
-mod backend;
 mod key;
 mod player;
 

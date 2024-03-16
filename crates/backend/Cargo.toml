@@ -1,0 +1,15 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bytemuck = "1.15"
+glow = "0.13"
+memoffset = "0.9"
+
+color = { path = "../color" }
+rmath = { path = "../rmath" }
+shape = { path = "../shape" }

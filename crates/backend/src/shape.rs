@@ -1,5 +1,5 @@
 use bytemuck::{NoUninit, Pod, Zeroable};
-use glow::{Context, HasContext, WebBufferKey, WebProgramKey};
+use glow::HasContext;
 
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 #[repr(C)]
@@ -30,7 +30,7 @@ impl<V> Shape<V>
 where
     V: NoUninit,
 {
-    pub fn bind(&self, gl: &Context, program: WebProgramKey, vbo: WebBufferKey, ebo: WebBufferKey) {
+    pub fn bind<C: HasContext>(&self, gl: &C, program: C::Program, vbo: C::Buffer, ebo: C::Buffer) {
         unsafe {
             gl.use_program(Some(program));
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));

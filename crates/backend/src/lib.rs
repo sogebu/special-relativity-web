@@ -3,26 +3,29 @@ mod shader_lorentz;
 mod shader_simple;
 mod shape;
 
-use glow::{Context, HasContext, WebBufferKey, WebProgramKey, WebShaderKey};
-use web_sys::{WebGl2RenderingContext, WebGlUniformLocation};
+use glow::HasContext;
 
 pub use self::{shader_lighting::*, shader_lorentz::*, shader_simple::*, shape::*};
-pub struct Backend {
-    gl: Context,
+pub struct Backend<C> {
+    gl: C,
 }
 
-pub trait Shader {
+pub trait Shader<C> {
     type SharedData;
     type LocalData;
 
-    fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData);
+    fn bind_shared_data(&self, backend: &Backend<C>, data: &Self::SharedData);
 
-    fn draw(&self, backend: &Backend, shared_data: &Self::SharedData, local_data: &Self::LocalData);
+    fn draw(
+        &self,
+        backend: &Backend<C>,
+        shared_data: &Self::SharedData,
+        local_data: &Self::LocalData,
+    );
 }
 
-impl Backend {
-    pub fn new(webgl2: WebGl2RenderingContext) -> Result<Self, String> {
-        let gl = Context::from_webgl2_context(webgl2);
+impl<C: HasContext> Backend<C> {
+    pub fn new(gl: C) -> Result<Self, String> {
         unsafe {
             gl.enable(glow::DEPTH_TEST);
             gl.clear_color(0.9, 0.9, 0.9, 1.0);
@@ -64,9 +67,9 @@ struct VertexAttrib {
 }
 
 impl VertexAttrib {
-    fn new(
-        gl: &Context,
-        program: WebProgramKey,
+    fn new<C: HasContext>(
+        gl: &C,
+        program: C::Program,
         name: &str,
         size: usize,
         stride: usize,
@@ -84,7 +87,7 @@ impl VertexAttrib {
         })
     }
 
-    fn bind(&self, gl: &Context) {
+    fn bind<C: HasContext>(&self, gl: &C) {
         unsafe {
             gl.vertex_attrib_pointer_f32(
                 self.index,
@@ -99,26 +102,26 @@ impl VertexAttrib {
     }
 }
 
-fn make_program(
-    gl: &Context,
+fn make_program<C: HasContext>(
+    gl: &C,
     vertex_shader_source: &str,
     fragment_shader_source: &str,
-) -> Result<WebProgramKey, String> {
-    fn make_shader(
-        gl: &Context,
-        program: WebProgramKey,
+) -> Result<C::Program, String> {
+    fn make_shader<C: HasContext>(
+        gl: &C,
+        program: C::Program,
         sharder_type: u32,
         source: &str,
-    ) -> Result<WebShaderKey, String> {
+    ) -> Result<C::Shader, String> {
         unsafe {
-            let sharder = gl.create_shader(sharder_type)?;
-            gl.shader_source(sharder, source);
-            gl.compile_shader(sharder);
-            if !gl.get_shader_compile_status(sharder) {
-                return Err(gl.get_shader_info_log(sharder));
+            let shader = gl.create_shader(sharder_type)?;
+            gl.shader_source(shader, source);
+            gl.compile_shader(shader);
+            if !gl.get_shader_compile_status(shader) {
+                return Err(gl.get_shader_info_log(shader));
             }
-            gl.attach_shader(program, sharder);
-            Ok(sharder)
+            gl.attach_shader(program, shader);
+            Ok(shader)
         }
     }
     unsafe {
@@ -137,10 +140,10 @@ fn make_program(
     }
 }
 
-fn make_buffer(
-    gl: &Context,
-    program: WebProgramKey,
-) -> Result<(WebBufferKey, WebBufferKey), String> {
+fn make_buffer<C: HasContext>(
+    gl: &C,
+    program: C::Program,
+) -> Result<(C::Buffer, C::Buffer), String> {
     unsafe {
         gl.use_program(Some(program));
         let vbo = gl.create_buffer()?;
@@ -151,11 +154,11 @@ fn make_buffer(
     }
 }
 
-fn get_uniform_location(
-    gl: &Context,
-    program: WebProgramKey,
+fn get_uniform_location<C: HasContext>(
+    gl: &C,
+    program: C::Program,
     name: &str,
-) -> Result<WebGlUniformLocation, String> {
+) -> Result<C::UniformLocation, String> {
     unsafe {
         gl.get_uniform_location(program, name)
             .ok_or_else(|| format!("No '{}' uniform attribute", name))

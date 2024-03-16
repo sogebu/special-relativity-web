@@ -1,20 +1,20 @@
-use crate::backend::{
+use crate::{
     get_uniform_location, make_buffer, make_program, Backend, Shader, Shape, VertexAttrib,
     VertexPositionNormal,
 };
 use color::RGBA;
-use glow::{HasContext, UniformLocation, WebBufferKey, WebProgramKey};
+use glow::HasContext;
 use memoffset::offset_of;
 use rmath::Matrix;
 
-pub struct LightingShader {
-    program: WebProgramKey,
-    vbo: WebBufferKey,
-    ebo: WebBufferKey,
+pub struct LightingShader<C: HasContext> {
+    program: C::Program,
+    vbo: C::Buffer,
+    ebo: C::Buffer,
     vertex_attrib: Vec<VertexAttrib>,
-    color_location: UniformLocation,
-    model_view_projection_location: UniformLocation,
-    normal_location: UniformLocation,
+    color_location: C::UniformLocation,
+    model_view_projection_location: C::UniformLocation,
+    normal_location: C::UniformLocation,
 }
 
 pub struct LightingLocalData {
@@ -23,8 +23,8 @@ pub struct LightingLocalData {
     pub normal: Matrix,
 }
 
-impl LightingShader {
-    pub fn new(backend: &Backend) -> Result<LightingShader, String> {
+impl<C: HasContext> LightingShader<C> {
+    pub fn new(backend: &Backend<C>) -> Result<LightingShader<C>, String> {
         let gl = &backend.gl;
         let program = make_program(
             gl,
@@ -67,11 +67,11 @@ impl LightingShader {
     }
 }
 
-impl Shader for LightingShader {
+impl<C: HasContext> Shader<C> for LightingShader<C> {
     type SharedData = Shape<VertexPositionNormal>;
     type LocalData = LightingLocalData;
 
-    fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData) {
+    fn bind_shared_data(&self, backend: &Backend<C>, data: &Self::SharedData) {
         let gl = &backend.gl;
         data.bind(gl, self.program, self.vbo, self.ebo);
         for va in self.vertex_attrib.iter() {
@@ -81,7 +81,7 @@ impl Shader for LightingShader {
 
     fn draw(
         &self,
-        backend: &Backend,
+        backend: &Backend<C>,
         shared_data: &Self::SharedData,
         local_data: &Self::LocalData,
     ) {

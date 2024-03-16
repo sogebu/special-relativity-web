@@ -1,22 +1,22 @@
-use glow::{HasContext, UniformLocation, WebBufferKey, WebProgramKey};
+use glow::HasContext;
 use memoffset::offset_of;
 
-use super::{
+use crate::{
     get_uniform_location, make_buffer, make_program, Backend, Shader, Shape, VertexAttrib,
     VertexPosition,
 };
 use color::RGBA;
 use rmath::Matrix;
 
-pub struct LorentzShader {
-    program: WebProgramKey,
-    vbo: WebBufferKey,
-    ebo: WebBufferKey,
+pub struct LorentzShader<C: HasContext> {
+    program: C::Program,
+    vbo: C::Buffer,
+    ebo: C::Buffer,
     vertex_attrib: Vec<VertexAttrib>,
-    color_location: UniformLocation,
-    model_matrix_location: UniformLocation,
-    lorentz_matrix_location: UniformLocation,
-    view_projection_location: UniformLocation,
+    color_location: C::UniformLocation,
+    model_matrix_location: C::UniformLocation,
+    lorentz_matrix_location: C::UniformLocation,
+    view_projection_location: C::UniformLocation,
 }
 
 pub struct LorentzLocalData {
@@ -26,8 +26,8 @@ pub struct LorentzLocalData {
     pub view_projection: Matrix,
 }
 
-impl LorentzShader {
-    pub fn new(backend: &Backend) -> Result<LorentzShader, String> {
+impl<C: HasContext> LorentzShader<C> {
+    pub fn new(backend: &Backend<C>) -> Result<LorentzShader<C>, String> {
         let gl = &backend.gl;
         let program = make_program(
             gl,
@@ -59,11 +59,11 @@ impl LorentzShader {
     }
 }
 
-impl Shader for LorentzShader {
+impl<C: HasContext> Shader<C> for LorentzShader<C> {
     type SharedData = Shape<VertexPosition>;
     type LocalData = LorentzLocalData;
 
-    fn bind_shared_data(&self, backend: &Backend, data: &Self::SharedData) {
+    fn bind_shared_data(&self, backend: &Backend<C>, data: &Self::SharedData) {
         let gl = &backend.gl;
         data.bind(gl, self.program, self.vbo, self.ebo);
         for va in self.vertex_attrib.iter() {
@@ -73,7 +73,7 @@ impl Shader for LorentzShader {
 
     fn draw(
         &self,
-        backend: &Backend,
+        backend: &Backend<C>,
         shared_data: &Self::SharedData,
         local_data: &Self::LocalData,
     ) {

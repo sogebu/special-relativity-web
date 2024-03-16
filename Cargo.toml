@@ -1,6 +1,7 @@
 [workspace]
 members = [
     ".",
+    "crates/backend",
     "crates/color",
     "crates/rmath",
     "crates/shape",
@@ -24,15 +25,14 @@ lto = true
 opt-level = "z"
 
 [dependencies]
-bytemuck = "1.14"
 glow = "0.13"
 js-sys = "0.3"
-memoffset = "0.9"
 wasm-bindgen = "0.2"
 rand = "0.8"
 rand_pcg = "0.3"
 getrandom = { version = "0.2", features = ["js"] }
 
+backend = { path = "crates/backend" }
 color = { path = "crates/color" }
 rmath = { path = "crates/rmath" }
 shape = { path = "crates/shape" }
