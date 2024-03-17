@@ -115,12 +115,10 @@ impl Player {
             role -= 1.0;
         }
         if (right, up, role) == (0.0, 0.0, 0.0) {
-            if let Some((dx, dy)) = touch.single_move() {
-                let mag = (dx * dx + dy * dy).sqrt();
+            if let Some(dxy) = touch.single_move() {
+                let mag = dxy.magnitude();
                 if mag > 1e-4 {
-                    let dx = -dx / mag;
-                    let dy = -dy / mag;
-                    let axis = self.quaternion.up() * dx + self.quaternion.right() * dy;
+                    let axis = self.quaternion.up() * dxy.x + self.quaternion.right() * dxy.y;
                     return Quaternion::from_axis(Deg(90.0 * mag), axis);
                 }
             }

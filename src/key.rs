@@ -88,7 +88,7 @@ impl TouchManager {
         }
     }
 
-    pub fn single_move(&self) -> Option<(f64, f64)> {
+    pub fn single_move(&self) -> Option<Vector2> {
         let TouchState::Single(pre) = self.pre_state else {
             return None;
         };
@@ -97,7 +97,7 @@ impl TouchManager {
         };
         let dx = (current.x - pre.x) / self.width;
         let dy = (current.y - pre.y) / self.height;
-        Some((dx, dy))
+        Some(Vector2::new(dx, dy))
     }
 
     pub fn pinch_rate(&self) -> Option<f64> {
