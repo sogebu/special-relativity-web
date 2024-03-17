@@ -7,6 +7,13 @@ use approx::{AbsDiffEq, RelativeEq};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[repr(C)]
+pub struct Vector2 {
+    pub x: f64,
+    pub y: f64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(C)]
 pub struct Vector3 {
     pub x: f64,
     pub y: f64,
@@ -20,6 +27,45 @@ pub struct Vector4 {
     pub y: f64,
     pub z: f64,
     pub t: f64,
+}
+
+impl Vector2 {
+    pub const X_AXIS: Vector2 = Vector2::new(1.0, 0.0);
+    pub const Y_AXIS: Vector2 = Vector2::new(0.0, 1.0);
+
+    /// Length of vector
+    ///
+    /// ```rust
+    /// # use rmath::Vector2;
+    /// let v = Vector2::new(3.0, 4.0);
+    /// assert_eq!(v.magnitude(), 5.0);
+    /// ```
+    pub fn magnitude(self) -> f64 {
+        self.magnitude2().sqrt()
+    }
+
+    /// Squared length of vector
+    ///
+    /// ```rust
+    /// # use rmath::Vector2;
+    /// let v = Vector2::new(1.0, 4.0);
+    /// assert_eq!(v.magnitude2(), 17.0);
+    /// ```
+    pub fn magnitude2(self) -> f64 {
+        self.x * self.x + self.y * self.y
+    }
+
+    /// Dot product
+    ///
+    /// ```rust
+    /// # use rmath::Vector2;
+    /// let a = Vector2::new(2.0, 3.0);
+    /// let b = Vector2::new(0.5, 1.5);
+    /// assert_eq!(a.dot(b), 1.0 + 4.5);
+    /// ```
+    pub fn dot(self, rhs: Vector2) -> f64 {
+        self.x * rhs.x + self.y * rhs.y
+    }
 }
 
 impl Vector3 {
@@ -259,6 +305,7 @@ macro_rules! impl_vector {
     };
 }
 
+impl_vector!(Vector2 { x, y }, vec2);
 impl_vector!(Vector3 { x, y, z }, vec3);
 impl_vector!(Vector4 { x, y, z, t }, vec4);
 

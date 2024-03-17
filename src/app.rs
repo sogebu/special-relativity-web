@@ -134,7 +134,7 @@ impl InternalApp {
 
     #[inline(always)]
     pub fn touch_start(&mut self, x: &[f64], y: &[f64]) {
-        self.touch_manager.touch_start(x, y);
+        self.touch_manager.touch_move(x, y);
     }
 
     #[inline(always)]

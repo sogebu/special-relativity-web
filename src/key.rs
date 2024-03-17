@@ -1,3 +1,4 @@
+use rmath::Vector2;
 use std::collections::HashSet;
 
 pub struct KeyManager {
@@ -45,7 +46,8 @@ pub struct TouchManager {
 #[derive(Copy, Clone, PartialEq)]
 pub enum TouchState {
     None,
-    Single { x: f64, y: f64 },
+    Single(Vector2),
+    Double(Vector2, Vector2),
 }
 
 impl TouchManager {
@@ -59,26 +61,25 @@ impl TouchManager {
         }
     }
 
-    pub fn touch_start(&mut self, x: &[f64], y: &[f64]) {
-        if x.len() == 1 {
-            self.pre_state = self.current_state;
-            self.current_state = TouchState::Single { x: x[0], y: y[0] };
-            self.last_event = self.current_state;
-        }
+    fn push(&mut self, s: TouchState) {
+        self.pre_state = self.current_state;
+        self.current_state = s;
+        self.last_event = s;
     }
 
     pub fn touch_move(&mut self, x: &[f64], y: &[f64]) {
         if x.len() == 1 {
-            self.pre_state = self.current_state;
-            self.current_state = TouchState::Single { x: x[0], y: y[0] };
-            self.last_event = self.current_state;
+            self.push(TouchState::Single(Vector2::new(x[0], y[0])));
+        } else if x.len() == 2 {
+            self.push(TouchState::Double(
+                Vector2::new(x[0], y[0]),
+                Vector2::new(x[1], y[1]),
+            ));
         }
     }
 
     pub fn touch_end(&mut self) {
-        self.pre_state = self.current_state;
-        self.current_state = TouchState::None;
-        self.last_event = TouchState::None;
+        self.push(TouchState::None);
     }
 
     pub fn tick(&mut self) {
@@ -88,18 +89,26 @@ impl TouchManager {
     }
 
     pub fn single_move(&self) -> Option<(f64, f64)> {
-        let TouchState::Single { x: pre_x, y: pre_y } = self.pre_state else {
+        let TouchState::Single(pre) = self.pre_state else {
             return None;
         };
-        let TouchState::Single {
-            x: current_x,
-            y: current_y,
-        } = self.current_state
-        else {
+        let TouchState::Single(current) = self.current_state else {
             return None;
         };
-        let dx = (current_x - pre_x) / self.width;
-        let dy = (current_y - pre_y) / self.height;
+        let dx = (current.x - pre.x) / self.width;
+        let dy = (current.y - pre.y) / self.height;
         Some((dx, dy))
+    }
+
+    pub fn pinch_rate(&self) -> Option<f64> {
+        let TouchState::Double(pre1, pre2) = self.pre_state else {
+            return None;
+        };
+        let TouchState::Double(current1, current2) = self.current_state else {
+            return None;
+        };
+        let pre = (pre2 - pre1).magnitude();
+        let current = (current2 - current1).magnitude();
+        Some(current / pre)
     }
 }

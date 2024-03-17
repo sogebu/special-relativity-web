@@ -24,8 +24,8 @@ impl Player {
     }
 
     pub fn tick(&mut self, dt: f64, key: &KeyManager, touch: &TouchManager) {
-        let a =
-            self.get_user_input_acceleration(key) * 0.5 + self.get_viscous_acceleration() * 0.05;
+        let a = self.get_user_input_acceleration(key, touch) * 0.5
+            + self.get_viscous_acceleration() * 0.05;
         self.phase_space.tick(dt, a);
         self.quaternion *= self.get_rotation_velocity(dt, key, touch);
     }
@@ -50,7 +50,7 @@ impl Player {
         self.phase_space.velocity
     }
 
-    fn get_user_input_acceleration(&self, key: &KeyManager) -> Vector3 {
+    fn get_user_input_acceleration(&self, key: &KeyManager, touch: &TouchManager) -> Vector3 {
         let mut d = Vector3::zero();
         // forward
         if key.is_pressed("w") {
@@ -73,9 +73,16 @@ impl Player {
         if key.is_pressed("x") {
             d += self.quaternion.up();
         }
+        let v = -self.phase_space.velocity.dot(self.quaternion.front());
+        let r = touch.pinch_rate().unwrap_or(1.0);
+        if r > 1.0 {
+            d -= self.quaternion.front();
+        } else if r < 1.0 && v <= 0.1 {
+            d += self.quaternion.front();
+        }
         d = d.safe_normalized();
         // break
-        if key.is_pressed("r") {
+        if key.is_pressed("r") || (v > 0.0 && r < 1.0) {
             d -= self.phase_space.velocity * 10.0;
         }
         d
