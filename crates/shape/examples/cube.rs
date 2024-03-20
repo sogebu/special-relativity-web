@@ -1,4 +1,4 @@
-use shape::{VertexPositionCalcNormal, VertexPositionNormal};
+use shape::{BuildData, VertexPositionCalcNormal, VertexPositionNormal};
 
 fn main() {
     let cube = shape::CubeOption::new()

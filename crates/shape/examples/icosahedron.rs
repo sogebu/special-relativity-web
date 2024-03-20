@@ -1,4 +1,4 @@
-use shape::VertexPositionNormal;
+use shape::{BuildData, VertexPositionNormal};
 
 fn main() {
     let cube = shape::IcosahedronOption::new()
