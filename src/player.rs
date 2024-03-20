@@ -4,6 +4,13 @@ use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
 pub struct Player {
     phase_space: PhaseSpace,
     quaternion: Quaternion,
+    state: MoveState,
+}
+
+enum MoveState {
+    Front,
+    Back,
+    Break,
 }
 
 impl Default for Player {
@@ -20,12 +27,14 @@ impl Player {
                 Vector4::from_tv(0.0, vec3(0.0, 0.0, 10.0)),
             ),
             quaternion: Quaternion::one(),
+            state: MoveState::Break,
         }
     }
 
     pub fn tick(&mut self, dt: f64, key: &KeyManager, touch: &TouchManager) {
-        let a = self.get_user_input_acceleration(key, touch) * 0.5
-            + self.get_viscous_acceleration() * 0.05;
+        let user_input = self.get_user_key_input_acceleration(key)
+            + self.calc_user_touch_input_acceleration(touch);
+        let a = user_input * 0.5 + self.get_viscous_acceleration() * 0.05;
         self.phase_space.tick(dt, a);
         self.quaternion *= self.get_rotation_velocity(dt, key, touch);
     }
@@ -50,7 +59,7 @@ impl Player {
         self.phase_space.velocity
     }
 
-    fn get_user_input_acceleration(&self, key: &KeyManager, touch: &TouchManager) -> Vector3 {
+    fn get_user_key_input_acceleration(&self, key: &KeyManager) -> Vector3 {
         let mut d = Vector3::zero();
         // forward
         if key.is_pressed("w") {
@@ -73,19 +82,61 @@ impl Player {
         if key.is_pressed("x") {
             d += self.quaternion.up();
         }
-        let v = -self.phase_space.velocity.dot(self.quaternion.front());
-        let r = touch.pinch_rate().unwrap_or(1.0);
-        if r > 1.0 {
-            d -= self.quaternion.front();
-        } else if r < 1.0 && v <= 0.1 {
-            d += self.quaternion.front();
-        }
         d = d.safe_normalized();
         // break
-        if key.is_pressed("r") || (v > 0.0 && r < 1.0) {
-            d -= self.phase_space.velocity * 10.0;
+        if key.is_pressed("r") {
+            d += self.get_break_acceleration();
         }
         d
+    }
+
+    fn calc_user_touch_input_acceleration(&mut self, touch: &TouchManager) -> Vector3 {
+        use std::cmp::Ordering;
+        let r = touch.pinch_rate().unwrap_or(1.0);
+        match self.state {
+            MoveState::Front => match r.total_cmp(&1.0) {
+                Ordering::Less => {
+                    self.state = MoveState::Break;
+                    self.get_break_acceleration()
+                }
+                Ordering::Equal => Vector3::zero(),
+                Ordering::Greater => -self.quaternion.front(),
+            },
+            MoveState::Back => match r.total_cmp(&1.0) {
+                Ordering::Less => self.quaternion.front(),
+                Ordering::Equal => Vector3::zero(),
+                Ordering::Greater => {
+                    self.state = MoveState::Break;
+                    self.get_break_acceleration()
+                }
+            },
+            MoveState::Break => {
+                let is_slow = self.velocity().magnitude2() < 1e-4;
+                match r.total_cmp(&1.0) {
+                    Ordering::Less => {
+                        if is_slow {
+                            self.state = MoveState::Back;
+                            self.quaternion.front()
+                        } else {
+                            self.get_break_acceleration()
+                        }
+                    }
+                    Ordering::Equal => Vector3::zero(),
+                    Ordering::Greater => {
+                        if is_slow {
+                            self.state = MoveState::Front;
+                            -self.quaternion.front()
+                        } else {
+                            self.get_break_acceleration()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn get_break_acceleration(&self) -> Vector3 {
+        -self.phase_space.velocity * 10.0
     }
 
     fn get_viscous_acceleration(&self) -> Vector3 {
@@ -118,7 +169,7 @@ impl Player {
             if let Some(dxy) = touch.single_move() {
                 let mag = dxy.magnitude();
                 if mag > 1e-4 {
-                    let axis = self.quaternion.up() * dxy.x + self.quaternion.right() * dxy.y;
+                    let axis = self.quaternion.up() * -dxy.x + self.quaternion.right() * -dxy.y;
                     return Quaternion::from_axis(Deg(90.0 * mag), axis);
                 }
             }

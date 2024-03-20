@@ -35,61 +35,47 @@ window.addEventListener('blur', () => {
     app.window_blue();
 });
 
-canvas.addEventListener('touchstart', (event) => {
-    event.preventDefault();
+function getTouchEventXY(event: TouchEvent): [Float64Array, Float64Array] {
     const x = [];
     const y = [];
     for (let i = 0; i < event.touches.length; i++) {
         x.push(event.touches[i].clientX);
         y.push(event.touches[i].clientY);
     }
-    app.touch_start(new Float64Array(x), new Float64Array(y));
+    return [new Float64Array(x), new Float64Array(y)];
+}
+
+canvas.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    const [x, y] = getTouchEventXY(event);
+    app.touch_start(x, y);
 });
 canvas.addEventListener('touchmove', (event) => {
     event.preventDefault();
-    const x = [];
-    const y = [];
-    for (let i = 0; i < event.touches.length; i++) {
-        x.push(event.touches[i].clientX);
-        y.push(event.touches[i].clientY);
-    }
-    app.touch_move(new Float64Array(x), new Float64Array(y));
+    const [x, y] = getTouchEventXY(event);
+    app.touch_move(x, y);
 });
 canvas.addEventListener('touchend', () => {
     app.touch_end();
 });
 
-const buttonUp = document.getElementById("button-up")!;
-const buttonDown = document.getElementById("button-down")!;
-const buttonLeft = document.getElementById("button-left")!;
-const buttonRight = document.getElementById("button-right")!;
-buttonUp.addEventListener("touchstart", (event) => {
-    event.preventDefault();
-    app.key_down("arrowup");
+let isClick = false;
+canvas.addEventListener('mousedown', (event) => {
+    isClick = true;
+    app.touch_start(new Float64Array([event.clientX]), new Float64Array([event.clientY]));
 });
-buttonUp.addEventListener("touchend", (event) => {
-    app.key_up("arrowup");
+canvas.addEventListener('mousemove', (event) => {
+    if (isClick) {
+        app.touch_move(new Float64Array([event.clientX]), new Float64Array([event.clientY]));
+    }
 });
-buttonDown.addEventListener("touchstart", (event) => {
-    event.preventDefault();
-    app.key_down("arrowdown");
+canvas.addEventListener('mouseup', () => {
+    isClick = false;
+    app.touch_end();
 });
-buttonDown.addEventListener("touchend", (event) => {
-    app.key_up("arrowdown");
-});
-buttonLeft.addEventListener("touchstart", (event) => {
-    event.preventDefault();
-    app.key_down("arrowleft");
-});
-buttonLeft.addEventListener("touchend", (event) => {
-    app.key_up("arrowleft");
-});
-buttonRight.addEventListener("touchstart", (event) => {
-    event.preventDefault();
-    app.key_down("arrowright");
-});
-buttonRight.addEventListener("touchend", (event) => {
-    app.key_up("arrowright");
+canvas.addEventListener('mouseout', () => {
+    isClick = false;
+    app.touch_end();
 });
 
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;
