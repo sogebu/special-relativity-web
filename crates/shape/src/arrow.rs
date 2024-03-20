@@ -172,22 +172,22 @@ mod tests {
 
     #[test]
     fn no_normal() {
-        let cube = ArrowOption::new().div(5).build_no_normal();
-        assert_eq!(cube.vertices.len(), 1 + 5 * 3 + 1);
-        assert_eq!(cube.triangles.len(), 5 * 6);
+        let o = ArrowOption::new().division_n(5).build_no_normal();
+        assert_eq!(o.vertices.len(), 1 + 5 * 3 + 1);
+        assert_eq!(o.triangles.len(), 5 * 6);
     }
 
     #[test]
     fn face_normal() {
-        let cube = ArrowOption::new().div(6).build_sharp();
-        assert_eq!(cube.vertices.len(), 1 + 6 * 6 + 1);
-        assert_eq!(cube.triangles.len(), 6 * 6);
+        let o = ArrowOption::new().division_n(6).build_sharp();
+        assert_eq!(o.vertices.len(), 1 + 6 * 6 + 1);
+        assert_eq!(o.triangles.len(), 6 * 6);
     }
 
     #[test]
     fn vert_normal() {
-        let cube = ArrowOption::new().div(7).build_smooth();
-        assert_eq!(cube.vertices.len(), 1 + 7 * 6 + 1);
-        assert_eq!(cube.triangles.len(), 7 * 6);
+        let o = ArrowOption::new().division_n(7).build_smooth();
+        assert_eq!(o.vertices.len(), 1 + 7 * 6 + 1);
+        assert_eq!(o.triangles.len(), 7 * 6);
     }
 }
