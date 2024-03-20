@@ -116,33 +116,35 @@ impl BuildData for ArrowOption {
         bottom.append(shaft_side);
 
         // bottom of head
-        let mut vertices = Vec::with_capacity(self.division_n * 2);
-        let mut triangles = Vec::with_capacity(self.division_n * 2);
-        let normal = Vector3::new(0.0, 0.0, -1.0);
-        for i in 0..self.division_n {
-            let (x1, y1) = calc_xy(i, self.shaft_radius);
-            let (x2, y2) = calc_xy(i, self.head_radius);
-            vertices.push(VertexPositionCalcNormal {
-                position: [x1, y1, rz + self.shaft_length],
-                normal,
-            });
-            vertices.push(VertexPositionCalcNormal {
-                position: [x2, y2, rz + self.shaft_length],
-                normal,
-            });
+        if self.shaft_radius < self.head_radius {
+            let mut vertices = Vec::with_capacity(self.division_n * 2);
+            let mut triangles = Vec::with_capacity(self.division_n * 2);
+            let normal = Vector3::new(0.0, 0.0, -1.0);
+            for i in 0..self.division_n {
+                let (x1, y1) = calc_xy(i, self.shaft_radius);
+                let (x2, y2) = calc_xy(i, self.head_radius);
+                vertices.push(VertexPositionCalcNormal {
+                    position: [x1, y1, rz + self.shaft_length],
+                    normal,
+                });
+                vertices.push(VertexPositionCalcNormal {
+                    position: [x2, y2, rz + self.shaft_length],
+                    normal,
+                });
 
-            let i1 = i as u32 * 2;
-            let j1 = i as u32 * 2 + 1;
-            let i2 = ((i + 1) % self.division_n) as u32 * 2;
-            let j2 = ((i + 1) % self.division_n) as u32 * 2 + 1;
-            triangles.push([i1, i2, j2]);
-            triangles.push([i1, j2, j1]);
+                let i1 = i as u32 * 2;
+                let j1 = i as u32 * 2 + 1;
+                let i2 = ((i + 1) % self.division_n) as u32 * 2;
+                let j2 = ((i + 1) % self.division_n) as u32 * 2 + 1;
+                triangles.push([i1, i2, j2]);
+                triangles.push([i1, j2, j1]);
+            }
+            let head_bottom = Data {
+                vertices,
+                triangles,
+            };
+            bottom.append(head_bottom);
         }
-        let head_bottom = Data {
-            vertices,
-            triangles,
-        };
-        bottom.append(head_bottom);
 
         // head
         let o = [rx, ry, rz + self.shaft_length + self.head_length];
@@ -175,6 +177,17 @@ mod tests {
         let o = ArrowOption::new().division_n(5).build_no_normal();
         assert_eq!(o.vertices.len(), 1 + 5 * 3 + 1);
         assert_eq!(o.triangles.len(), 5 * 6);
+    }
+
+    #[test]
+    fn no_normal_no_head() {
+        let o = ArrowOption::new()
+            .division_n(5)
+            .shaft_radius(0.1)
+            .head_radius(0.1)
+            .build_no_normal();
+        assert_eq!(o.vertices.len(), 1 + 5 * 2 + 1);
+        assert_eq!(o.triangles.len(), 5 * 4);
     }
 
     #[test]
