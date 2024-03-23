@@ -48,34 +48,34 @@ function getTouchEventXY(event: TouchEvent): [Float64Array, Float64Array] {
 canvas.addEventListener('touchstart', (event) => {
     event.preventDefault();
     const [x, y] = getTouchEventXY(event);
-    app.touch_start(x, y);
+    app.touch_start(new Date().getTime(), x, y);
 });
 canvas.addEventListener('touchmove', (event) => {
     event.preventDefault();
     const [x, y] = getTouchEventXY(event);
-    app.touch_move(x, y);
+    app.touch_move(new Date().getTime(), x, y);
 });
 canvas.addEventListener('touchend', () => {
-    app.touch_end();
+    app.touch_end(new Date().getTime());
 });
 
 let isClick = false;
 canvas.addEventListener('mousedown', (event) => {
     isClick = true;
-    app.touch_start(new Float64Array([event.clientX]), new Float64Array([event.clientY]));
+    app.touch_start(new Date().getTime(), new Float64Array([event.clientX]), new Float64Array([event.clientY]));
 });
 canvas.addEventListener('mousemove', (event) => {
     if (isClick) {
-        app.touch_move(new Float64Array([event.clientX]), new Float64Array([event.clientY]));
+        app.touch_move(new Date().getTime(), new Float64Array([event.clientX]), new Float64Array([event.clientY]));
     }
 });
 canvas.addEventListener('mouseup', () => {
     isClick = false;
-    app.touch_end();
+    app.touch_end(new Date().getTime());
 });
 canvas.addEventListener('mouseout', () => {
     isClick = false;
-    app.touch_end();
+    app.touch_end(new Date().getTime());
 });
 
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;

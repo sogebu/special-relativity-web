@@ -1,16 +1,10 @@
-use crate::key::{KeyManager, TouchManager};
-use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector3, Vector4};
+use crate::key::{GestureEvent, KeyManager};
+use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector2, Vector3, Vector4};
 
 pub struct Player {
     phase_space: PhaseSpace,
     quaternion: Quaternion,
-    state: MoveState,
-}
-
-enum MoveState {
-    Front,
-    Back,
-    Break,
+    breaking: bool,
 }
 
 impl Default for Player {
@@ -27,16 +21,30 @@ impl Player {
                 Vector4::from_tv(0.0, vec3(0.0, 0.0, 10.0)),
             ),
             quaternion: Quaternion::one(),
-            state: MoveState::Break,
+            breaking: false,
         }
     }
 
-    pub fn tick(&mut self, dt: f64, key: &KeyManager, touch: &TouchManager) {
+    pub fn tick(&mut self, dt: f64, key: &KeyManager, gestures: &[GestureEvent]) {
         let user_input = self.get_user_key_input_acceleration(key)
-            + self.calc_user_touch_input_acceleration(touch);
-        let a = user_input * 0.5 + self.get_viscous_acceleration() * 0.05;
+            + self.get_user_gesture_acceleration(gestures);
+        if user_input == Vector3::zero() {
+            if key.is_pressed("r") || gesture_double_tap(gestures) {
+                self.breaking = true;
+            }
+        } else {
+            self.breaking = false;
+        }
+        let a = user_input * 0.5
+            + self.get_viscous_acceleration() * if self.breaking { 3.0 } else { 0.05 };
         self.phase_space.tick(dt, a);
-        self.quaternion *= self.get_rotation_velocity(dt, key, touch);
+
+        if let Some(q) = self.get_user_key_input_rotation_velocity(dt, key) {
+            self.quaternion *= q;
+        }
+        if let Some(q) = self.get_user_gesture_rotation_velocity(gestures) {
+            self.quaternion *= q;
+        }
     }
 
     pub fn rot_matrix(&self) -> Matrix {
@@ -82,68 +90,34 @@ impl Player {
         if key.is_pressed("x") {
             d += self.quaternion.up();
         }
-        d = d.safe_normalized();
-        // break
-        if key.is_pressed("r") {
-            d += self.get_break_acceleration();
-        }
-        d
+        d.safe_normalized()
     }
 
-    fn calc_user_touch_input_acceleration(&mut self, touch: &TouchManager) -> Vector3 {
+    fn get_user_gesture_acceleration(&self, gestures: &[GestureEvent]) -> Vector3 {
         use std::cmp::Ordering;
-        let r = touch.pinch_rate().unwrap_or(1.0);
-        match self.state {
-            MoveState::Front => match r.total_cmp(&1.0) {
-                Ordering::Less => {
-                    self.state = MoveState::Break;
-                    self.get_break_acceleration()
-                }
-                Ordering::Equal => Vector3::zero(),
-                Ordering::Greater => -self.quaternion.front(),
-            },
-            MoveState::Back => match r.total_cmp(&1.0) {
+        if let Some(r) = gesture_pinch(gestures) {
+            match r.total_cmp(&1.0) {
+                // back
                 Ordering::Less => self.quaternion.front(),
+                // not move
                 Ordering::Equal => Vector3::zero(),
-                Ordering::Greater => {
-                    self.state = MoveState::Break;
-                    self.get_break_acceleration()
-                }
-            },
-            MoveState::Break => {
-                let is_slow = self.velocity().magnitude2() < 1e-4;
-                match r.total_cmp(&1.0) {
-                    Ordering::Less => {
-                        if is_slow {
-                            self.state = MoveState::Back;
-                            self.quaternion.front()
-                        } else {
-                            self.get_break_acceleration()
-                        }
-                    }
-                    Ordering::Equal => Vector3::zero(),
-                    Ordering::Greater => {
-                        if is_slow {
-                            self.state = MoveState::Front;
-                            -self.quaternion.front()
-                        } else {
-                            self.get_break_acceleration()
-                        }
-                    }
-                }
+                // forward
+                Ordering::Greater => -self.quaternion.front(),
             }
+        } else {
+            Vector3::zero()
         }
-    }
-
-    fn get_break_acceleration(&self) -> Vector3 {
-        -self.phase_space.velocity * 10.0
     }
 
     fn get_viscous_acceleration(&self) -> Vector3 {
         -self.phase_space.velocity
     }
 
-    fn get_rotation_velocity(&self, dt: f64, key: &KeyManager, touch: &TouchManager) -> Quaternion {
+    fn get_user_key_input_rotation_velocity(
+        &self,
+        dt: f64,
+        key: &KeyManager,
+    ) -> Option<Quaternion> {
         let mut right = 0.0;
         if key.is_pressed("arrowright") {
             right += 1.0;
@@ -166,18 +140,59 @@ impl Player {
             role -= 1.0;
         }
         if (right, up, role) == (0.0, 0.0, 0.0) {
-            if let Some(dxy) = touch.single_move() {
-                let mag = dxy.magnitude();
-                if mag > 1e-4 {
-                    let axis = self.quaternion.up() * -dxy.x + self.quaternion.right() * -dxy.y;
-                    return Quaternion::from_axis(Deg(90.0 * mag), axis);
-                }
-            }
-            Quaternion::one()
+            None
         } else {
             let axis = self.quaternion.up() * right - self.quaternion.right() * up
                 + self.quaternion.front() * role;
-            Quaternion::from_axis(Rad(dt), axis)
+            Some(Quaternion::from_axis(Rad(dt), axis))
         }
     }
+
+    fn get_user_gesture_rotation_velocity(&self, gestures: &[GestureEvent]) -> Option<Quaternion> {
+        if let Some(dxy) = gesture_swipe(gestures) {
+            let mag = dxy.magnitude();
+            if mag > 1e-4 {
+                let axis = self.quaternion.up() * -dxy.x + self.quaternion.right() * -dxy.y;
+                return Some(Quaternion::from_axis(Deg(90.0 * mag), axis));
+            }
+        }
+        None
+    }
+}
+
+fn gesture_swipe(gestures: &[GestureEvent]) -> Option<Vector2> {
+    for &gesture in gestures {
+        match gesture {
+            GestureEvent::Swipe(v) => {
+                return Some(v);
+            }
+            GestureEvent::DoubleTap => {}
+            GestureEvent::Pinch(_) => {}
+        }
+    }
+    None
+}
+
+fn gesture_double_tap(gestures: &[GestureEvent]) -> bool {
+    for &gesture in gestures {
+        match gesture {
+            GestureEvent::Swipe(_) => {}
+            GestureEvent::DoubleTap => return true,
+            GestureEvent::Pinch(_) => {}
+        }
+    }
+    false
+}
+
+fn gesture_pinch(gestures: &[GestureEvent]) -> Option<f64> {
+    for &gesture in gestures {
+        match gesture {
+            GestureEvent::Swipe(_) => {}
+            GestureEvent::DoubleTap => {}
+            GestureEvent::Pinch(r) => {
+                return Some(r);
+            }
+        }
+    }
+    None
 }

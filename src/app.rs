@@ -133,25 +133,28 @@ impl InternalApp {
     }
 
     #[inline(always)]
-    pub fn touch_start(&mut self, x: &[f64], y: &[f64]) {
-        self.touch_manager.touch_move(x, y);
+    pub fn touch_start(&mut self, ms: f64, x: &[f64], y: &[f64]) {
+        self.touch_manager.touch_start(ms, x, y);
     }
 
     #[inline(always)]
-    pub fn touch_move(&mut self, x: &[f64], y: &[f64]) {
-        self.touch_manager.touch_move(x, y);
+    pub fn touch_move(&mut self, ms: f64, x: &[f64], y: &[f64]) {
+        self.touch_manager.touch_move(ms, x, y);
     }
 
     #[inline(always)]
-    pub fn touch_end(&mut self) {
-        self.touch_manager.touch_end();
+    pub fn touch_end(&mut self, ms: f64) {
+        self.touch_manager.touch_end(ms);
     }
 
     #[inline(always)]
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
         let last_tick = self.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
-        self.player.tick(dt, &self.key_manager, &self.touch_manager);
+        let gesture = (0..4)
+            .map_while(|_| self.touch_manager.consume_gesture(timestamp))
+            .collect::<Vec<_>>();
+        self.player.tick(dt, &self.key_manager, &gesture);
         self.charges.tick(self.player.position());
 
         self.backend.clear();
@@ -207,8 +210,6 @@ impl InternalApp {
             }
         }
         self.backend.flush();
-
-        self.touch_manager.tick();
 
         Ok(())
     }

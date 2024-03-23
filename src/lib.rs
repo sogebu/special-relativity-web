@@ -1,3 +1,5 @@
+extern crate core;
+
 use wasm_bindgen::prelude::*;
 use web_sys::{console, WebGl2RenderingContext};
 
@@ -42,18 +44,18 @@ impl App {
     }
 
     #[wasm_bindgen]
-    pub fn touch_start(&mut self, x: &[f64], y: &[f64]) {
-        self.0.touch_start(x, y);
+    pub fn touch_start(&mut self, ms: f64, x: &[f64], y: &[f64]) {
+        self.0.touch_start(ms, x, y);
     }
 
     #[wasm_bindgen]
-    pub fn touch_move(&mut self, x: &[f64], y: &[f64]) {
-        self.0.touch_move(x, y);
+    pub fn touch_move(&mut self, ms: f64, x: &[f64], y: &[f64]) {
+        self.0.touch_move(ms, x, y);
     }
 
     #[wasm_bindgen]
-    pub fn touch_end(&mut self) {
-        self.0.touch_end();
+    pub fn touch_end(&mut self, ms: f64) {
+        self.0.touch_end(ms);
     }
 
     #[wasm_bindgen]
