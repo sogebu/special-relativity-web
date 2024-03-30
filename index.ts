@@ -83,7 +83,6 @@ const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInput
 const presetChange = () => {
     for (let i = 0; i < presetNodes.length; i++) {
         if (presetNodes.item(i).checked) {
-            console.log(presetNodes.item(i).value);
             app.reset_charge(presetNodes.item(i).value);
             break;
         }
@@ -96,6 +95,20 @@ preset2.onchange = presetChange;
 const preset3 = document.getElementById("preset3") as HTMLSelectElement;
 preset3.onchange = presetChange;
 
+const gridOptionNodes = document.getElementsByName("grid-option") as NodeListOf<HTMLInputElement>;
+
+const gridOptionChange = () => {
+    for (let i = 0; i < gridOptionNodes.length; i++) {
+        if (gridOptionNodes.item(i).checked) {
+            app.reset_grid(gridOptionNodes.item(i).value);
+            break;
+        }
+    }
+};
+const go1 = document.getElementById("grid-option1") as HTMLSelectElement;
+go1.onchange = gridOptionChange;
+const go2 = document.getElementById("grid-option2") as HTMLSelectElement;
+go2.onchange = gridOptionChange;
 
 function step(timestamp: DOMHighResTimeStamp): void {
     app.tick(timestamp);

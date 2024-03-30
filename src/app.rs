@@ -31,6 +31,7 @@ pub struct InternalApp {
     arrow_config: ArrowConfig,
     charge_shape: Shape<VertexPositionNormal>,
     measurement_points: Vec<StaticWorldLine>,
+    grid: i32,
     charges: Box<dyn ChargeSet>,
     key_manager: KeyManager,
     touch_manager: TouchManager,
@@ -72,6 +73,23 @@ fn grid_measurement_points() -> Vec<StaticWorldLine> {
     measurement_points
 }
 
+fn grid_3d_measurement_points() -> Vec<StaticWorldLine> {
+    let num = 15;
+    let mut measurement_points = Vec::new();
+    for x in -num..=num {
+        for y in -num..=num {
+            for z in -num..=num {
+                measurement_points.push(StaticWorldLine::new(vec3(
+                    x as f64 * 0.5,
+                    y as f64 * 0.5,
+                    z as f64 * 0.5,
+                )));
+            }
+        }
+    }
+    measurement_points
+}
+
 impl InternalApp {
     #[inline(always)]
     pub fn new(webgl2: WebGl2RenderingContext) -> Result<InternalApp, JsValue> {
@@ -95,6 +113,7 @@ impl InternalApp {
                 .into(),
             charges: Box::new(LineOscillateEomCharge::new(-20.0)),
             measurement_points: grid_measurement_points(),
+            grid: 2,
             key_manager: KeyManager::new(),
             touch_manager: TouchManager::new(width as f64, height as f64),
             last_tick: None,
@@ -117,6 +136,29 @@ impl InternalApp {
             "o_eom" => {
                 self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
                 self.charges = Box::new(LineOscillateEomCharge::new(-20.0));
+            }
+            _ => (),
+        }
+    }
+
+    #[inline(always)]
+    pub fn reset_grid(&mut self, setup: &str) {
+        match setup {
+            "2d" => {
+                self.charge_shape = shape::IcosahedronOption::new()
+                    .radius(0.2)
+                    .build_sharp()
+                    .into();
+                self.measurement_points = grid_measurement_points();
+                self.grid = 2;
+            }
+            "3d" => {
+                self.charge_shape = shape::IcosahedronOption::new()
+                    .radius(0.3)
+                    .build_sharp()
+                    .into();
+                self.measurement_points = grid_3d_measurement_points();
+                self.grid = 3;
             }
             _ => (),
         }
