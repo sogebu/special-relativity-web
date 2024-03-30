@@ -1,5 +1,5 @@
 use crate::key::{GestureEvent, KeyManager};
-use rmath::{vec3, Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector2, Vector3, Vector4};
+use rmath::{Deg, Matrix, PhaseSpace, Quaternion, Rad, Vector2, Vector3, Vector4};
 
 pub struct Player {
     phase_space: PhaseSpace,
@@ -7,19 +7,10 @@ pub struct Player {
     breaking: bool,
 }
 
-impl Default for Player {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Player {
-    pub fn new() -> Player {
+    pub fn new(x: Vector3) -> Player {
         Player {
-            phase_space: PhaseSpace::new(
-                Vector3::zero(),
-                Vector4::from_tv(0.0, vec3(0.0, 0.0, 10.0)),
-            ),
+            phase_space: PhaseSpace::new(Vector3::zero(), Vector4::from_tv(0.0, x)),
             quaternion: Quaternion::one(),
             breaking: false,
         }

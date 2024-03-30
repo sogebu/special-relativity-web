@@ -157,14 +157,6 @@ impl DiscreteWorldLine {
         self.x.push(x);
     }
 
-    fn find_t_past_hi_point(&self, t: f64) -> Option<usize> {
-        self.x
-            .iter()
-            .enumerate()
-            .rev()
-            .find_map(|(i, x)| if x.t <= t { Some(i) } else { None })
-    }
-
     fn find_future_nearest(&self, x: Vector4) -> Option<usize> {
         if self.x.len() <= 2 {
             return None;
@@ -177,15 +169,10 @@ impl DiscreteWorldLine {
             return None;
         }
         // hi = future = norm is positive
-        let mut hi = self.find_t_past_hi_point(x.t)?;
-        let norm_hi = (self.x[hi] - x).lorentz_norm2();
-        if norm_hi < 0.0 {
-            return None;
-        }
+        let mut hi = self.x.len() - 1;
         while lo < hi {
             let mid = (lo + hi) / 2;
-            let norm = (self.x[mid] - x).lorentz_norm2();
-            if norm >= 0.0 {
+            if self.x[mid].t >= x.t || (self.x[mid] - x).lorentz_norm2() >= 0.0 {
                 hi = mid;
             } else {
                 lo = mid + 1;
@@ -245,6 +232,29 @@ mod tests {
         assert_relative_eq!(x, Vector4::from_tv(1.25, Vector3::zero()));
         assert_relative_eq!(u, Vector3::zero());
         assert_relative_eq!(a, Vector3::zero());
+    }
+
+    #[test]
+    fn discrete_world_line_exp() {
+        let mut wl = DiscreteWorldLine::new();
+        let x = Vector3::new(1.0, 2.0, 3.0);
+        wl.push(Vector4::from_tv(-1e4, x));
+        wl.push(Vector4::from_tv(-1e3, x));
+        wl.push(Vector4::from_tv(-1e2, x));
+        wl.push(Vector4::from_tv(-1e1, x));
+        wl.push(Vector4::from_tv(-1e0, x));
+        assert_relative_eq!(
+            wl.past_intersection(Vector4::new(0.0, 0.0, 0.0, 0.0))
+                .unwrap()
+                .0,
+            Vector4::new(1.0, 2.0, 3.0, -(1.0f64 + 4.0 + 9.0).sqrt())
+        );
+        assert_relative_eq!(
+            wl.past_intersection(Vector4::new(30.0, 0.0, 0.0, -30.0))
+                .unwrap()
+                .0,
+            Vector4::new(1.0, 2.0, 3.0, -30.0 - (29.0 * 29.0 + 4.0 + 9.0f64).sqrt())
+        );
     }
 
     #[test]

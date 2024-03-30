@@ -95,22 +95,24 @@ impl InternalApp {
             key_manager: KeyManager::new(),
             touch_manager: TouchManager::new(width as f64, height as f64),
             last_tick: None,
-            player: Player::new(),
+            player: Player::new(Vector3::new(0.0, 0.0, 10.0)),
             lighting_on: true,
         })
     }
 
     #[inline(always)]
     pub fn reset_charge(&mut self, setup: &str) {
-        self.player = Player::new();
         match setup {
             "eom" => {
-                self.charges = Box::new(EomChargeSet::new());
+                self.player = Player::new(Vector3::new(0.0, 0.0, 30.0));
+                self.charges = Box::new(EomChargeSet::new(-30.0));
             }
             "line_o" => {
+                self.player = Player::new(Vector3::new(0.0, 0.0, 10.0));
                 self.charges = Box::new(LineOscillateCharge::new());
             }
             "o_eom" => {
+                self.player = Player::new(Vector3::new(0.0, -2.0, 20.0));
                 self.charges = Box::new(LineOscillateEomCharge::new());
             }
             _ => (),
@@ -326,11 +328,11 @@ impl EomCharge {
 }
 
 impl EomChargeSet {
-    fn new() -> EomChargeSet {
+    fn new(t: f64) -> EomChargeSet {
         let u = 0.5;
         let r = 2.0;
-        let c1 = EomCharge::new(-1.0, vec4(u * 2.0, r, 0.0, -12.0), vec3(-u, 0.0, 0.0));
-        let c2 = EomCharge::new(1.0, vec4(-u * 2.0, -r, 0.0, -12.0), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(-1.0, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
+        let c2 = EomCharge::new(1.0, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
         EomChargeSet {
             charges: vec![c1, c2],
         }
