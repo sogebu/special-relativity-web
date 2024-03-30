@@ -101,7 +101,9 @@ const gridOptionChange = () => {
     for (let i = 0; i < gridOptionNodes.length; i++) {
         if (gridOptionNodes.item(i).checked) {
             app.reset_grid(gridOptionNodes.item(i).value);
-            break;
+            gridOptionNodes.item(i)!.nextElementSibling!.classList.add("checked");
+        } else {
+            gridOptionNodes.item(i)!.nextElementSibling!.classList.remove("checked");
         }
     }
 };
