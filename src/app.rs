@@ -39,42 +39,45 @@ pub struct InternalApp {
     lighting_on: bool,
 }
 
+fn grid_measurement_points() -> Vec<StaticWorldLine> {
+    let num = 50;
+    let mut measurement_points = Vec::new();
+    for x in -num..=num {
+        for y in -num..=num {
+            if y as f64 * 0.5 < -5.0 {
+                continue;
+            }
+            measurement_points.push(StaticWorldLine::new(vec3(
+                x as f64 * 0.5,
+                y as f64 * 0.5,
+                0.0,
+            )));
+        }
+    }
+    for x in -num..=num {
+        for z in -num..=num {
+            if z == 0 {
+                continue;
+            }
+            if z as f64 * 0.5 < 0.0 {
+                continue;
+            }
+            measurement_points.push(StaticWorldLine::new(vec3(
+                x as f64 * 0.5,
+                -5.0,
+                z as f64 * 0.5,
+            )));
+        }
+    }
+    measurement_points
+}
+
 impl InternalApp {
     #[inline(always)]
     pub fn new(webgl2: WebGl2RenderingContext) -> Result<InternalApp, JsValue> {
         let backend = Backend::new(Context::from_webgl2_context(webgl2)).map_err(wasm_error)?;
         let simple_shader = SimpleShader::new(&backend)?;
         let lighting_shader = LightingShader::new(&backend)?;
-
-        let num = 50;
-        let mut measurement_points = Vec::new();
-        for x in -num..=num {
-            for y in -num..=num {
-                if y as f64 * 0.5 < -5.0 {
-                    continue;
-                }
-                measurement_points.push(StaticWorldLine::new(vec3(
-                    x as f64 * 0.5,
-                    y as f64 * 0.5,
-                    0.0,
-                )));
-            }
-        }
-        for x in -num..=num {
-            for z in -num..=num {
-                if z == 0 {
-                    continue;
-                }
-                if z as f64 * 0.5 < 0.0 {
-                    continue;
-                }
-                measurement_points.push(StaticWorldLine::new(vec3(
-                    x as f64 * 0.5,
-                    -5.0,
-                    z as f64 * 0.5,
-                )));
-            }
-        }
 
         let (width, height) = backend.get_viewport_size();
 
@@ -87,11 +90,11 @@ impl InternalApp {
             arrow_shape_with_normal: arrow_config.shape_data().build_smooth().into(),
             arrow_config,
             charge_shape: shape::IcosahedronOption::new()
-                .radius(0.1)
+                .radius(0.2)
                 .build_sharp()
                 .into(),
-            charges: Box::new(LineOscillateEomCharge::new()),
-            measurement_points,
+            charges: Box::new(LineOscillateEomCharge::new(-20.0)),
+            measurement_points: grid_measurement_points(),
             key_manager: KeyManager::new(),
             touch_manager: TouchManager::new(width as f64, height as f64),
             last_tick: None,
@@ -113,7 +116,7 @@ impl InternalApp {
             }
             "o_eom" => {
                 self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
-                self.charges = Box::new(LineOscillateEomCharge::new());
+                self.charges = Box::new(LineOscillateEomCharge::new(-20.0));
             }
             _ => (),
         }
@@ -173,7 +176,7 @@ impl InternalApp {
         for (_, (x, _, _)) in self.charges.iter(self.player.position()) {
             let pos = lorentz * (x - self.player.position());
             let charge_data = LightingLocalData {
-                color: RGBA::gold(),
+                color: RGBA::red(),
                 model_view_projection: view_projection * Matrix::translation(pos.spatial()),
                 normal,
             };
@@ -436,9 +439,9 @@ struct LineOscillateEomCharge {
 }
 
 impl LineOscillateEomCharge {
-    fn new() -> LineOscillateEomCharge {
+    fn new(t: f64) -> LineOscillateEomCharge {
         let r = 2.0;
-        let c1 = EomCharge::new(-1.0, vec4(0.0, r, 0.0, -12.0), vec3(0.8, 0.0, 0.0));
+        let c1 = EomCharge::new(-1.0, vec4(0.0, r, 0.0, t), vec3(0.8, 0.0, 0.0));
         LineOscillateEomCharge {
             q: 1.0,
             world_line: LineOscillateWorldLine::new(
