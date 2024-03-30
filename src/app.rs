@@ -95,7 +95,7 @@ impl InternalApp {
             key_manager: KeyManager::new(),
             touch_manager: TouchManager::new(width as f64, height as f64),
             last_tick: None,
-            player: Player::new(Vector3::new(0.0, 0.0, 10.0)),
+            player: Player::new(Vector3::new(0.0, 0.0, 20.0)),
             lighting_on: true,
         })
     }
@@ -108,11 +108,11 @@ impl InternalApp {
                 self.charges = Box::new(EomChargeSet::new(-30.0));
             }
             "line_o" => {
-                self.player = Player::new(Vector3::new(0.0, 0.0, 10.0));
+                self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
                 self.charges = Box::new(LineOscillateCharge::new());
             }
             "o_eom" => {
-                self.player = Player::new(Vector3::new(0.0, -2.0, 20.0));
+                self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
                 self.charges = Box::new(LineOscillateEomCharge::new());
             }
             _ => (),
@@ -205,9 +205,11 @@ impl InternalApp {
             let pos = lorentz * (pos_on_player_plc - self.player.position());
             let projection = view_projection * Matrix::translation(pos.spatial());
             let ele = fs.field_strength_to_electric_field();
-            self.draw_arrow(ele, RGBA::green(), projection, normal);
+            if ele.magnitude2() > 1e-16 {
+                self.draw_arrow(ele, RGBA::green(), projection, normal);
+            }
             let mag = fs.field_strength_to_magnetic_field();
-            if mag.magnitude2() > 0.0 {
+            if mag.magnitude2() > 1e-16 {
                 self.draw_arrow(mag, RGBA::orange(), projection, normal);
             }
         }
