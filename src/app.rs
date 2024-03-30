@@ -74,7 +74,7 @@ fn grid_measurement_points() -> Vec<StaticWorldLine> {
 }
 
 fn grid_3d_measurement_points() -> Vec<StaticWorldLine> {
-    let num = 15;
+    let num = 12;
     let mut measurement_points = Vec::new();
     for x in -num..=num {
         for y in -num..=num {
