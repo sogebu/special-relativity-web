@@ -304,6 +304,11 @@ struct EomChargeSet {
 impl EomCharge {
     fn new(q: f64, x: Vector4, u: Vector3) -> EomCharge {
         let mut wl = DiscreteWorldLine::new();
+        wl.push(Vector4::from_tv(x.t - 1e4, x.spatial()));
+        wl.push(Vector4::from_tv(x.t - 1e3, x.spatial()));
+        wl.push(Vector4::from_tv(x.t - 1e2, x.spatial()));
+        wl.push(Vector4::from_tv(x.t - 1e1, x.spatial()));
+        wl.push(Vector4::from_tv(x.t - 1e0, x.spatial()));
         wl.push(x);
         EomCharge {
             q,
