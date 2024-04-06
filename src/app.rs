@@ -169,6 +169,16 @@ impl InternalApp {
     }
 
     #[inline(always)]
+    pub fn change_arrow_length_factor(&mut self, f: f64) {
+        self.arrow_config.length_factor = f;
+    }
+
+    #[inline(always)]
+    pub fn change_arrow_length_log(&mut self, c: u8) {
+        self.arrow_config.log_count = c;
+    }
+
+    #[inline(always)]
     pub fn key_down(&mut self, key: String) {
         self.key_manager.down(key);
     }

@@ -114,6 +114,18 @@ go1.onchange = gridOptionChange;
 const go2 = document.getElementById("grid-option2") as HTMLSelectElement;
 go2.onchange = gridOptionChange;
 
+const arrowLog = document.getElementById("arrow-log") as HTMLInputElement;
+arrowLog.onchange = () => {
+    app.change_arrow_length_log(arrowLog.valueAsNumber);
+};
+const arrowFactor = document.getElementById("arrow-factor") as HTMLInputElement;
+arrowFactor.onchange = () => {
+    app.change_arrow_length_factor(Math.pow(2.0, arrowFactor.valueAsNumber));
+};
+
+app.change_arrow_length_log(arrowLog.valueAsNumber);
+app.change_arrow_length_factor(Math.pow(2.0, arrowFactor.valueAsNumber));
+
 function step(timestamp: DOMHighResTimeStamp): void {
     app.tick(timestamp);
     info.innerText = app.info();

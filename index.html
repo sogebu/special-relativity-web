@@ -34,10 +34,17 @@
 </div>
 <div>
     <h2>Grid</h2>
-    <input type="radio" id="grid-option1" name="grid-option" value="2d" checked="checked" class="hidden-radio">
-    <label for="grid-option1" class="custom-radio checked">2D</label>
-    <input type="radio" id="grid-option2" name="grid-option" value="3d" class="hidden-radio">
-    <label for="grid-option2" class="custom-radio">3D</label>
+    <div>
+        <input type="radio" id="grid-option1" name="grid-option" value="2d" checked="checked" class="hidden-radio">
+        <label for="grid-option1" class="custom-radio checked">2D</label>
+        <input type="radio" id="grid-option2" name="grid-option" value="3d" class="hidden-radio">
+        <label for="grid-option2" class="custom-radio">3D</label>
+    </div>
+    <div>
+        <label for="arrow-log">Arrow Length log count: </label><input type="number" min="0" id="arrow-log" value="1">
+        <br>
+        <label for="arrow-factor">Arrow Length factor exp: </label><input type="number" id="arrow-factor" value="-4">
+    </div>
 </div>
 <div>
     <h2>Preset</h2>

@@ -32,6 +32,14 @@ impl App {
         self.0.reset_grid(setup);
     }
 
+    pub fn change_arrow_length_factor(&mut self, f: f64) {
+        self.0.change_arrow_length_factor(f);
+    }
+
+    pub fn change_arrow_length_log(&mut self, c: u8) {
+        self.0.change_arrow_length_log(c);
+    }
+
     pub fn key_down(&mut self, key: String) {
         self.0.key_down(key);
     }
