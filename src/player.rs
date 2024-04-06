@@ -16,7 +16,7 @@ impl Player {
         }
     }
 
-    pub fn tick(&mut self, dt: f64, key: &KeyManager, gestures: &[GestureEvent]) {
+    pub fn tick(&mut self, c: f64, dt: f64, key: &KeyManager, gestures: &[GestureEvent]) {
         let user_input = self.get_user_key_input_acceleration(key)
             + self.get_user_gesture_acceleration(gestures);
         if user_input == Vector3::zero() {
@@ -26,9 +26,11 @@ impl Player {
         } else {
             self.breaking = false;
         }
-        let a = user_input * 0.5
-            + self.get_viscous_acceleration() * if self.breaking { 3.0 } else { 0.05 };
-        self.phase_space.tick(dt, a);
+        let f_over_m = user_input * 0.5
+            + self.get_viscous_acceleration() * if self.breaking { 3.0 } else { 0.0 };
+        let a = f_over_m / c / c;
+        let ds = dt * c;
+        self.phase_space.tick(ds, a);
 
         if let Some(q) = self.get_user_key_input_rotation_velocity(dt, key) {
             self.quaternion *= q;

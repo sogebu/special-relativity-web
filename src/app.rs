@@ -7,14 +7,15 @@ use backend::{
     VertexPosition, VertexPositionNormal,
 };
 use color::RGBA;
-use rmath::{
-    vec3, vec4, Deg, DiscreteWorldLine, LineOscillateWorldLine, Matrix, PhaseSpace, Quaternion,
-    StaticWorldLine, Vector3, Vector4, WorldLine,
-};
+use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
 use shape::BuildData;
 
 use crate::{
-    key::{KeyManager, TouchManager},
+    charge_set::{
+        ChargePreset, ChargeSet, EomChargeSet, LineOscillateCharge, LineOscillateEomCharge,
+        StaticChargeSet,
+    },
+    key::{GestureEvent, KeyManager, TouchManager},
     player::Player,
 };
 
@@ -22,25 +23,111 @@ fn wasm_error(s: String) -> JsValue {
     s.into()
 }
 
-pub struct InternalApp {
+struct AppRender {
     backend: Backend<Context>,
     simple_shader: SimpleShader<Context>,
     lighting_shader: LightingShader<Context>,
     arrow_shape_no_normal: Shape<VertexPosition>,
     arrow_shape_with_normal: Shape<VertexPositionNormal>,
-    arrow_config: ArrowConfig,
     charge_shape: Shape<VertexPositionNormal>,
-    measurement_points: Vec<StaticWorldLine>,
-    grid: i32,
-    charges: Box<dyn ChargeSet>,
+}
+
+struct AppInput {
     key_manager: KeyManager,
     touch_manager: TouchManager,
     last_tick: Option<f64>,
+}
+
+struct AppPhysics {
+    /// Speed of Light
+    c: f64,
+    charge_preset: ChargePreset,
+    charges: Box<dyn ChargeSet>,
     player: Player,
+}
+
+pub struct InternalApp {
+    render: AppRender,
+    input: AppInput,
+    physics: AppPhysics,
+    measurement_points: Vec<StaticWorldLine>,
+    arrow_config: ArrowConfig,
+    charge_scale: f64,
     lighting_on: bool,
 }
 
-fn grid_measurement_points() -> Vec<StaticWorldLine> {
+impl AppRender {
+    fn new(webgl2: WebGl2RenderingContext) -> Result<AppRender, JsValue> {
+        let backend = Backend::new(Context::from_webgl2_context(webgl2)).map_err(wasm_error)?;
+        let simple_shader = SimpleShader::new(&backend)?;
+        let lighting_shader = LightingShader::new(&backend)?;
+
+        let arrow_shape = shape::ArrowOption::new()
+            .shaft_radius(0.02)
+            .head_radius(0.02)
+            .head_length(0.3);
+        Ok(AppRender {
+            backend,
+            simple_shader,
+            lighting_shader,
+            arrow_shape_no_normal: arrow_shape.build_no_normal().into(),
+            arrow_shape_with_normal: arrow_shape.build_smooth().into(),
+            charge_shape: shape::IcosahedronOption::new().build_sharp().into(),
+        })
+    }
+}
+
+impl AppInput {
+    fn new(width: f64, height: f64) -> AppInput {
+        AppInput {
+            key_manager: KeyManager::new(),
+            touch_manager: TouchManager::new(width, height),
+            last_tick: None,
+        }
+    }
+
+    fn gesture(&mut self, timestamp: f64) -> Vec<GestureEvent> {
+        (0..4)
+            .map_while(|_| self.touch_manager.consume_gesture(timestamp))
+            .collect::<Vec<_>>()
+    }
+}
+
+impl AppPhysics {
+    fn new(c: f64, charge_preset: ChargePreset) -> AppPhysics {
+        let (charges, player): (Box<dyn ChargeSet>, Player) = match charge_preset {
+            ChargePreset::Static => (
+                Box::new(StaticChargeSet::new()),
+                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+            ),
+            ChargePreset::Eom => (
+                Box::new(EomChargeSet::new(c, -30.0)),
+                Player::new(Vector3::new(0.0, 0.0, 30.0)),
+            ),
+            ChargePreset::LineOscillate => (
+                Box::new(LineOscillateCharge::new()),
+                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+            ),
+            ChargePreset::LineOscillateEom => (
+                Box::new(LineOscillateEomCharge::new(c, -20.0)),
+                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+            ),
+        };
+        AppPhysics {
+            c,
+            charge_preset,
+            charges,
+            player,
+        }
+    }
+
+    fn tick(&mut self, dt: f64, key: &KeyManager, gesture: &[GestureEvent]) {
+        self.player.tick(self.c, dt, key, gesture);
+        self.charges.tick(self.c, self.player.position());
+    }
+}
+
+fn grid_surface_measurement_points() -> Vec<StaticWorldLine> {
     let num = 50;
     let mut measurement_points = Vec::new();
     for x in -num..=num {
@@ -73,7 +160,7 @@ fn grid_measurement_points() -> Vec<StaticWorldLine> {
     measurement_points
 }
 
-fn grid_3d_measurement_points() -> Vec<StaticWorldLine> {
+fn grid_bulk_measurement_points() -> Vec<StaticWorldLine> {
     let num = 12;
     let mut measurement_points = Vec::new();
     for x in -num..=num {
@@ -93,76 +180,39 @@ fn grid_3d_measurement_points() -> Vec<StaticWorldLine> {
 impl InternalApp {
     #[inline(always)]
     pub fn new(webgl2: WebGl2RenderingContext) -> Result<InternalApp, JsValue> {
-        let backend = Backend::new(Context::from_webgl2_context(webgl2)).map_err(wasm_error)?;
-        let simple_shader = SimpleShader::new(&backend)?;
-        let lighting_shader = LightingShader::new(&backend)?;
-
-        let (width, height) = backend.get_viewport_size();
-
-        let arrow_config = ArrowConfig::default();
+        let render = AppRender::new(webgl2)?;
+        let (width, height) = render.backend.get_viewport_size();
         Ok(InternalApp {
-            backend,
-            simple_shader,
-            lighting_shader,
-            arrow_shape_no_normal: arrow_config.shape_data().build_no_normal().into(),
-            arrow_shape_with_normal: arrow_config.shape_data().build_smooth().into(),
-            arrow_config,
-            charge_shape: shape::IcosahedronOption::new()
-                .radius(0.2)
-                .build_sharp()
-                .into(),
-            charges: Box::new(LineOscillateEomCharge::new(-20.0)),
-            measurement_points: grid_measurement_points(),
-            grid: 2,
-            key_manager: KeyManager::new(),
-            touch_manager: TouchManager::new(width as f64, height as f64),
-            last_tick: None,
-            player: Player::new(Vector3::new(0.0, 0.0, 20.0)),
+            render,
+            input: AppInput::new(width as f64, height as f64),
+            physics: AppPhysics::new(1.0, ChargePreset::Static),
+            measurement_points: grid_surface_measurement_points(),
+            arrow_config: ArrowConfig::default(),
+            charge_scale: 0.2,
             lighting_on: true,
         })
     }
 
     #[inline(always)]
+    pub fn change_c(&mut self, c: f64) {
+        self.physics = AppPhysics::new(c, self.physics.charge_preset);
+    }
+
+    #[inline(always)]
     pub fn reset_charge(&mut self, setup: &str) {
-        match setup {
-            "static" => {
-                self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
-                self.charges = Box::new(StaticChargeSet::new());
-            }
-            "eom" => {
-                self.player = Player::new(Vector3::new(0.0, 0.0, 30.0));
-                self.charges = Box::new(EomChargeSet::new(-30.0));
-            }
-            "line_o" => {
-                self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
-                self.charges = Box::new(LineOscillateCharge::new());
-            }
-            "o_eom" => {
-                self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
-                self.charges = Box::new(LineOscillateEomCharge::new(-20.0));
-            }
-            _ => (),
-        }
+        self.physics = AppPhysics::new(self.physics.c, setup.parse().unwrap());
     }
 
     #[inline(always)]
     pub fn reset_grid(&mut self, setup: &str) {
         match setup {
             "2d" => {
-                self.charge_shape = shape::IcosahedronOption::new()
-                    .radius(0.2)
-                    .build_sharp()
-                    .into();
-                self.measurement_points = grid_measurement_points();
-                self.grid = 2;
+                self.charge_scale = 0.2;
+                self.measurement_points = grid_surface_measurement_points();
             }
             "3d" => {
-                self.charge_shape = shape::IcosahedronOption::new()
-                    .radius(0.3)
-                    .build_sharp()
-                    .into();
-                self.measurement_points = grid_3d_measurement_points();
-                self.grid = 3;
+                self.charge_scale = 0.3;
+                self.measurement_points = grid_bulk_measurement_points();
             }
             _ => (),
         }
@@ -174,96 +224,108 @@ impl InternalApp {
     }
 
     #[inline(always)]
-    pub fn change_arrow_length_log(&mut self, c: u8) {
-        self.arrow_config.log_count = c;
+    pub fn change_arrow_length_log(&mut self, log: u8) {
+        self.arrow_config.log_count = log;
     }
 
     #[inline(always)]
     pub fn key_down(&mut self, key: String) {
-        self.key_manager.down(key);
+        self.input.key_manager.down(key);
     }
 
     #[inline(always)]
     pub fn key_up(&mut self, key: String) {
-        self.key_manager.up(key);
+        self.input.key_manager.up(key);
     }
 
     #[inline(always)]
     pub fn window_blue(&mut self) {
-        self.key_manager.clear();
+        self.input.key_manager.clear();
     }
 
     #[inline(always)]
     pub fn touch_start(&mut self, ms: f64, x: &[f64], y: &[f64]) {
-        self.touch_manager.touch_start(ms, x, y);
+        self.input.touch_manager.touch_start(ms, x, y);
     }
 
     #[inline(always)]
     pub fn touch_move(&mut self, ms: f64, x: &[f64], y: &[f64]) {
-        self.touch_manager.touch_move(ms, x, y);
+        self.input.touch_manager.touch_move(ms, x, y);
     }
 
     #[inline(always)]
     pub fn touch_end(&mut self, ms: f64) {
-        self.touch_manager.touch_end(ms);
+        self.input.touch_manager.touch_end(ms);
     }
 
     #[inline(always)]
     pub fn tick(&mut self, timestamp: f64) -> Result<(), JsValue> {
-        let last_tick = self.last_tick.replace(timestamp);
+        let last_tick = self.input.last_tick.replace(timestamp);
         let dt = (timestamp - last_tick.unwrap_or(timestamp)) / 1000.0;
-        let gesture = (0..4)
-            .map_while(|_| self.touch_manager.consume_gesture(timestamp))
-            .collect::<Vec<_>>();
-        self.player.tick(dt, &self.key_manager, &gesture);
-        self.charges.tick(self.player.position());
 
-        self.backend.clear();
+        let gesture = self.input.gesture(timestamp);
+        self.physics.tick(dt, &self.input.key_manager, &gesture);
 
-        let (width, height) = self.backend.get_viewport_size();
+        self.render.backend.clear();
+
+        let (width, height) = self.render.backend.get_viewport_size();
         let view_projection =
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0)
-                * self.player.rot_matrix();
-        let lorentz = self.player.lorentz_matrix();
-        let normal = self.player.inv_rot_matrix();
+                * self.physics.player.rot_matrix();
+        let lorentz = self.physics.player.lorentz_matrix();
+        let normal = self.physics.player.inv_rot_matrix();
+        let player_position = self.physics.player.position();
 
-        self.lighting_shader
-            .bind_shared_data(&self.backend, &self.charge_shape);
-        for (_, (x, _, _)) in self.charges.iter(self.player.position()) {
-            let pos = lorentz * (x - self.player.position());
+        self.render
+            .lighting_shader
+            .bind_shared_data(&self.render.backend, &self.render.charge_shape);
+        let charge_scale = Matrix::scale(vec3(
+            self.charge_scale,
+            self.charge_scale,
+            self.charge_scale,
+        ));
+        for (_, (x, _, _)) in self.physics.charges.iter(player_position) {
+            let pos = lorentz * (x - player_position);
             let charge_data = LightingLocalData {
                 color: RGBA::red(),
-                model_view_projection: view_projection * Matrix::translation(pos.spatial()),
+                model_view_projection: view_projection
+                    * Matrix::translation(pos.spatial())
+                    * charge_scale,
                 normal,
             };
-            self.lighting_shader
-                .draw(&self.backend, &self.charge_shape, &charge_data);
+            self.render.lighting_shader.draw(
+                &self.render.backend,
+                &self.render.charge_shape,
+                &charge_data,
+            );
         }
 
         if self.lighting_on {
-            self.lighting_shader
-                .bind_shared_data(&self.backend, &self.arrow_shape_with_normal);
+            self.render
+                .lighting_shader
+                .bind_shared_data(&self.render.backend, &self.render.arrow_shape_with_normal);
         } else {
-            self.simple_shader
-                .bind_shared_data(&self.backend, &self.arrow_shape_no_normal);
+            self.render
+                .simple_shader
+                .bind_shared_data(&self.render.backend, &self.render.arrow_shape_no_normal);
         }
         for m in self.measurement_points.iter() {
-            let (pos_on_player_plc, _, _) = m.past_intersection(self.player.position()).unwrap();
+            let (pos_on_player_plc, _, _) = m.past_intersection(player_position).unwrap();
 
-            let charges = self.charges.iter(pos_on_player_plc);
+            let charges = self.physics.charges.iter(pos_on_player_plc);
             if charges.is_empty() {
                 continue;
             }
             let mut fs = Matrix::zero();
             for (q, (x, u, a)) in charges {
                 let l = x - pos_on_player_plc;
-                fs = fs + Matrix::field_strength(q, l.spatial(), u, a);
+                fs = fs + Matrix::field_strength(q / self.physics.c, l.spatial(), u, a);
             }
             fs = lorentz * fs * lorentz.transposed();
 
-            let pos = lorentz * (pos_on_player_plc - self.player.position());
+            let pos = lorentz * (pos_on_player_plc - player_position);
             let projection = view_projection * Matrix::translation(pos.spatial());
-            let ele = fs.field_strength_to_electric_field();
+            let ele = fs.field_strength_to_electric_field(self.physics.c);
             if ele.magnitude2() > 1e-16 {
                 self.draw_arrow(ele, RGBA::green(), projection, normal);
             }
@@ -272,20 +334,26 @@ impl InternalApp {
                 self.draw_arrow(mag, RGBA::orange(), projection, normal);
             }
         }
-        self.backend.flush();
+        self.render.backend.flush();
 
         Ok(())
     }
 
     pub fn info(&self) -> String {
         let mut s = String::new();
-        s.push_str(&format!("player x = {}\n", self.player.position()));
-        s.push_str(&format!("player u = {}\n", self.player.velocity()));
+        s.push_str(&format!("player x = {}\n", self.physics.player.position()));
+        s.push_str(&format!("player u = {}\n", self.physics.player.velocity()));
+        s.push_str(&format!(
+            "player v = {}\n",
+            self.physics.player.velocity() * self.physics.c
+        ));
         s.push_str(&format!(
             "player gamma = {:.3}\n",
-            self.player.velocity().gamma()
+            self.physics.player.velocity().gamma()
         ));
-        self.charges.info(&mut s, self.player.position());
+        self.physics
+            .charges
+            .info(&mut s, self.physics.player.position());
         s
     }
 
@@ -301,15 +369,21 @@ impl InternalApp {
                 model_view_projection,
                 normal: normal * rotate,
             };
-            self.lighting_shader
-                .draw(&self.backend, &self.arrow_shape_with_normal, &data);
+            self.render.lighting_shader.draw(
+                &self.render.backend,
+                &self.render.arrow_shape_with_normal,
+                &data,
+            );
         } else {
             let data = SimpleLocalData {
                 color,
                 model_view_projection,
             };
-            self.simple_shader
-                .draw(&self.backend, &self.arrow_shape_no_normal, &data);
+            self.render.simple_shader.draw(
+                &self.render.backend,
+                &self.render.arrow_shape_no_normal,
+                &data,
+            );
         }
     }
 }
@@ -330,271 +404,11 @@ impl Default for ArrowConfig {
 }
 
 impl ArrowConfig {
-    pub fn shape_data(&self) -> shape::ArrowOption {
-        shape::ArrowOption::new()
-            .shaft_radius(0.02)
-            .head_radius(0.02)
-            .head_length(0.3)
-    }
-
     pub fn arrow_length(&self, v: Vector3) -> f64 {
         let mut length = v.magnitude() * 1e3;
         for _ in 0..self.log_count {
             length = (1.0 + length).ln();
         }
         length * self.length_factor
-    }
-}
-
-trait ChargeSet {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))>;
-
-    fn tick(&mut self, _until: Vector4) {}
-
-    fn info(&self, _s: &mut String, _player_pos: Vector4) {}
-}
-
-struct StaticChargeSet {
-    charges: Vec<(f64, StaticWorldLine)>,
-}
-
-impl StaticChargeSet {
-    fn new() -> StaticChargeSet {
-        StaticChargeSet {
-            charges: vec![(1.0, StaticWorldLine::new(vec3(0.0, 0.0, 0.0)))],
-        }
-    }
-}
-
-impl ChargeSet for StaticChargeSet {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
-        self.charges
-            .iter()
-            .map(|(q, wl)| (*q, wl.past_intersection(player_pos).unwrap()))
-            .collect()
-    }
-}
-
-struct EomCharge {
-    q: f64,
-    phase_space: PhaseSpace,
-    world_line: DiscreteWorldLine,
-}
-
-struct EomChargeSet {
-    charges: Vec<EomCharge>,
-}
-
-impl EomCharge {
-    fn new(q: f64, x: Vector4, u: Vector3) -> EomCharge {
-        let mut wl = DiscreteWorldLine::new();
-        wl.push(Vector4::from_tv(x.t - 1e4, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e3, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e2, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e1, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e0, x.spatial()));
-        wl.push(x);
-        EomCharge {
-            q,
-            phase_space: PhaseSpace::new(u, x),
-            world_line: wl,
-        }
-    }
-
-    fn tick(&mut self, fs: Matrix, ds: f64) {
-        let force =
-            fs * (Matrix::eta() * Vector4::from_velocity(self.phase_space.velocity)) * self.q;
-        self.phase_space.tick_in_world_frame(ds, force.spatial());
-        self.world_line.push(self.phase_space.position);
-    }
-}
-
-impl EomChargeSet {
-    fn new(t: f64) -> EomChargeSet {
-        let u = 0.5;
-        let r = 2.0;
-        let c1 = EomCharge::new(-1.0, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
-        let c2 = EomCharge::new(1.0, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
-        EomChargeSet {
-            charges: vec![c1, c2],
-        }
-    }
-}
-
-impl ChargeSet for EomChargeSet {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
-        self.charges
-            .iter()
-            .filter_map(move |c| c.world_line.past_intersection(player_pos).map(|x| (c.q, x)))
-            .collect()
-    }
-
-    fn tick(&mut self, until: Vector4) {
-        let ds = 1.0 / 100.0;
-        while !self.charges.iter().all(|c| {
-            c.phase_space.position.t >= until.t
-                || (c.phase_space.position - until).lorentz_norm2() >= 0.0
-        }) {
-            let i = self
-                .charges
-                .iter()
-                .enumerate()
-                .min_by(|(_, ci), (_, cj)| {
-                    ci.phase_space
-                        .position
-                        .t
-                        .total_cmp(&cj.phase_space.position.t)
-                })
-                .map(|(i, _)| i)
-                .unwrap();
-            let phase_space = self.charges[i].phase_space;
-            let mut fs = Matrix::zero();
-            for (j, c) in self.charges.iter().enumerate() {
-                // ignore form self
-                if i == j {
-                    continue;
-                }
-                let Some((x, u, a)) = c.world_line.past_intersection(phase_space.position) else {
-                    continue;
-                };
-                fs = fs
-                    + Matrix::field_strength(
-                        c.q,
-                        x.spatial() - phase_space.position.spatial(),
-                        u,
-                        a,
-                    );
-            }
-            self.charges[i].tick(fs, ds);
-        }
-    }
-
-    fn info(&self, s: &mut String, player_pos: Vector4) {
-        for (i, charge) in self.charges.iter().enumerate() {
-            let Some((x, u, _)) = charge.world_line.past_intersection(player_pos) else {
-                continue;
-            };
-            s.push_str(&format!("charge {i} x = {}\n", x));
-            s.push_str(&format!("charge {i} gamma = {:.3}\n", u.gamma()));
-        }
-    }
-}
-
-struct LineOscillateCharge {
-    q: f64,
-    world_line: LineOscillateWorldLine,
-}
-
-impl LineOscillateCharge {
-    pub fn new() -> LineOscillateCharge {
-        LineOscillateCharge {
-            q: 1.0,
-            world_line: LineOscillateWorldLine::new(
-                Vector3::new(0.0, 0.0, 0.0),
-                Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
-                0.1,
-            )
-            .unwrap(),
-        }
-    }
-}
-
-impl ChargeSet for LineOscillateCharge {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
-        self.world_line
-            .past_intersection(player_pos)
-            .into_iter()
-            .map(|x| (self.q, x))
-            .collect()
-    }
-}
-
-struct LineOscillateEomCharge {
-    q: f64,
-    world_line: LineOscillateWorldLine,
-    charges: Vec<EomCharge>,
-}
-
-impl LineOscillateEomCharge {
-    fn new(t: f64) -> LineOscillateEomCharge {
-        let r = 2.0;
-        let c1 = EomCharge::new(-1.0, vec4(0.0, r, 0.0, t), vec3(0.8, 0.0, 0.0));
-        LineOscillateEomCharge {
-            q: 1.0,
-            world_line: LineOscillateWorldLine::new(
-                Vector3::new(0.0, 0.0, 0.0),
-                Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
-                0.1,
-            )
-            .unwrap(),
-            charges: vec![c1],
-        }
-    }
-}
-
-impl ChargeSet for LineOscillateEomCharge {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
-        let mut v = self
-            .world_line
-            .past_intersection(player_pos)
-            .into_iter()
-            .map(|x| (self.q, x))
-            .collect::<Vec<_>>();
-        v.extend(
-            self.charges
-                .iter()
-                .filter_map(move |c| c.world_line.past_intersection(player_pos).map(|x| (c.q, x))),
-        );
-        v
-    }
-
-    fn tick(&mut self, until: Vector4) {
-        let ds = 1.0 / 100.0;
-        while !self.charges.iter().all(|c| {
-            c.phase_space.position.t >= until.t
-                || (c.phase_space.position - until).lorentz_norm2() >= 0.0
-        }) {
-            let i = self
-                .charges
-                .iter()
-                .enumerate()
-                .min_by(|(_, ci), (_, cj)| {
-                    ci.phase_space
-                        .position
-                        .t
-                        .total_cmp(&cj.phase_space.position.t)
-                })
-                .map(|(i, _)| i)
-                .unwrap();
-            let phase_space = self.charges[i].phase_space;
-            let mut fs = Matrix::zero();
-            for (j, c) in self.charges.iter().enumerate() {
-                // ignore form self
-                if i == j {
-                    continue;
-                }
-                let Some((x, u, a)) = c.world_line.past_intersection(phase_space.position) else {
-                    continue;
-                };
-                fs = fs
-                    + Matrix::field_strength(
-                        c.q,
-                        x.spatial() - phase_space.position.spatial(),
-                        u,
-                        a,
-                    );
-            }
-
-            if let Some((x, u, a)) = self.world_line.past_intersection(phase_space.position) {
-                fs = fs
-                    + Matrix::field_strength(
-                        self.q,
-                        x.spatial() - phase_space.position.spatial(),
-                        u,
-                        a,
-                    );
-            }
-            self.charges[i].tick(fs, ds);
-        }
     }
 }

@@ -78,6 +78,15 @@ canvas.addEventListener('mouseout', () => {
     app.touch_end(new Date().getTime());
 });
 
+const speedOfLightRange = document.getElementById("speed-of-light-exp") as HTMLInputElement;
+const speedOfLightView = document.getElementById("speed-of-light") as HTMLSpanElement;
+speedOfLightRange.onchange = () => {
+    const e = speedOfLightRange.valueAsNumber;
+    const c = Math.pow(2, e);
+    speedOfLightView.innerText = c.toString();
+    app.change_c(c);
+};
+
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;
 
 const presetChange = () => {
@@ -120,11 +129,11 @@ arrowLog.onchange = () => {
 };
 const arrowFactor = document.getElementById("arrow-factor") as HTMLInputElement;
 arrowFactor.onchange = () => {
-    app.change_arrow_length_factor(Math.pow(2.0, arrowFactor.valueAsNumber));
+    app.change_arrow_length_factor(Math.pow(2, arrowFactor.valueAsNumber));
 };
 
 app.change_arrow_length_log(arrowLog.valueAsNumber);
-app.change_arrow_length_factor(Math.pow(2.0, arrowFactor.valueAsNumber));
+app.change_arrow_length_factor(Math.pow(2, arrowFactor.valueAsNumber));
 
 function step(timestamp: DOMHighResTimeStamp): void {
     app.tick(timestamp);

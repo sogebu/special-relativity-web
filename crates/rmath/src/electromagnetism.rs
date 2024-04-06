@@ -3,7 +3,7 @@ use crate::{Matrix, Vector3};
 impl Matrix {
     /// Calculate field strength with upper indices
     ///
-    /// q: charge
+    /// q: charge over 4πεc
     /// l: position vector, from observer to charge, in observer's inertial frame
     /// u: covariant velocity of charge on observer's PLC in observer's inertial frame
     /// a: covariant acceleration of charge on observer's PLC in observer's inertial frame
@@ -42,8 +42,8 @@ impl Matrix {
         ) * (q / l_len)
     }
 
-    pub fn field_strength_to_electric_field(&self) -> Vector3 {
-        Vector3::new(self.rows[3][0], self.rows[3][1], self.rows[3][2])
+    pub fn field_strength_to_electric_field(&self, c: f64) -> Vector3 {
+        Vector3::new(self.rows[3][0], self.rows[3][1], self.rows[3][2]) * c
     }
 
     pub fn field_strength_to_magnetic_field(&self) -> Vector3 {
@@ -63,7 +63,7 @@ mod tests {
         let fs = Matrix::field_strength(2.0, l, Vector3::zero(), Vector3::zero());
         let l_len = l.magnitude();
         assert_relative_eq!(
-            fs.field_strength_to_electric_field(),
+            fs.field_strength_to_electric_field(1.0),
             -l.normalized() * 2.0 / l_len / l_len,
         );
         assert_relative_eq!(fs.field_strength_to_magnetic_field(), Vector3::zero());
@@ -75,7 +75,7 @@ mod tests {
         let u = Vector3::new(0.1, 0.2, -0.05);
         let a = Vector3::new(0.01, 0.02, 0.03);
         let fs = Matrix::field_strength(2.0, l, u, a);
-        let e = fs.field_strength_to_electric_field();
+        let e = fs.field_strength_to_electric_field(1.0);
         let m = fs.field_strength_to_magnetic_field();
         assert!(e.magnitude() > 0.0);
         assert!(m.magnitude() > 0.0);

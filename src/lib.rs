@@ -6,6 +6,7 @@ use web_sys::{console, WebGl2RenderingContext};
 use crate::app::InternalApp;
 
 mod app;
+mod charge_set;
 mod key;
 mod player;
 
@@ -22,6 +23,10 @@ impl App {
     #[wasm_bindgen(constructor)]
     pub fn new(context: WebGl2RenderingContext) -> Result<App, JsValue> {
         Ok(App(InternalApp::new(context)?))
+    }
+
+    pub fn change_c(&mut self, c: f64) {
+        self.0.change_c(c);
     }
 
     pub fn reset_charge(&mut self, setup: &str) {
