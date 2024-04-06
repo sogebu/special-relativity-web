@@ -27,7 +27,7 @@ impl Player {
             self.breaking = false;
         }
         let f_over_m = user_input * 0.5
-            + self.get_viscous_acceleration() * if self.breaking { 3.0 } else { 0.0 };
+            + self.get_viscous_acceleration() * if self.breaking { 3.0 } else { 0.0 } * c;
         let a = f_over_m / c / c;
         let ds = dt * c;
         self.phase_space.tick(ds, a);
