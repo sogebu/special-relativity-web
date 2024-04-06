@@ -88,6 +88,8 @@ const presetChange = () => {
         }
     }
 };
+const preset0 = document.getElementById("preset0") as HTMLSelectElement;
+preset0.onchange = presetChange;
 const preset1 = document.getElementById("preset1") as HTMLSelectElement;
 preset1.onchange = presetChange;
 const preset2 = document.getElementById("preset2") as HTMLSelectElement;

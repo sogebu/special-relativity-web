@@ -125,6 +125,10 @@ impl InternalApp {
     #[inline(always)]
     pub fn reset_charge(&mut self, setup: &str) {
         match setup {
+            "static" => {
+                self.player = Player::new(Vector3::new(0.0, 0.0, 20.0));
+                self.charges = Box::new(StaticChargeSet::new());
+            }
             "eom" => {
                 self.player = Player::new(Vector3::new(0.0, 0.0, 30.0));
                 self.charges = Box::new(EomChargeSet::new(-30.0));
@@ -338,6 +342,27 @@ trait ChargeSet {
     fn tick(&mut self, _until: Vector4) {}
 
     fn info(&self, _s: &mut String, _player_pos: Vector4) {}
+}
+
+struct StaticChargeSet {
+    charges: Vec<(f64, StaticWorldLine)>,
+}
+
+impl StaticChargeSet {
+    fn new() -> StaticChargeSet {
+        StaticChargeSet {
+            charges: vec![(1.0, StaticWorldLine::new(vec3(0.0, 0.0, 0.0)))],
+        }
+    }
+}
+
+impl ChargeSet for StaticChargeSet {
+    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+        self.charges
+            .iter()
+            .map(|(q, wl)| (*q, wl.past_intersection(player_pos).unwrap()))
+            .collect()
+    }
 }
 
 struct EomCharge {
