@@ -80,23 +80,29 @@ canvas.addEventListener('mouseout', () => {
 
 const speedOfLightRange = document.getElementById("speed-of-light-exp") as HTMLInputElement;
 const speedOfLightView = document.getElementById("speed-of-light") as HTMLSpanElement;
-speedOfLightRange.onchange = () => {
+
+function speedOfLight(): number {
     const e = speedOfLightRange.valueAsNumber;
-    const c = Math.pow(2, e);
+    return Math.pow(2, e);
+}
+
+speedOfLightRange.onchange = () => {
+    const c = speedOfLight();
     speedOfLightView.innerText = c.toString();
     app.change_c(c);
 };
 
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;
 
-const presetChange = () => {
+function presetChange(): void {
     for (let i = 0; i < presetNodes.length; i++) {
         if (presetNodes.item(i).checked) {
             app.reset_charge(presetNodes.item(i).value);
             break;
         }
     }
-};
+}
+
 const preset0 = document.getElementById("preset0") as HTMLSelectElement;
 preset0.onchange = presetChange;
 const preset1 = document.getElementById("preset1") as HTMLSelectElement;
@@ -132,6 +138,8 @@ arrowFactor.onchange = () => {
     app.change_arrow_length_factor(Math.pow(2, arrowFactor.valueAsNumber));
 };
 
+app.reset_charge(presetNodes.item(0).value);
+app.change_c(speedOfLight());
 app.change_arrow_length_log(arrowLog.valueAsNumber);
 app.change_arrow_length_factor(Math.pow(2, arrowFactor.valueAsNumber));
 

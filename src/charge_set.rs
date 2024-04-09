@@ -81,7 +81,6 @@ impl EomCharge {
     }
 
     fn tick(&mut self, fs: Matrix, ds: f64) {
-        // TODO c
         let force =
             fs * (Matrix::eta() * Vector4::from_velocity(self.phase_space.velocity)) * self.q;
         self.phase_space.tick_in_world_frame(ds, force.spatial());
@@ -94,8 +93,8 @@ impl EomChargeSet {
         let v = 0.5;
         let u = v / c;
         let r = 2.0;
-        let c1 = EomCharge::new(-1.0, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
-        let c2 = EomCharge::new(1.0, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(-3.5, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
+        let c2 = EomCharge::new(3.5, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
         EomChargeSet {
             charges: vec![c1, c2],
         }
@@ -153,7 +152,7 @@ pub struct LineOscillateCharge {
 impl LineOscillateCharge {
     pub fn new() -> LineOscillateCharge {
         LineOscillateCharge {
-            q: 1.0,
+            q: 3.5,
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
@@ -185,9 +184,9 @@ impl LineOscillateEomCharge {
         let r = 2.0;
         let v = 0.8;
         let u = v / c;
-        let c1 = EomCharge::new(-1.0, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(-3.5, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
         LineOscillateEomCharge {
-            q: 1.0,
+            q: 3.5,
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),

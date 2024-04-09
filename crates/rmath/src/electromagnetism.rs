@@ -3,7 +3,7 @@ use crate::{Matrix, Vector3};
 impl Matrix {
     /// Calculate field strength with upper indices
     ///
-    /// q: charge over 4πεc
+    /// q: charge over εc
     /// l: position vector, from observer to charge, in observer's inertial frame
     /// u: covariant velocity of charge on observer's PLC in observer's inertial frame
     /// a: covariant acceleration of charge on observer's PLC in observer's inertial frame
@@ -39,7 +39,7 @@ impl Matrix {
             [-f_xy, 0.0, f_yz, -f_t.y],
             [f_zx, -f_yz, 0.0, -f_t.z],
             [f_t.x, f_t.y, f_t.z, 0.0],
-        ) * (q / l_len)
+        ) * (q / l_len / 4.0 / std::f64::consts::PI)
     }
 
     pub fn field_strength_to_electric_field(&self, c: f64) -> Vector3 {
