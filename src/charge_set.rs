@@ -30,7 +30,7 @@ pub trait ChargeSet {
 
     fn tick(&mut self, _c: f64, _until: Vector4) {}
 
-    fn change_c(&mut self, current_c: f64, new_c: f64) {}
+    fn change_c(&mut self, _current_c: f64, _new_c: f64) {}
 
     fn info(&self, _c: f64, _s: &mut String, _player_pos: Vector4) {}
 }
