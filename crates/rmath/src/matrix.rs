@@ -262,7 +262,7 @@ impl Mul<Vector4> for Matrix {
     fn mul(self, v: Vector4) -> Self::Output {
         let mut t = [0.0; 4];
         for (t, row) in t.iter_mut().zip(&self.rows) {
-            *t = row[0] * v.x + row[1] * v.y + row[2] * v.z + row[3] * v.t;
+            *t = row[0] * v.x + row[1] * v.y + row[2] * v.z + row[3] * v.ct;
         }
         Vector4::new(t[0], t[1], t[2], t[3])
     }

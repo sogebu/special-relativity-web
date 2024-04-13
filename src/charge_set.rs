@@ -26,11 +26,11 @@ impl std::str::FromStr for ChargePreset {
 }
 
 pub trait ChargeSet {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))>;
+    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))>;
 
     fn tick(&mut self, _c: f64, _until: Vector4) {}
 
-    fn info(&self, _s: &mut String, _player_pos: Vector4) {}
+    fn info(&self, _c: f64, _s: &mut String, _player_pos: Vector4) {}
 }
 
 pub struct StaticChargeSet {
@@ -46,10 +46,10 @@ impl StaticChargeSet {
 }
 
 impl ChargeSet for StaticChargeSet {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
         self.charges
             .iter()
-            .map(|(q, wl)| (*q, wl.past_intersection(player_pos).unwrap()))
+            .map(|(q, wl)| (*q, wl.past_intersection(c, player_pos).unwrap()))
             .collect()
     }
 }
@@ -67,11 +67,11 @@ pub struct EomChargeSet {
 impl EomCharge {
     pub fn new(q: f64, x: Vector4, u: Vector3) -> EomCharge {
         let mut wl = DiscreteWorldLine::new();
-        wl.push(Vector4::from_tv(x.t - 1e4, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e3, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e2, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e1, x.spatial()));
-        wl.push(Vector4::from_tv(x.t - 1e0, x.spatial()));
+        wl.push(Vector4::from_ctv(x.ct - 1e4, x.spatial()));
+        wl.push(Vector4::from_ctv(x.ct - 1e3, x.spatial()));
+        wl.push(Vector4::from_ctv(x.ct - 1e2, x.spatial()));
+        wl.push(Vector4::from_ctv(x.ct - 1e1, x.spatial()));
+        wl.push(Vector4::from_ctv(x.ct - 1e0, x.spatial()));
         wl.push(x);
         EomCharge {
             q,
@@ -102,18 +102,23 @@ impl EomChargeSet {
 }
 
 impl ChargeSet for EomChargeSet {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
         self.charges
             .iter()
-            .filter_map(move |c| c.world_line.past_intersection(player_pos).map(|x| (c.q, x)))
+            .filter_map(move |charge| {
+                charge
+                    .world_line
+                    .past_intersection(c, player_pos)
+                    .map(|x| (charge.q, x))
+            })
             .collect()
     }
 
     fn tick(&mut self, c: f64, until: Vector4) {
         let ds = 1.0 / 100.0 * c;
-        while !self.charges.iter().all(|c| {
-            c.phase_space.position.t >= until.t
-                || (c.phase_space.position - until).lorentz_norm2() >= 0.0
+        while !self.charges.iter().all(|charge| {
+            charge.phase_space.position.ct >= until.ct
+                || (charge.phase_space.position - until).lorentz_norm2() >= 0.0
         }) {
             let i = self
                 .charges
@@ -122,8 +127,8 @@ impl ChargeSet for EomChargeSet {
                 .min_by(|(_, ci), (_, cj)| {
                     ci.phase_space
                         .position
-                        .t
-                        .total_cmp(&cj.phase_space.position.t)
+                        .ct
+                        .total_cmp(&cj.phase_space.position.ct)
                 })
                 .map(|(i, _)| i)
                 .unwrap();
@@ -133,9 +138,9 @@ impl ChargeSet for EomChargeSet {
         }
     }
 
-    fn info(&self, s: &mut String, player_pos: Vector4) {
+    fn info(&self, c: f64, s: &mut String, player_pos: Vector4) {
         for (i, charge) in self.charges.iter().enumerate() {
-            let Some((x, u, _)) = charge.world_line.past_intersection(player_pos) else {
+            let Some((x, u, _)) = charge.world_line.past_intersection(c, player_pos) else {
                 continue;
             };
             s.push_str(&format!("charge {i} x = {}\n", x));
@@ -150,13 +155,14 @@ pub struct LineOscillateCharge {
 }
 
 impl LineOscillateCharge {
-    pub fn new() -> LineOscillateCharge {
+    pub fn new(c: f64) -> LineOscillateCharge {
         LineOscillateCharge {
             q: 3.5,
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
-                0.1,
+                0.1 / c,
+                c,
             )
             .unwrap(),
         }
@@ -164,9 +170,9 @@ impl LineOscillateCharge {
 }
 
 impl ChargeSet for LineOscillateCharge {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
         self.world_line
-            .past_intersection(player_pos)
+            .past_intersection(c, player_pos)
             .into_iter()
             .map(|x| (self.q, x))
             .collect()
@@ -190,7 +196,8 @@ impl LineOscillateEomCharge {
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
-                0.1,
+                0.1 * c,
+                c,
             )
             .unwrap(),
             charges: vec![c1],
@@ -199,25 +206,26 @@ impl LineOscillateEomCharge {
 }
 
 impl ChargeSet for LineOscillateEomCharge {
-    fn iter(&self, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
         let mut v = self
             .world_line
-            .past_intersection(player_pos)
+            .past_intersection(c, player_pos)
             .into_iter()
             .map(|x| (self.q, x))
             .collect::<Vec<_>>();
-        v.extend(
-            self.charges
-                .iter()
-                .filter_map(move |c| c.world_line.past_intersection(player_pos).map(|x| (c.q, x))),
-        );
+        v.extend(self.charges.iter().filter_map(move |charge| {
+            charge
+                .world_line
+                .past_intersection(c, player_pos)
+                .map(|x| (charge.q, x))
+        }));
         v
     }
 
     fn tick(&mut self, c: f64, until: Vector4) {
         let ds = 1.0 / 100.0 * c;
         while !self.charges.iter().all(|c| {
-            c.phase_space.position.t >= until.t
+            c.phase_space.position.ct >= until.ct
                 || (c.phase_space.position - until).lorentz_norm2() >= 0.0
         }) {
             let i = self
@@ -227,14 +235,14 @@ impl ChargeSet for LineOscillateEomCharge {
                 .min_by(|(_, ci), (_, cj)| {
                     ci.phase_space
                         .position
-                        .t
-                        .total_cmp(&cj.phase_space.position.t)
+                        .ct
+                        .total_cmp(&cj.phase_space.position.ct)
                 })
                 .map(|(i, _)| i)
                 .unwrap();
             let position = self.charges[i].phase_space.position;
             let mut fs = field_strength_from_charges(c, &self.charges, i, position);
-            if let Some((x, u, a)) = self.world_line.past_intersection(position) {
+            if let Some((x, u, a)) = self.world_line.past_intersection(c, position) {
                 fs =
                     fs + Matrix::field_strength(self.q / c, x.spatial() - position.spatial(), u, a);
             }
@@ -255,7 +263,7 @@ fn field_strength_from_charges(
         if i == j {
             continue;
         }
-        let Some((x, u, a)) = charge.world_line.past_intersection(position) else {
+        let Some((x, u, a)) = charge.world_line.past_intersection(c, position) else {
             continue;
         };
         fs = fs + Matrix::field_strength(charge.q / c, x.spatial() - position.spatial(), u, a);

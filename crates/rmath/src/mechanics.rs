@@ -37,11 +37,11 @@ mod test {
     fn constant_speed() {
         let mut p1 = PhaseSpace::new(
             Vector3::new(1.0, 2.0, 3.0),
-            Vector4::from_tv(0.0, Vector3::zero()),
+            Vector4::from_ctv(0.0, Vector3::zero()),
         );
         let mut p2 = PhaseSpace::new(
             Vector3::new(1.0, 0.5, 0.0),
-            Vector4::from_tv(0.0, Vector3::zero()),
+            Vector4::from_ctv(0.0, Vector3::zero()),
         );
         for _ in 0..16 {
             p1.tick(1.0 / 8.0, Vector3::zero());
@@ -51,8 +51,8 @@ mod test {
         assert_relative_eq!(p1.position.spatial(), Vector3::new(2.0, 4.0, 6.0));
         assert_relative_eq!(
             p2.position,
-            Vector4::from_tv(3.0, Vector3::new(2.0, 1.0, 0.0))
+            Vector4::from_ctv(3.0, Vector3::new(2.0, 1.0, 0.0))
         );
-        assert!(p1.position.t > p2.position.t);
+        assert!(p1.position.ct > p2.position.ct);
     }
 }

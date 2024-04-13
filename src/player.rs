@@ -10,7 +10,7 @@ pub struct Player {
 impl Player {
     pub fn new(x: Vector3) -> Player {
         Player {
-            phase_space: PhaseSpace::new(Vector3::zero(), Vector4::from_tv(0.0, x)),
+            phase_space: PhaseSpace::new(Vector3::zero(), Vector4::from_ctv(0.0, x)),
             quaternion: Quaternion::one(),
             breaking: false,
         }

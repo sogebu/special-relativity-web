@@ -1,4 +1,5 @@
 use glow::Context;
+use std::cmp::Ordering;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
@@ -105,7 +106,7 @@ impl AppPhysics {
                 Player::new(Vector3::new(0.0, 0.0, 30.0)),
             ),
             ChargePreset::LineOscillate => (
-                Box::new(LineOscillateCharge::new()),
+                Box::new(LineOscillateCharge::new(c)),
                 Player::new(Vector3::new(0.0, 0.0, 20.0)),
             ),
             ChargePreset::LineOscillateEom => (
@@ -195,7 +196,15 @@ impl InternalApp {
 
     #[inline(always)]
     pub fn change_c(&mut self, c: f64) {
-        self.physics = AppPhysics::new(c, self.physics.charge_preset);
+        match self.physics.c.total_cmp(&c) {
+            Ordering::Less => {
+                self.physics.c = c;
+            }
+            Ordering::Equal => (),
+            Ordering::Greater => {
+                self.physics = AppPhysics::new(c, self.physics.charge_preset);
+            }
+        }
     }
 
     #[inline(always)]
@@ -268,6 +277,7 @@ impl InternalApp {
 
         self.render.backend.clear();
 
+        let c = self.physics.c;
         let (width, height) = self.render.backend.get_viewport_size();
         let view_projection =
             Matrix::perspective(Deg(60.0), width as f64 / height as f64, 0.1, 10000.0)
@@ -284,7 +294,7 @@ impl InternalApp {
             self.charge_scale,
             self.charge_scale,
         ));
-        for (_, (x, _, _)) in self.physics.charges.iter(player_position) {
+        for (_, (x, _, _)) in self.physics.charges.iter(c, player_position) {
             let pos = lorentz * (x - player_position);
             let charge_data = LightingLocalData {
                 color: RGBA::red(),
@@ -310,9 +320,9 @@ impl InternalApp {
                 .bind_shared_data(&self.render.backend, &self.render.arrow_shape_no_normal);
         }
         for m in self.measurement_points.iter() {
-            let (pos_on_player_plc, _, _) = m.past_intersection(player_position).unwrap();
+            let (pos_on_player_plc, _, _) = m.past_intersection(c, player_position).unwrap();
 
-            let charges = self.physics.charges.iter(pos_on_player_plc);
+            let charges = self.physics.charges.iter(c, pos_on_player_plc);
             if charges.is_empty() {
                 continue;
             }
@@ -351,9 +361,10 @@ impl InternalApp {
             "player gamma = {:.3}\n",
             self.physics.player.velocity().gamma()
         ));
+        let c = self.physics.c;
         self.physics
             .charges
-            .info(&mut s, self.physics.player.position());
+            .info(c, &mut s, self.physics.player.position());
         s
     }
 

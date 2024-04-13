@@ -26,7 +26,7 @@ pub struct Vector4 {
     pub x: f64,
     pub y: f64,
     pub z: f64,
-    pub t: f64,
+    pub ct: f64,
 }
 
 impl Vector2 {
@@ -161,8 +161,8 @@ impl Vector3 {
 }
 
 impl Vector4 {
-    pub const fn from_tv(t: f64, v: Vector3) -> Vector4 {
-        Vector4::new(v.x, v.y, v.z, t)
+    pub const fn from_ctv(ct: f64, v: Vector3) -> Vector4 {
+        Vector4::new(v.x, v.y, v.z, ct)
     }
 
     /// Calculate Lorentz-squared-norm
@@ -172,7 +172,7 @@ impl Vector4 {
     /// assert_eq!(vec4(1.0, 2.0, 3.0, 4.0).lorentz_norm2(), 1.0 + 4.0 + 9.0 - 16.0);
     /// ```
     pub fn lorentz_norm2(&self) -> f64 {
-        self.x * self.x + self.y * self.y + self.z * self.z - self.t * self.t
+        self.x * self.x + self.y * self.y + self.z * self.z - self.ct * self.ct
     }
 
     /// Calculate Lorentz-inner-product
@@ -185,7 +185,7 @@ impl Vector4 {
     /// );
     /// ```
     pub fn lorentz_dot(&self, other: Vector4) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z - self.t * other.t
+        self.x * other.x + self.y * other.y + self.z * other.z - self.ct * other.ct
     }
 
     /// Get spatial vector
@@ -307,7 +307,7 @@ macro_rules! impl_vector {
 
 impl_vector!(Vector2 { x, y }, vec2);
 impl_vector!(Vector3 { x, y, z }, vec3);
-impl_vector!(Vector4 { x, y, z, t }, vec4);
+impl_vector!(Vector4 { x, y, z, ct }, vec4);
 
 impl From<[f32; 3]> for Vector3 {
     fn from(value: [f32; 3]) -> Self {
@@ -331,7 +331,7 @@ impl fmt::Display for Vector4 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&format!(
             "({:.2}; {:.2}, {:.2}, {:.2})",
-            self.t, self.x, self.y, self.z
+            self.ct, self.x, self.y, self.z
         ))
     }
 }

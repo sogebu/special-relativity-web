@@ -2,7 +2,7 @@ use crate::{Vector3, Vector4};
 
 pub trait WorldLine {
     /// x is observer's position
-    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)>;
+    fn past_intersection(&self, c: f64, x: Vector4) -> Option<(Vector4, Vector3, Vector3)>;
 }
 
 #[derive(Debug, Clone)]
@@ -18,10 +18,10 @@ impl StaticWorldLine {
 }
 
 impl WorldLine for StaticWorldLine {
-    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
-        let t = x.t - (x.spatial() - self.pos).magnitude();
+    fn past_intersection(&self, _c: f64, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
+        let t = x.ct - (x.spatial() - self.pos).magnitude();
         Some((
-            Vector4::from_tv(t, self.pos),
+            Vector4::from_ctv(t, self.pos),
             Vector3::zero(),
             Vector3::zero(),
         ))
@@ -44,9 +44,9 @@ impl<W> CutOffWorldLine<W> {
 }
 
 impl<W: WorldLine> WorldLine for CutOffWorldLine<W> {
-    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
-        let (x, u, a) = self.world_line.past_intersection(x)?;
-        if x.t < self.appeared {
+    fn past_intersection(&self, c: f64, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
+        let (x, u, a) = self.world_line.past_intersection(c, x)?;
+        if x.ct < self.appeared {
             None
         } else {
             Some((x, u, a))
@@ -54,7 +54,9 @@ impl<W: WorldLine> WorldLine for CutOffWorldLine<W> {
     }
 }
 
-/// p(t) = center + amplitude * sin(ωt)
+/// x_0 = ct
+/// p(x_0) = center + amplitude * sin(ω x_0 / c)
+/// p'(x_0) = amplitude * ω / c * cos(ω x_0 / c)
 #[derive(Debug, Clone)]
 pub struct LineOscillateWorldLine {
     center: Vector3,
@@ -68,9 +70,10 @@ impl LineOscillateWorldLine {
         center: Vector3,
         amplitude: Vector3,
         frequency: f64,
+        c: f64,
     ) -> Result<LineOscillateWorldLine, ()> {
         let omega = frequency * std::f64::consts::TAU;
-        if omega.abs() * amplitude.magnitude() > 1.0 {
+        if omega.abs() * amplitude.magnitude() > c {
             Err(())
         } else {
             Ok(LineOscillateWorldLine {
@@ -81,35 +84,35 @@ impl LineOscillateWorldLine {
         }
     }
 
-    fn newton(&self, x: Vector4) -> f64 {
+    fn newton(&self, c: f64, x: Vector4) -> f64 {
         let l = self.center - x.spatial();
         let l_len = l.magnitude();
         if l_len < f64::EPSILON * 2.0 {
-            return x.t;
+            return x.ct;
         }
-        let mut t = x.t - l.magnitude() - self.amplitude.magnitude() * 2.0;
+        let mut ct = x.ct - l.magnitude() - self.amplitude.magnitude() * 2.0;
         for _ in 0..10 {
-            let (sin, cos) = (self.omega * t).sin_cos();
+            let (sin, cos) = (self.omega * ct / c).sin_cos();
             let amp = l + self.amplitude * sin;
-            let f = (t - x.t) * (t - x.t) - amp.magnitude2();
+            let f = (ct - x.ct) * (ct - x.ct) - amp.magnitude2();
             if f.abs() < 1e-12 * l_len {
-                return t;
+                return ct;
             }
-            let fp = 2.0 * (t - x.t - amp.dot(self.amplitude) * self.omega * cos);
+            let fp = 2.0 * (ct - x.ct - amp.dot(self.amplitude) * self.omega * cos);
             if fp.abs() < 1e-8 {
                 break;
             }
-            t -= f / fp;
+            ct -= f / fp;
         }
-        self.binary_search(x)
+        self.binary_search(c, x)
     }
 
-    fn binary_search(&self, x: Vector4) -> f64 {
+    fn binary_search(&self, c: f64, x: Vector4) -> f64 {
         let l = self.center - x.spatial();
         let f = |t: f64| {
-            (t - x.t) * (t - x.t) - (l + self.amplitude * (self.omega * t).sin()).magnitude2()
+            (t - x.ct) * (t - x.ct) - (l + self.amplitude * (self.omega * t / c).sin()).magnitude2()
         };
-        let mut hi = x.t;
+        let mut hi = x.ct;
         let mut dt = 1.0;
         while f(hi - dt) < 0.0 {
             dt *= 2.0;
@@ -132,11 +135,11 @@ impl LineOscillateWorldLine {
 }
 
 impl WorldLine for LineOscillateWorldLine {
-    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
-        let t = self.newton(x);
-        let (sin, cos) = (self.omega * t).sin_cos();
+    fn past_intersection(&self, c: f64, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
+        let ct = self.newton(c, x);
+        let (sin, cos) = (self.omega * ct / c).sin_cos();
         Some((
-            Vector4::from_tv(t, self.center + self.amplitude * sin),
+            Vector4::from_ctv(ct, self.center + self.amplitude * sin),
             self.amplitude * (self.omega * cos),
             self.amplitude * (-self.omega * self.omega * sin),
         ))
@@ -172,7 +175,7 @@ impl DiscreteWorldLine {
         let mut hi = self.x.len() - 1;
         while lo < hi {
             let mid = (lo + hi) / 2;
-            if self.x[mid].t >= x.t || (self.x[mid] - x).lorentz_norm2() >= 0.0 {
+            if self.x[mid].ct >= x.ct || (self.x[mid] - x).lorentz_norm2() >= 0.0 {
                 hi = mid;
             } else {
                 lo = mid + 1;
@@ -183,7 +186,7 @@ impl DiscreteWorldLine {
 }
 
 impl WorldLine for DiscreteWorldLine {
-    fn past_intersection(&self, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
+    fn past_intersection(&self, _c: f64, x: Vector4) -> Option<(Vector4, Vector3, Vector3)> {
         let i = self.find_future_nearest(x)?;
         let x0 = self.x[i - 2]; // next to nearest past
         let x1 = self.x[i - 1]; // nearest past
@@ -221,15 +224,15 @@ mod tests {
             p.tick(0.5, Vector3::zero());
         }
         let (x, u, a) = wl
-            .past_intersection(Vector4::from_tv(2.0, Vector3::new(1.0, 0.0, 0.0)))
+            .past_intersection(1.0, Vector4::from_ctv(2.0, Vector3::new(1.0, 0.0, 0.0)))
             .unwrap();
-        assert_relative_eq!(x, Vector4::from_tv(1.0, Vector3::zero()));
+        assert_relative_eq!(x, Vector4::from_ctv(1.0, Vector3::zero()));
         assert_relative_eq!(u, Vector3::zero());
         assert_relative_eq!(a, Vector3::zero());
         let (x, u, a) = wl
-            .past_intersection(Vector4::from_tv(2.25, Vector3::new(1.0, 0.0, 0.0)))
+            .past_intersection(1.0, Vector4::from_ctv(2.25, Vector3::new(1.0, 0.0, 0.0)))
             .unwrap();
-        assert_relative_eq!(x, Vector4::from_tv(1.25, Vector3::zero()));
+        assert_relative_eq!(x, Vector4::from_ctv(1.25, Vector3::zero()));
         assert_relative_eq!(u, Vector3::zero());
         assert_relative_eq!(a, Vector3::zero());
     }
@@ -238,19 +241,19 @@ mod tests {
     fn discrete_world_line_exp() {
         let mut wl = DiscreteWorldLine::new();
         let x = Vector3::new(1.0, 2.0, 3.0);
-        wl.push(Vector4::from_tv(-1e4, x));
-        wl.push(Vector4::from_tv(-1e3, x));
-        wl.push(Vector4::from_tv(-1e2, x));
-        wl.push(Vector4::from_tv(-1e1, x));
-        wl.push(Vector4::from_tv(-1e0, x));
+        wl.push(Vector4::from_ctv(-1e4, x));
+        wl.push(Vector4::from_ctv(-1e3, x));
+        wl.push(Vector4::from_ctv(-1e2, x));
+        wl.push(Vector4::from_ctv(-1e1, x));
+        wl.push(Vector4::from_ctv(-1e0, x));
         assert_relative_eq!(
-            wl.past_intersection(Vector4::new(0.0, 0.0, 0.0, 0.0))
+            wl.past_intersection(1.0, Vector4::new(0.0, 0.0, 0.0, 0.0))
                 .unwrap()
                 .0,
             Vector4::new(1.0, 2.0, 3.0, -(1.0f64 + 4.0 + 9.0).sqrt())
         );
         assert_relative_eq!(
-            wl.past_intersection(Vector4::new(30.0, 0.0, 0.0, -30.0))
+            wl.past_intersection(1.0, Vector4::new(30.0, 0.0, 0.0, -30.0))
                 .unwrap()
                 .0,
             Vector4::new(1.0, 2.0, 3.0, -30.0 - (29.0 * 29.0 + 4.0 + 9.0f64).sqrt())
@@ -261,9 +264,9 @@ mod tests {
     fn static_world_line() {
         let wl = StaticWorldLine::new(Vector3::new(1.0, 2.0, 3.0));
         let (x, u, a) = wl
-            .past_intersection(Vector4::from_tv(1.0, Vector3::new(-2.0, 2.0, -1.0)))
+            .past_intersection(1.0, Vector4::from_ctv(1.0, Vector3::new(-2.0, 2.0, -1.0)))
             .unwrap();
-        assert_relative_eq!(x, Vector4::from_tv(-4.0, Vector3::new(1.0, 2.0, 3.0)));
+        assert_relative_eq!(x, Vector4::from_ctv(-4.0, Vector3::new(1.0, 2.0, 3.0)));
         assert_eq!(u, Vector3::zero());
         assert_eq!(a, Vector3::zero());
     }
@@ -273,10 +276,10 @@ mod tests {
         let wl = StaticWorldLine::new(Vector3::new(1.0, 2.0, 3.0));
         let wl = CutOffWorldLine::new(wl, -1.0);
         let (x, _, _) = wl
-            .past_intersection(Vector4::from_tv(4.5, Vector3::new(-2.0, 2.0, -1.0)))
+            .past_intersection(1.0, Vector4::from_ctv(4.5, Vector3::new(-2.0, 2.0, -1.0)))
             .unwrap();
-        assert_relative_eq!(x, Vector4::from_tv(-0.5, Vector3::new(1.0, 2.0, 3.0)));
-        let p = wl.past_intersection(Vector4::from_tv(3.5, Vector3::new(-1.5, 2.0, -1.0)));
+        assert_relative_eq!(x, Vector4::from_ctv(-0.5, Vector3::new(1.0, 2.0, 3.0)));
+        let p = wl.past_intersection(1.0, Vector4::from_ctv(3.5, Vector3::new(-1.5, 2.0, -1.0)));
         assert!(p.is_none());
     }
 
@@ -296,6 +299,7 @@ mod tests {
                 center,
                 amp,
                 rng.gen_range(0.0..1.0) / amp.magnitude() / std::f64::consts::TAU,
+                1.0,
             )
             .unwrap();
 
@@ -305,12 +309,12 @@ mod tests {
                 rng.gen_range(-1000.0..1000.0),
                 rng.gen_range(-1000.0..1000.0),
             );
-            let (px, pu, _) = wl.past_intersection(x).unwrap();
+            let (px, pu, _) = wl.past_intersection(1.0, x).unwrap();
             assert!(
                 (x - px).lorentz_norm2().abs() < 1e-8,
                 "x={:?}\npx={:?}\nnorm={}\nu={}",
-                x - Vector4::from_tv(0.0, center),
-                px - Vector4::from_tv(0.0, center),
+                x - Vector4::from_ctv(0.0, center),
+                px - Vector4::from_ctv(0.0, center),
                 (x - px).lorentz_norm2(),
                 pu.magnitude(),
             );
