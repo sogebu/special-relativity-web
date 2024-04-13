@@ -26,6 +26,7 @@ const info = document.getElementById("info")!;
 const app = new App(context);
 
 document.addEventListener('keydown', (event) => {
+    event.preventDefault();
     app.key_down(event.key.toLowerCase());
 });
 document.addEventListener('keyup', (event) => {
