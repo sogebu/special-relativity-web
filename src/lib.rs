@@ -37,6 +37,10 @@ impl App {
         self.0.reset_grid(setup);
     }
 
+    pub fn change_poynting_on(&mut self, poynting_on: bool) {
+        self.0.change_poynting_on(poynting_on);
+    }
+
     pub fn change_arrow_length_factor(&mut self, f: f64) {
         self.0.change_arrow_length_factor(f);
     }

@@ -132,6 +132,11 @@ go1.onchange = gridOptionChange;
 const go2 = document.getElementById("grid-option2") as HTMLSelectElement;
 go2.onchange = gridOptionChange;
 
+const poyntingOn = document.getElementById("poynting_on") as HTMLInputElement;
+poyntingOn.onchange = () => {
+    app.change_poynting_on(poyntingOn.checked);
+};
+
 const arrowLog = document.getElementById("arrow-log") as HTMLInputElement;
 arrowLog.onchange = () => {
     app.change_arrow_length_log(arrowLog.valueAsNumber);

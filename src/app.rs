@@ -55,6 +55,7 @@ pub struct InternalApp {
     arrow_config: ArrowConfig,
     charge_scale: f64,
     lighting_on: bool,
+    poynting_on: bool,
 }
 
 impl AppRender {
@@ -191,6 +192,7 @@ impl InternalApp {
             arrow_config: ArrowConfig::default(),
             charge_scale: 0.2,
             lighting_on: true,
+            poynting_on: false,
         })
     }
 
@@ -227,6 +229,10 @@ impl InternalApp {
             }
             _ => (),
         }
+    }
+
+    pub fn change_poynting_on(&mut self, poynting_on: bool) {
+        self.poynting_on = poynting_on;
     }
 
     #[inline(always)]
@@ -338,12 +344,18 @@ impl InternalApp {
             let pos = lorentz * (pos_on_player_plc - player_position);
             let projection = view_projection * Matrix::translation(pos.spatial());
             let ele = fs.field_strength_to_electric_field(self.physics.c);
-            if ele.magnitude2() > 1e-16 {
+            if !self.poynting_on && ele.magnitude2() > 1e-16 {
                 self.draw_arrow(ele, RGBA::green(), projection, normal);
             }
             let mag = fs.field_strength_to_magnetic_field();
-            if mag.magnitude2() > 1e-16 {
+            if !self.poynting_on && mag.magnitude2() > 1e-16 {
                 self.draw_arrow(mag, RGBA::orange(), projection, normal);
+            }
+            if self.poynting_on {
+                let poynting = ele.cross(mag) * c * c;
+                if poynting.magnitude2() > 1e-16 {
+                    self.draw_arrow(poynting, RGBA::red(), projection, normal);
+                }
             }
         }
         self.render.backend.flush();
