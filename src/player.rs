@@ -151,6 +151,10 @@ impl Player {
         }
         None
     }
+
+    pub fn change_c(&mut self, current_c: f64, new_c: f64) {
+        self.phase_space.change_c(current_c, new_c);
+    }
 }
 
 fn gesture_swipe(gestures: &[GestureEvent]) -> Option<Vector2> {

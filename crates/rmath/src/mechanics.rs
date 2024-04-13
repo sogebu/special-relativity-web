@@ -26,6 +26,10 @@ impl PhaseSpace {
         self.position += Vector4::from_velocity(self.velocity) * ds;
         self.velocity += acceleration * ds;
     }
+
+    pub fn change_c(&mut self, current_c: f64, new_c: f64) {
+        self.velocity *= current_c / new_c;
+    }
 }
 
 #[cfg(test)]

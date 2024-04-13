@@ -30,6 +30,8 @@ pub trait ChargeSet {
 
     fn tick(&mut self, _c: f64, _until: Vector4) {}
 
+    fn change_c(&mut self, current_c: f64, new_c: f64) {}
+
     fn info(&self, _c: f64, _s: &mut String, _player_pos: Vector4) {}
 }
 
@@ -135,6 +137,12 @@ impl ChargeSet for EomChargeSet {
             let position = self.charges[i].phase_space.position;
             let fs = field_strength_from_charges(c, &self.charges, i, position);
             self.charges[i].tick(fs, ds);
+        }
+    }
+
+    fn change_c(&mut self, current_c: f64, new_c: f64) {
+        for charge in self.charges.iter_mut() {
+            charge.phase_space.change_c(current_c, new_c);
         }
     }
 
@@ -247,6 +255,12 @@ impl ChargeSet for LineOscillateEomCharge {
                     fs + Matrix::field_strength(self.q / c, x.spatial() - position.spatial(), u, a);
             }
             self.charges[i].tick(fs, ds);
+        }
+    }
+
+    fn change_c(&mut self, current_c: f64, new_c: f64) {
+        for charge in self.charges.iter_mut() {
+            charge.phase_space.change_c(current_c, new_c);
         }
     }
 }

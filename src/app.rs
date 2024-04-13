@@ -198,6 +198,8 @@ impl InternalApp {
     pub fn change_c(&mut self, c: f64) {
         match self.physics.c.total_cmp(&c) {
             Ordering::Less => {
+                self.physics.player.change_c(self.physics.c, c);
+                self.physics.charges.change_c(self.physics.c, c);
                 self.physics.c = c;
             }
             Ordering::Equal => (),
