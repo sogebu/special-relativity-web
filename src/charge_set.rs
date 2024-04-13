@@ -161,7 +161,7 @@ impl LineOscillateCharge {
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
-                0.1 / c,
+                (0.1 * c).min(0.4),
                 c,
             )
             .unwrap(),
@@ -196,7 +196,7 @@ impl LineOscillateEomCharge {
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
-                0.1 * c,
+                (0.1 * c).min(0.4),
                 c,
             )
             .unwrap(),
