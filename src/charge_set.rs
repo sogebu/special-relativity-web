@@ -229,8 +229,8 @@ pub struct LineOscillateEomCharge {
 
 impl LineOscillateEomCharge {
     pub fn new(c: f64, t: f64) -> LineOscillateEomCharge {
-        let r = 2.0;
-        let v = 0.8;
+        let r = 0.5;
+        let v = 1.8;
         let u = v / c;
         let c1 = EomCharge::new(-3.5, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
         LineOscillateEomCharge {
