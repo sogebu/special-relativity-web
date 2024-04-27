@@ -5,7 +5,7 @@
   "scripts": {
     "build": "webpack",
     "serve": "webpack-dev-server --open",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist -e dev"
   },
   "dependencies": {
     "special-relativity-web": "./pkg"
