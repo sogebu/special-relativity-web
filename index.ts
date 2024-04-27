@@ -106,14 +106,10 @@ function presetChange(): void {
     }
 }
 
-const preset0 = document.getElementById("preset0") as HTMLSelectElement;
-preset0.onchange = presetChange;
-const preset1 = document.getElementById("preset1") as HTMLSelectElement;
-preset1.onchange = presetChange;
-const preset2 = document.getElementById("preset2") as HTMLSelectElement;
-preset2.onchange = presetChange;
-const preset3 = document.getElementById("preset3") as HTMLSelectElement;
-preset3.onchange = presetChange;
+for (let i = 0; i < 5; i++) {
+    const preset = document.getElementById(`preset${i}`) as HTMLSelectElement;
+    preset.onchange = presetChange;
+}
 
 const gridOptionNodes = document.getElementsByName("grid-option") as NodeListOf<HTMLInputElement>;
 

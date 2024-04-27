@@ -9,6 +9,7 @@ pub enum ChargePreset {
     Eom,
     LineOscillate,
     LineOscillateEom,
+    Dipole,
 }
 
 impl std::str::FromStr for ChargePreset {
@@ -20,6 +21,7 @@ impl std::str::FromStr for ChargePreset {
             "eom" => Ok(ChargePreset::Eom),
             "line_o" => Ok(ChargePreset::LineOscillate),
             "o_eom" => Ok(ChargePreset::LineOscillateEom),
+            "dipole" => Ok(ChargePreset::Dipole),
             _ => Err(()),
         }
     }
@@ -184,6 +186,38 @@ impl ChargeSet for LineOscillateCharge {
             .into_iter()
             .map(|x| (self.q, x))
             .collect()
+    }
+}
+
+pub struct DipoleCharge {
+    q: f64,
+    a: LineOscillateWorldLine,
+    b: LineOscillateWorldLine,
+}
+
+impl DipoleCharge {
+    pub fn new(c: f64) -> DipoleCharge {
+        let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
+        let x = Vector3::new(0.0, 1.2, 0.0);
+        let v = Vector3::new(0.0, 1.0, 0.0);
+        DipoleCharge {
+            q: 3.5,
+            a: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
+            b: LineOscillateWorldLine::new(-x, -v, f, c).unwrap(),
+        }
+    }
+}
+
+impl ChargeSet for DipoleCharge {
+    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+        let mut v = Vec::with_capacity(2);
+        if let Some(x) = self.a.past_intersection(c, player_pos) {
+            v.push((self.q, x));
+        }
+        if let Some(x) = self.b.past_intersection(c, player_pos) {
+            v.push((-self.q, x));
+        }
+        v
     }
 }
 

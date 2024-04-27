@@ -11,6 +11,7 @@ use color::RGBA;
 use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
 use shape::BuildData;
 
+use crate::charge_set::DipoleCharge;
 use crate::{
     charge_set::{
         ChargePreset, ChargeSet, EomChargeSet, LineOscillateCharge, LineOscillateEomCharge,
@@ -112,6 +113,10 @@ impl AppPhysics {
             ),
             ChargePreset::LineOscillateEom => (
                 Box::new(LineOscillateEomCharge::new(c, -20.0)),
+                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+            ),
+            ChargePreset::Dipole => (
+                Box::new(DipoleCharge::new(c)),
                 Player::new(Vector3::new(0.0, 0.0, 20.0)),
             ),
         };
