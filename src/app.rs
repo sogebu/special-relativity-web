@@ -104,7 +104,7 @@ impl AppPhysics {
                 Player::new(Vector3::new(0.0, 0.0, 20.0)),
             ),
             ChargePreset::Eom => (
-                Box::new(EomChargeSet::new(c, -30.0)),
+                Box::new(EomChargeSet::new_fixed_two_charges(c, -30.0)),
                 Player::new(Vector3::new(0.0, 0.0, 30.0)),
             ),
             ChargePreset::LineOscillate => (
@@ -118,6 +118,10 @@ impl AppPhysics {
             ChargePreset::Dipole => (
                 Box::new(DipoleCharge::new(c)),
                 Player::new(Vector3::new(0.0, 0.0, 20.0)),
+            ),
+            ChargePreset::Random => (
+                Box::new(EomChargeSet::new_many_random_charges(c, -30.0, 20)),
+                Player::new(Vector3::new(0.0, 0.0, 30.0)),
             ),
         };
         AppPhysics {
@@ -307,10 +311,10 @@ impl InternalApp {
             self.charge_scale,
             self.charge_scale,
         ));
-        for (_, (x, _, _)) in self.physics.charges.iter(c, player_position) {
+        for (q, (x, _, _)) in self.physics.charges.iter(c, player_position) {
             let pos = lorentz * (x - player_position);
             let charge_data = LightingLocalData {
-                color: RGBA::red(),
+                color: if q > 0.0 { RGBA::red() } else { RGBA::blue() },
                 model_view_projection: view_projection
                     * Matrix::translation(pos.spatial())
                     * charge_scale,

@@ -106,7 +106,7 @@ function presetChange(): void {
     }
 }
 
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i <= 5; i++) {
     const preset = document.getElementById(`preset${i}`) as HTMLSelectElement;
     preset.onchange = presetChange;
 }

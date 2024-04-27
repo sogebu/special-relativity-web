@@ -1,3 +1,4 @@
+use rand::{thread_rng, Rng};
 use rmath::{
     vec3, vec4, DiscreteWorldLine, LineOscillateWorldLine, Matrix, PhaseSpace, StaticWorldLine,
     Vector3, Vector4, WorldLine,
@@ -10,6 +11,7 @@ pub enum ChargePreset {
     LineOscillate,
     LineOscillateEom,
     Dipole,
+    Random,
 }
 
 impl std::str::FromStr for ChargePreset {
@@ -22,6 +24,7 @@ impl std::str::FromStr for ChargePreset {
             "line_o" => Ok(ChargePreset::LineOscillate),
             "o_eom" => Ok(ChargePreset::LineOscillateEom),
             "dipole" => Ok(ChargePreset::Dipole),
+            "random" => Ok(ChargePreset::Random),
             _ => Err(()),
         }
     }
@@ -93,7 +96,7 @@ impl EomCharge {
 }
 
 impl EomChargeSet {
-    pub fn new(c: f64, t: f64) -> EomChargeSet {
+    pub fn new_fixed_two_charges(c: f64, t: f64) -> EomChargeSet {
         let v = 0.5;
         let u = v / c;
         let r = 2.0;
@@ -102,6 +105,26 @@ impl EomChargeSet {
         EomChargeSet {
             charges: vec![c1, c2],
         }
+    }
+
+    pub fn new_many_random_charges(c: f64, t: f64, n: usize) -> EomChargeSet {
+        let mut charges = Vec::with_capacity(n);
+        let mut rng = thread_rng();
+        for i in 0..n {
+            let l = 10.0_f64;
+            let x = rng.gen_range(-l..l);
+            let y = rng.gen_range(-l..l);
+            let z = rng.gen_range(-l * 1e-2..l * 1e-2);
+            let u = rng.gen_range(0f64..1.0 / c);
+            let theta = x.atan2(y);
+            let c = EomCharge::new(
+                1.0 * if i % 2 == 0 { 1.0 } else { -1.0 },
+                vec4(x, y, z, t),
+                vec3(u * theta.cos(), u * theta.sin(), 0.0),
+            );
+            charges.push(c);
+        }
+        EomChargeSet { charges }
     }
 }
 
