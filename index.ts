@@ -101,7 +101,9 @@ function presetChange(): void {
     for (let i = 0; i < presetNodes.length; i++) {
         if (presetNodes.item(i).checked) {
             app.reset_charge(presetNodes.item(i).value);
-            break;
+            presetNodes.item(i)!.nextElementSibling!.classList.add("checked");
+        } else {
+            presetNodes.item(i)!.nextElementSibling!.classList.remove("checked");
         }
     }
 }

@@ -55,6 +55,26 @@
             cursor: pointer;
             border-radius: 50%;
         }
+
+        input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+        }
+
+        input[type="checkbox"] + label {
+            font-size: 24px;
+            line-height: 28px;
+        }
+
+        input[type="number"] {
+            width: 50px;
+            height: 28px;
+        }
+
+        input[type="number"] + label {
+            font-size: 24px;
+            line-height: 28px;
+        }
     </style>
 </head>
 <body>
@@ -67,6 +87,33 @@
     <span id="speed-of-light">2</span>
 </div>
 <div>
+    <h2>Preset</h2>
+    <input type="radio" id="preset3" name="preset" value="o_eom" checked="checked" class="hidden-radio">
+    <label for="preset3" class="custom-radio checked">
+        Oscillating and dynamical charges
+    </label>
+    <input type="radio" id="preset0" name="preset" value="static" class="hidden-radio">
+    <label for="preset0" class="custom-radio">
+        Static charge
+    </label>
+    <input type="radio" id="preset1" name="preset" value="eom" class="hidden-radio">
+    <label for="preset1" class="custom-radio">
+        Dynamical two charges
+    </label>
+    <input type="radio" id="preset2" name="preset" value="line_o" class="hidden-radio">
+    <label for="preset2" class="custom-radio">
+        Oscillating charge
+    </label>
+    <input type="radio" id="preset4" name="preset" value="dipole" class="hidden-radio">
+    <label for="preset4" class="custom-radio">
+        Dipole
+    </label>
+    <input type="radio" id="preset5" name="preset" value="random" class="hidden-radio">
+    <label for="preset5" class="custom-radio">
+        Randomly positioned charges
+    </label>
+</div>
+<div>
     <h2>Grid</h2>
     <div>
         <input type="radio" id="grid-option1" name="grid-option" value="2d" checked="checked" class="hidden-radio">
@@ -74,52 +121,17 @@
         <input type="radio" id="grid-option2" name="grid-option" value="3d" class="hidden-radio">
         <label for="grid-option2" class="custom-radio">3D</label>
     </div>
-    <div>
-        <input type="checkbox" value="checked" id="poynting_on"><label for="poynting_on">Show Poynting vector</label>
-        <br>
-        <label for="arrow-log">Arrow Length log count: </label><input type="number" min="0" id="arrow-log" value="1">
-        <br>
-        <label for="arrow-factor">Arrow Length factor exp: </label><input type="number" id="arrow-factor" value="-3">
-    </div>
 </div>
 <div>
-    <h2>Preset</h2>
-    <div style="margin: 10px">
-        <input type="radio" id="preset3" name="preset" value="o_eom" checked="checked">
-        <label for="preset3">
-            An oscillating positive charge and a dynamical negative charge
-        </label>
-    </div>
-    <div style="margin: 10px">
-        <input type="radio" id="preset0" name="preset" value="static">
-        <label for="preset0">
-            Static positive charge
-        </label>
-    </div>
-    <div style="margin: 10px">
-        <input type="radio" id="preset1" name="preset" value="eom">
-        <label for="preset1">
-            Dynamical two charges
-        </label>
-    </div>
-    <div style="margin: 10px">
-        <input type="radio" id="preset2" name="preset" value="line_o">
-        <label for="preset2">
-            An oscillating charge
-        </label>
-    </div>
-    <div style="margin: 10px">
-        <input type="radio" id="preset4" name="preset" value="dipole">
-        <label for="preset4">
-            Dipole
-        </label>
-    </div>
-    <div style="margin: 10px">
-        <input type="radio" id="preset5" name="preset" value="random">
-        <label for="preset5">
-            Randomly positioned charges
-        </label>
-    </div>
+    <h2>Arrow</h2>
+    <input type="checkbox" value="checked" id="poynting_on">
+    <label for="poynting_on">Show Poynting vector</label>
+    <br>
+    <label for="arrow-log">Arrow Length log count: </label>
+    <input type="number" min="0" id="arrow-log" value="1">
+    <br>
+    <label for="arrow-factor">Arrow Length factor exp: </label>
+    <input type="number" id="arrow-factor" value="-3">
 </div>
 <div>
     <h2>Controls</h2>
