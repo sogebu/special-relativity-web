@@ -147,18 +147,7 @@ impl ChargeSet for EomChargeSet {
             charge.phase_space.position.ct >= until.ct
                 || (charge.phase_space.position - until).lorentz_norm2() >= 0.0
         }) {
-            let i = self
-                .charges
-                .iter()
-                .enumerate()
-                .min_by(|(_, ci), (_, cj)| {
-                    ci.phase_space
-                        .position
-                        .ct
-                        .total_cmp(&cj.phase_space.position.ct)
-                })
-                .map(|(i, _)| i)
-                .unwrap();
+            let i = most_past_charge_index(&self.charges);
             let position = self.charges[i].phase_space.position;
             let fs = field_strength_from_charges(c, &self.charges, i, position);
             self.charges[i].tick(fs, ds);
@@ -293,18 +282,7 @@ impl ChargeSet for LineOscillateEomCharge {
             c.phase_space.position.ct >= until.ct
                 || (c.phase_space.position - until).lorentz_norm2() >= 0.0
         }) {
-            let i = self
-                .charges
-                .iter()
-                .enumerate()
-                .min_by(|(_, ci), (_, cj)| {
-                    ci.phase_space
-                        .position
-                        .ct
-                        .total_cmp(&cj.phase_space.position.ct)
-                })
-                .map(|(i, _)| i)
-                .unwrap();
+            let i = most_past_charge_index(&self.charges);
             let position = self.charges[i].phase_space.position;
             let mut fs = field_strength_from_charges(c, &self.charges, i, position);
             if let Some((x, u, a)) = self.world_line.past_intersection(c, position) {
@@ -340,4 +318,18 @@ fn field_strength_from_charges(
         fs = fs + Matrix::field_strength(charge.q / c, x.spatial() - position.spatial(), u, a);
     }
     fs
+}
+
+fn most_past_charge_index(charges: &[EomCharge]) -> usize {
+    charges
+        .iter()
+        .enumerate()
+        .min_by(|(_, ci), (_, cj)| {
+            ci.phase_space
+                .position
+                .ct
+                .total_cmp(&cj.phase_space.position.ct)
+        })
+        .map(|(i, _)| i)
+        .unwrap()
 }
