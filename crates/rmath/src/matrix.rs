@@ -170,6 +170,21 @@ impl Matrix {
         )
     }
 
+    /// ```rust
+    /// # use rmath::{Matrix, Vector3};
+    /// let m = Matrix::uniform_scale(2.0);
+    /// let v = Vector3::new(1.5, 2.5, 3.5);
+    /// assert_eq!(m * v, Vector3::new(3.0, 5.0, 7.0));
+    /// ```
+    pub const fn uniform_scale(s: f64) -> Matrix {
+        Matrix::new(
+            [s, 0.0, 0.0, 0.0],
+            [0.0, s, 0.0, 0.0],
+            [0.0, 0.0, s, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        )
+    }
+
     /// Create a Lorentz transform matrix
     ///
     /// The matrix ``Matrix::lorentz(u)`` makes velocity vector ``u`` to zero-vector.

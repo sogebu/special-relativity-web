@@ -306,11 +306,7 @@ impl InternalApp {
         self.render
             .lighting_shader
             .bind_shared_data(&self.render.backend, &self.render.charge_shape);
-        let charge_scale = Matrix::scale(vec3(
-            self.charge_scale,
-            self.charge_scale,
-            self.charge_scale,
-        ));
+        let charge_scale = Matrix::uniform_scale(self.charge_scale);
         for (q, (x, _, _)) in self.physics.charges.iter(c, player_position) {
             let pos = lorentz * (x - player_position);
             let charge_data = LightingLocalData {

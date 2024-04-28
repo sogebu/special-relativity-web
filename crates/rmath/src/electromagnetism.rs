@@ -64,7 +64,7 @@ mod tests {
         let l_len = l.magnitude();
         assert_relative_eq!(
             fs.field_strength_to_electric_field(1.0),
-            -l.normalized() * 2.0 / l_len / l_len,
+            -l.normalized() * 2.0 / l_len / l_len / 4.0 / std::f64::consts::PI,
         );
         assert_relative_eq!(fs.field_strength_to_magnetic_field(), Vector3::zero());
     }
