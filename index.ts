@@ -114,7 +114,6 @@ for (let i = 0; i <= 5; i++) {
 }
 
 const gridOptionNodes = document.getElementsByName("grid-option") as NodeListOf<HTMLInputElement>;
-
 const gridOptionChange = () => {
     for (let i = 0; i < gridOptionNodes.length; i++) {
         if (gridOptionNodes.item(i).checked) {
@@ -130,10 +129,21 @@ go1.onchange = gridOptionChange;
 const go2 = document.getElementById("grid-option2") as HTMLSelectElement;
 go2.onchange = gridOptionChange;
 
-const poyntingOn = document.getElementById("poynting_on") as HTMLInputElement;
-poyntingOn.onchange = () => {
-    app.change_poynting_on(poyntingOn.checked);
+const poyntingNodes = document.getElementsByName("poynting") as NodeListOf<HTMLInputElement>;
+const poyntingChange = () => {
+    for (let i = 0; i < poyntingNodes.length; i++) {
+        if (poyntingNodes.item(i).checked) {
+            app.change_poynting_on(poyntingNodes.item(i).id === "poynting-on");
+            poyntingNodes.item(i)!.nextElementSibling!.classList.add("checked");
+        } else {
+            poyntingNodes.item(i)!.nextElementSibling!.classList.remove("checked");
+        }
+    }
 };
+const poyntingOff = document.getElementById("poynting-off") as HTMLInputElement;
+const poyntingOn = document.getElementById("poynting-on") as HTMLInputElement;
+poyntingOff.onchange = poyntingChange;
+poyntingOn.onchange = poyntingChange;
 
 const arrowLog = document.getElementById("arrow-log") as HTMLInputElement;
 arrowLog.onchange = () => {

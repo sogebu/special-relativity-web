@@ -124,8 +124,12 @@
 </div>
 <div>
     <h2>Arrow</h2>
-    <input type="checkbox" value="checked" id="poynting_on">
-    <label for="poynting_on">Show Poynting vector</label>
+    <div>
+        <input type="radio" id="poynting-off" name="poynting" checked="checked" class="hidden-radio">
+        <label for="poynting-off" class="custom-radio checked">Electromagnetic</label>
+        <input type="radio" id="poynting-on" name="poynting" class="hidden-radio">
+        <label for="poynting-on" class="custom-radio">Poynting</label>
+    </div>
     <br>
     <label for="arrow-log">Arrow Length log count: </label>
     <input type="number" min="0" id="arrow-log" value="1">
