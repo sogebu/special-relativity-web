@@ -359,7 +359,7 @@ impl InternalApp {
             if self.poynting_on {
                 let poynting = ele.cross(mag) * c * c;
                 if poynting.magnitude2() > 1e-16 {
-                    self.draw_arrow(poynting, RGBA::red(), projection, normal);
+                    self.draw_arrow(poynting, RGBA::hotpink(), projection, normal);
                 }
             }
         }
