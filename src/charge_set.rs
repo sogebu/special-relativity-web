@@ -62,6 +62,7 @@ impl ChargeSet for StaticChargeSet {
 }
 
 pub struct EomCharge {
+    m: f64,
     q: f64,
     phase_space: PhaseSpace,
     world_line: DiscreteWorldLine,
@@ -72,7 +73,7 @@ pub struct EomChargeSet {
 }
 
 impl EomCharge {
-    pub fn new(q: f64, x: Vector4, u: Vector3) -> EomCharge {
+    pub fn new(m: f64, q: f64, x: Vector4, u: Vector3) -> EomCharge {
         let mut wl = DiscreteWorldLine::new();
         wl.push(Vector4::from_ctv(x.ct - 1e4, x.spatial()));
         wl.push(Vector4::from_ctv(x.ct - 1e3, x.spatial()));
@@ -81,6 +82,7 @@ impl EomCharge {
         wl.push(Vector4::from_ctv(x.ct - 1e0, x.spatial()));
         wl.push(x);
         EomCharge {
+            m,
             q,
             phase_space: PhaseSpace::new(u, x),
             world_line: wl,
@@ -88,8 +90,9 @@ impl EomCharge {
     }
 
     fn tick(&mut self, fs: Matrix, ds: f64) {
-        let force =
-            fs * (Matrix::eta() * Vector4::from_velocity(self.phase_space.velocity)) * self.q;
+        let force = fs
+            * (Matrix::eta() * Vector4::from_velocity(self.phase_space.velocity))
+            * (self.q / self.m);
         self.phase_space.tick_in_world_frame(ds, force.spatial());
         self.world_line.push(self.phase_space.position);
     }
@@ -100,8 +103,8 @@ impl EomChargeSet {
         let v = 0.5;
         let u = v / c;
         let r = 2.0;
-        let c1 = EomCharge::new(-3.5, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
-        let c2 = EomCharge::new(3.5, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(1.0, -3.5, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
+        let c2 = EomCharge::new(1.0, 3.5, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
         EomChargeSet {
             charges: vec![c1, c2],
         }
@@ -110,17 +113,34 @@ impl EomChargeSet {
     pub fn new_many_random_charges(c: f64, t: f64, n: usize) -> EomChargeSet {
         let mut charges = Vec::with_capacity(n);
         let mut rng = thread_rng();
+        let l = 10.0_f64;
         for i in 0..n {
-            let l = 10.0_f64;
             let x = rng.gen_range(-l..l);
-            let y = rng.gen_range(-l..l);
+            let y = rng.gen_range(-5.0..l);
             let z = rng.gen_range(-l * 1e-2..l * 1e-2);
             let u = rng.gen_range(0f64..1.0 / c);
             let theta = x.atan2(y);
+            let q = 1.0 * if i % 2 == 0 { 1.0 } else { -1.0 };
             let c = EomCharge::new(
-                1.0 * if i % 2 == 0 { 1.0 } else { -1.0 },
+                1.0,
+                q,
                 vec4(x, y, z, t),
                 vec3(u * theta.cos(), u * theta.sin(), 0.0),
+            );
+            charges.push(c);
+        }
+        for i in 0..n {
+            let x = rng.gen_range(-l..l);
+            let z = rng.gen_range(0.0..l);
+            let y = -5.0;
+            let u = rng.gen_range(0f64..1.0 / c);
+            let theta = x.atan2(y);
+            let q = 1.0 * if i % 2 == 0 { 1.0 } else { -1.0 };
+            let c = EomCharge::new(
+                1.0,
+                q,
+                vec4(x, y, z, t),
+                vec3(u * theta.cos(), 0.0, u * theta.sin()),
             );
             charges.push(c);
         }
@@ -244,7 +264,7 @@ impl LineOscillateEomCharge {
         let r = 0.5;
         let v = 1.8;
         let u = v / c;
-        let c1 = EomCharge::new(-3.5, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(1.0, -3.5, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
         LineOscillateEomCharge {
             q: 3.5,
             world_line: LineOscillateWorldLine::new(
