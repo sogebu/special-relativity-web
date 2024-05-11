@@ -91,7 +91,7 @@ function speedOfLight(): number {
 
 speedOfLightRange.onchange = () => {
     const c = speedOfLight();
-    speedOfLightView.innerText = c.toString();
+    speedOfLightView.innerText = `${c * 2}`;
     app.change_c(c);
 };
 
