@@ -18,13 +18,13 @@ impl PhaseSpace {
     pub fn tick(&mut self, ds: f64, acceleration: Vector3) {
         let lorentz = Matrix::lorentz(-self.velocity);
         let acceleration = lorentz * Vector4::from_acceleration(acceleration);
-        self.position += Vector4::from_velocity(self.velocity) * ds;
         self.velocity += acceleration.spatial() * ds;
+        self.position += Vector4::from_velocity(self.velocity) * ds;
     }
 
     pub fn tick_in_world_frame(&mut self, ds: f64, acceleration: Vector3) {
-        self.position += Vector4::from_velocity(self.velocity) * ds;
         self.velocity += acceleration * ds;
+        self.position += Vector4::from_velocity(self.velocity) * ds;
     }
 
     pub fn change_c(&mut self, current_c: f64, new_c: f64) {
