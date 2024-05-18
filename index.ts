@@ -146,12 +146,31 @@ poyntingOff.onchange = poyntingChange;
 poyntingOn.onchange = poyntingChange;
 
 const arrowLog = document.getElementById("arrow-log") as HTMLInputElement;
-arrowLog.onchange = () => {
-    app.change_arrow_length_log(arrowLog.valueAsNumber);
+const arrowLogPlus = document.getElementById("arrow-log-plus") as HTMLInputElement;
+const arrowLogMinus = document.getElementById("arrow-log-minus") as HTMLInputElement;
+arrowLogPlus.onclick = () => {
+    const n = arrowLog.valueAsNumber + 1;
+    app.change_arrow_length_log(n);
+    arrowLog.value = `${n}`;
 };
+arrowLogMinus.onclick = () => {
+    const n = arrowLog.valueAsNumber >= 1 ? arrowLog.valueAsNumber - 1 : 0;
+    app.change_arrow_length_log(n);
+    arrowLog.value = `${n}`;
+};
+
 const arrowFactor = document.getElementById("arrow-factor") as HTMLInputElement;
-arrowFactor.onchange = () => {
-    app.change_arrow_length_factor(Math.pow(2, arrowFactor.valueAsNumber));
+const arrowFactorPlus = document.getElementById("arrow-factor-plus") as HTMLInputElement;
+const arrowFactorMinus = document.getElementById("arrow-factor-minus") as HTMLInputElement;
+arrowFactorPlus.onclick = () => {
+    const n = arrowFactor.valueAsNumber + 1;
+    app.change_arrow_length_log(Math.pow(2, n));
+    arrowFactor.value = `${n}`;
+};
+arrowFactorMinus.onclick = () => {
+    const n = arrowFactor.valueAsNumber - 1;
+    app.change_arrow_length_log(Math.pow(2, n));
+    arrowFactor.value = `${n}`;
 };
 
 app.reset_charge(presetNodes.item(0).value);

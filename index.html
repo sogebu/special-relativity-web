@@ -69,12 +69,45 @@
         input[type="number"] {
             width: 50px;
             height: 28px;
+            font-size: 24px;
+            text-align: right;
         }
 
-        input[type="number"] + label {
-            font-size: 24px;
-            line-height: 28px;
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .spinner {
+            display: flex;
+            align-items: center;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+        }
+
+        button {
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        button:active {
+            background-color: #ddd;
+        }
+
+        label {
+            font-size: 24px;
+        }
+
     </style>
 </head>
 <body>
@@ -84,7 +117,7 @@
 <div>
     <label for="speed-of-light-exp">Speed of Light</label>
     <input type="range" id="speed-of-light-exp" min="-3" max="10" value="1">
-    <span id="speed-of-light">4</span> grid/s
+    <span style="font-size: 24px"><span id="speed-of-light">4</span> grid/s</span>
 </div>
 <div>
     <h2>Preset</h2>
@@ -131,11 +164,22 @@
         <label for="poynting-on" class="custom-radio">Poynting (Energy Flow)</label>
     </div>
     <br>
-    <label for="arrow-log">Arrow Length log count: </label>
-    <input type="number" min="0" id="arrow-log" value="1">
-    <br>
-    <label for="arrow-factor">Arrow Length factor exp: </label>
-    <input type="number" id="arrow-factor" value="-3">
+    <div class="spinner">
+        <label for="arrow-log">Arrow Log Reductions Count:&nbsp;</label>
+        <input id="arrow-log" type="number" value="1" min="0" max="10">
+        <div class="buttons">
+            <button id="arrow-log-plus">▲</button>
+            <button id="arrow-log-minus">▼</button>
+        </div>
+    </div>
+    <div class="spinner">
+        <label for="arrow-factor">Arrow 2^n Scale:&nbsp;</label>
+        <input id="arrow-factor" type="number" value="-3">
+        <div class="buttons">
+            <button id="arrow-factor-plus">▲</button>
+            <button id="arrow-factor-minus">▼</button>
+        </div>
+    </div>
 </div>
 <div>
     <h2>Controls</h2>
