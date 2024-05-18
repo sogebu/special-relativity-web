@@ -81,6 +81,19 @@ canvas.addEventListener('mouseout', () => {
     app.touch_end(new Date().getTime());
 });
 
+const restartButton = document.getElementById("restart-button") as HTMLButtonElement;
+const setRestarted = () => {
+    restartButton.classList.add('clicked');
+    setTimeout(() => {
+        restartButton.classList.remove('clicked');
+    }, 500);
+};
+restartButton.onclick = () => {
+    app.restart_physics();
+    setRestarted();
+};
+
+
 const speedOfLightRange = document.getElementById("speed-of-light-exp") as HTMLInputElement;
 const speedOfLightView = document.getElementById("speed-of-light") as HTMLSpanElement;
 
@@ -92,7 +105,9 @@ function speedOfLight(): number {
 speedOfLightRange.onchange = () => {
     const c = speedOfLight();
     speedOfLightView.innerText = `${c * 2}`;
-    app.change_c(c);
+    if (app.change_c(c)) {
+        setRestarted();
+    }
 };
 
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;
@@ -146,8 +161,8 @@ poyntingOff.onchange = poyntingChange;
 poyntingOn.onchange = poyntingChange;
 
 const arrowLog = document.getElementById("arrow-log") as HTMLInputElement;
-const arrowLogPlus = document.getElementById("arrow-log-plus") as HTMLInputElement;
-const arrowLogMinus = document.getElementById("arrow-log-minus") as HTMLInputElement;
+const arrowLogPlus = document.getElementById("arrow-log-plus") as HTMLButtonElement;
+const arrowLogMinus = document.getElementById("arrow-log-minus") as HTMLButtonElement;
 arrowLogPlus.onclick = () => {
     const n = arrowLog.valueAsNumber + 1;
     app.change_arrow_length_log(n);
@@ -160,8 +175,8 @@ arrowLogMinus.onclick = () => {
 };
 
 const arrowFactor = document.getElementById("arrow-factor") as HTMLInputElement;
-const arrowFactorPlus = document.getElementById("arrow-factor-plus") as HTMLInputElement;
-const arrowFactorMinus = document.getElementById("arrow-factor-minus") as HTMLInputElement;
+const arrowFactorPlus = document.getElementById("arrow-factor-plus") as HTMLButtonElement;
+const arrowFactorMinus = document.getElementById("arrow-factor-minus") as HTMLButtonElement;
 arrowFactorPlus.onclick = () => {
     const n = arrowFactor.valueAsNumber + 1;
     app.change_arrow_length_log(Math.pow(2, n));

@@ -206,16 +206,23 @@ impl InternalApp {
     }
 
     #[inline(always)]
-    pub fn change_c(&mut self, c: f64) {
+    pub fn restart_physics(&mut self) {
+        self.physics = AppPhysics::new(self.physics.c, self.physics.charge_preset);
+    }
+
+    #[inline(always)]
+    pub fn change_c(&mut self, c: f64) -> bool {
         match self.physics.c.total_cmp(&c) {
             Ordering::Less => {
                 self.physics.player.change_c(self.physics.c, c);
                 self.physics.charges.change_c(self.physics.c, c);
                 self.physics.c = c;
+                false
             }
-            Ordering::Equal => (),
+            Ordering::Equal => false,
             Ordering::Greater => {
                 self.physics = AppPhysics::new(c, self.physics.charge_preset);
+                true
             }
         }
     }

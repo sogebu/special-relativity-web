@@ -91,21 +91,35 @@
         .buttons {
             display: flex;
             flex-direction: column;
-        }
-
-        button {
             width: 40px;
             height: 40px;
             font-size: 24px;
             cursor: pointer;
         }
 
-        button:active {
+        .buttons:active {
             background-color: #ddd;
         }
 
         label {
             font-size: 24px;
+        }
+
+        #restart-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 24px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        #restart-button.clicked {
+            background-color: #ff5722;
         }
 
     </style>
@@ -118,6 +132,9 @@
     <label for="speed-of-light-exp">Speed of Light</label>
     <input type="range" id="speed-of-light-exp" min="-3" max="10" value="1">
     <span style="font-size: 24px"><span id="speed-of-light">4</span> grid/s</span>
+</div>
+<div>
+    <button id="restart-button">Restart</button>
 </div>
 <div>
     <h2>Preset</h2>

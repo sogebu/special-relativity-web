@@ -25,8 +25,12 @@ impl App {
         Ok(App(InternalApp::new(context)?))
     }
 
-    pub fn change_c(&mut self, c: f64) {
-        self.0.change_c(c);
+    pub fn restart_physics(&mut self) {
+        self.0.restart_physics();
+    }
+
+    pub fn change_c(&mut self, c: f64) -> bool {
+        self.0.change_c(c)
     }
 
     pub fn reset_charge(&mut self, setup: &str) {
