@@ -179,12 +179,12 @@ const arrowFactorPlus = document.getElementById("arrow-factor-plus") as HTMLButt
 const arrowFactorMinus = document.getElementById("arrow-factor-minus") as HTMLButtonElement;
 arrowFactorPlus.onclick = () => {
     const n = arrowFactor.valueAsNumber + 1;
-    app.change_arrow_length_log(Math.pow(2, n));
+    app.change_arrow_length_factor(Math.pow(2, n));
     arrowFactor.value = `${n}`;
 };
 arrowFactorMinus.onclick = () => {
     const n = arrowFactor.valueAsNumber - 1;
-    app.change_arrow_length_log(Math.pow(2, n));
+    app.change_arrow_length_factor(Math.pow(2, n));
     arrowFactor.value = `${n}`;
 };
 
