@@ -198,15 +198,12 @@ pub struct LineOscillateCharge {
 
 impl LineOscillateCharge {
     pub fn new(c: f64) -> LineOscillateCharge {
+        let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
+        let x = Vector3::new(0.0, 1.2, 0.0);
+        let v = Vector3::new(0.0, 1.0, 0.0);
         LineOscillateCharge {
             q: 3.5,
-            world_line: LineOscillateWorldLine::new(
-                Vector3::new(0.0, 0.0, 0.0),
-                Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
-                (0.1 * c).min(0.4),
-                c,
-            )
-            .unwrap(),
+            world_line: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
         }
     }
 }
