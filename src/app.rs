@@ -3,10 +3,7 @@ use std::cmp::Ordering;
 use wasm_bindgen::JsValue;
 use web_sys::WebGl2RenderingContext;
 
-use backend::{
-    Backend, LightingLocalData, LightingShader, Shader, Shape, SimpleLocalData, SimpleShader,
-    VertexPosition, VertexPositionNormal,
-};
+use backend::{Backend, LightingLocalData, LightingShader, Shader, Shape, VertexPositionNormal};
 use color::RGBA;
 use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
 use shape::BuildData;
