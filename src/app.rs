@@ -27,10 +27,8 @@ fn wasm_error(s: String) -> JsValue {
 
 struct AppRender {
     backend: Backend<Context>,
-    simple_shader: SimpleShader<Context>,
-    lighting_shader: LightingShader<Context>,
-    arrow_shape_no_normal: Shape<VertexPosition>,
-    arrow_shape_with_normal: Shape<VertexPositionNormal>,
+    shader: LightingShader<Context>,
+    arrow_shape: Shape<VertexPositionNormal>,
     charge_shape: Shape<VertexPositionNormal>,
 }
 
@@ -55,15 +53,13 @@ pub struct InternalApp {
     measurement_points: Vec<StaticWorldLine>,
     arrow_config: ArrowConfig,
     charge_scale: f64,
-    lighting_on: bool,
     poynting_on: bool,
 }
 
 impl AppRender {
     fn new(webgl2: WebGl2RenderingContext) -> Result<AppRender, JsValue> {
         let backend = Backend::new(Context::from_webgl2_context(webgl2)).map_err(wasm_error)?;
-        let simple_shader = SimpleShader::new(&backend)?;
-        let lighting_shader = LightingShader::new(&backend)?;
+        let shader = LightingShader::new(&backend)?;
 
         let arrow_shape = shape::ArrowOption::new()
             .shaft_radius(0.02)
@@ -72,10 +68,8 @@ impl AppRender {
             .head_length(0.1);
         Ok(AppRender {
             backend,
-            simple_shader,
-            lighting_shader,
-            arrow_shape_no_normal: arrow_shape.build_no_normal().into(),
-            arrow_shape_with_normal: arrow_shape.build_smooth().into(),
+            shader,
+            arrow_shape: arrow_shape.build_smooth().into(),
             charge_shape: shape::IcosahedronOption::new().build_sharp().into(),
         })
     }
@@ -205,7 +199,6 @@ impl InternalApp {
             measurement_points: grid_surface_measurement_points(),
             arrow_config: ArrowConfig::default(),
             charge_scale: 0.2,
-            lighting_on: true,
             poynting_on: false,
         })
     }
@@ -316,7 +309,7 @@ impl InternalApp {
         let player_position = self.physics.player.position();
 
         self.render
-            .lighting_shader
+            .shader
             .bind_shared_data(&self.render.backend, &self.render.charge_shape);
         let charge_scale = Matrix::uniform_scale(self.charge_scale);
         for (q, (x, _, _)) in self.physics.charges.iter(c, player_position) {
@@ -328,22 +321,16 @@ impl InternalApp {
                     * charge_scale,
                 normal,
             };
-            self.render.lighting_shader.draw(
+            self.render.shader.draw(
                 &self.render.backend,
                 &self.render.charge_shape,
                 &charge_data,
             );
         }
 
-        if self.lighting_on {
-            self.render
-                .lighting_shader
-                .bind_shared_data(&self.render.backend, &self.render.arrow_shape_with_normal);
-        } else {
-            self.render
-                .simple_shader
-                .bind_shared_data(&self.render.backend, &self.render.arrow_shape_no_normal);
-        }
+        self.render
+            .shader
+            .bind_shared_data(&self.render.backend, &self.render.arrow_shape);
         for m in self.measurement_points.iter() {
             let (pos_on_player_plc, _, _) = m.past_intersection(c, player_position).unwrap();
 
@@ -405,28 +392,14 @@ impl InternalApp {
         let model_view_projection = projection
             * rotate
             * Matrix::scale(Vector3::new(1.0, 1.0, self.arrow_config.arrow_length(v)));
-        if self.lighting_on {
-            let data = LightingLocalData {
-                color,
-                model_view_projection,
-                normal: normal * rotate,
-            };
-            self.render.lighting_shader.draw(
-                &self.render.backend,
-                &self.render.arrow_shape_with_normal,
-                &data,
-            );
-        } else {
-            let data = SimpleLocalData {
-                color,
-                model_view_projection,
-            };
-            self.render.simple_shader.draw(
-                &self.render.backend,
-                &self.render.arrow_shape_no_normal,
-                &data,
-            );
-        }
+        let data = LightingLocalData {
+            color,
+            model_view_projection,
+            normal: normal * rotate,
+        };
+        self.render
+            .shader
+            .draw(&self.render.backend, &self.render.arrow_shape, &data);
     }
 }
 
