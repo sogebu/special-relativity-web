@@ -1,0 +1,152 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"/><title>Sogebu Special Relativity</title><style>header {
+            background-color: #333;
+            color: white;
+            padding: 5px 0;
+        }
+
+        header nav ul {
+            list-style-type: none;
+            padding: 0;
+            text-align: center;
+        }
+
+        header nav ul li {
+            display: inline;
+            margin: 0 15px;
+        }
+
+        header nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        header nav ul li a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 5px 0;
+            margin-top: auto;
+        }
+
+        .hidden-radio {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .custom-radio {
+            display: inline-block;
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px 40px;
+            margin: 3px;
+            cursor: pointer;
+            user-select: none; /* テキスト選択を無効にする */
+            font-size: 32px;
+        }
+
+        .custom-radio.checked {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 60%;
+            height: 15px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: 0.2s;
+            transition: opacity 0.2s;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4caf50;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type=range]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4caf50;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+        }
+
+        input[type="checkbox"] + label {
+            font-size: 24px;
+            line-height: 28px;
+        }
+
+        input[type="number"] {
+            width: 50px;
+            height: 28px;
+            font-size: 24px;
+            text-align: right;
+        }
+
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .spinner {
+            display: flex;
+            align-items: center;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .buttons:active {
+            background-color: #ddd;
+        }
+
+        label {
+            font-size: 24px;
+        }
+
+        #restart-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 24px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+        }
+
+        #restart-button.clicked {
+            background-color: #ff5722;
+        }</style><script defer="defer" src="bundle.js"></script></head><body><header><nav><ul><li><a href="https://github.com/sogebu/special-relativity-web">Home (GitHub)</a></li><li><a href="#simulations">Simulation</a></li></ul></nav></header><main id="simulations"><div><canvas id="canvas"></canvas></div><div><label for="speed-of-light-exp">Speed of Light</label> <input type="range" id="speed-of-light-exp" min="-3" max="10" value="1"> <span style="font-size: 24px"><span id="speed-of-light">4</span> grid/s</span></div><div><button id="restart-button">Restart</button></div><div><h2>Preset</h2><input type="radio" id="preset3" name="preset" value="o_eom" checked="checked" class="hidden-radio"> <label for="preset3" class="custom-radio checked">Oscillating Pos & Responsive Neg</label> <input type="radio" id="preset0" name="preset" value="static" class="hidden-radio"> <label for="preset0" class="custom-radio">Static Charge</label> <input type="radio" id="preset1" name="preset" value="eom" class="hidden-radio"> <label for="preset1" class="custom-radio">Dynamic Opposite Charges</label> <input type="radio" id="preset2" name="preset" value="line_o" class="hidden-radio"> <label for="preset2" class="custom-radio">Oscillating Charge</label> <input type="radio" id="preset4" name="preset" value="dipole" class="hidden-radio"> <label for="preset4" class="custom-radio">Dipole Oscillation</label> <input type="radio" id="preset6" name="preset" value="dipole2" class="hidden-radio"> <label for="preset6" class="custom-radio">Dipole2</label> <input type="radio" id="preset5" name="preset" value="random" class="hidden-radio"> <label for="preset5" class="custom-radio">Random Placement</label></div><div><h2>Grid</h2><div><input type="radio" id="grid-option1" name="grid-option" value="2d" checked="checked" class="hidden-radio"> <label for="grid-option1" class="custom-radio checked">2D</label> <input type="radio" id="grid-option2" name="grid-option" value="3d" class="hidden-radio"> <label for="grid-option2" class="custom-radio">3D</label></div></div><div><h2>Arrow</h2><div><input type="radio" id="poynting-off" name="poynting" checked="checked" class="hidden-radio"> <label for="poynting-off" class="custom-radio checked">Electromagnetic</label> <input type="radio" id="poynting-on" name="poynting" class="hidden-radio"> <label for="poynting-on" class="custom-radio">Poynting (Energy Flux)</label></div><br><div class="spinner"><label for="arrow-log">Arrow Log Reductions Count:&nbsp;</label> <input id="arrow-log" type="number" value="1" min="0" max="10"><div class="buttons"><button id="arrow-log-plus">▲</button> <button id="arrow-log-minus">▼</button></div></div><div class="spinner"><label for="arrow-factor">Arrow 10^n Scale:&nbsp;</label> <input id="arrow-factor" type="number" value="2"><div class="buttons"><button id="arrow-factor-plus">▲</button> <button id="arrow-factor-minus">▼</button></div></div></div><div><h2>Controls</h2><dl><dt>Move Forward/Backward/Left/Right</dt><dd>W/S/A/D</dd><dt>Move Up/Down</dt><dd>X/Z</dd><dt>Rotate</dt><dd>←/→/↑/↓</dd><dt>Roll</dt><dd>Q/E</dd><dt>Brake</dt><dd>R</dd></dl></div><div><details><summary>Data</summary><div id="info"></div></details></div></main><footer><p>&copy; 2024 Sogebu</p></footer></body></html>
