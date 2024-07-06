@@ -4,6 +4,8 @@ use rmath::{
     Vector3, Vector4, WorldLine,
 };
 
+const Q: f64 = std::f64::consts::PI * 0.5;
+
 #[derive(Copy, Clone)]
 pub enum ChargePreset {
     Static,
@@ -49,7 +51,7 @@ pub struct StaticChargeSet {
 impl StaticChargeSet {
     pub fn new() -> StaticChargeSet {
         StaticChargeSet {
-            charges: vec![(1.0, StaticWorldLine::new(vec3(0.0, 0.0, 0.0)))],
+            charges: vec![(Q, StaticWorldLine::new(vec3(0.0, 0.0, 0.0)))],
         }
     }
 }
@@ -105,8 +107,8 @@ impl EomChargeSet {
         let v = 0.5;
         let u = v / c;
         let r = 2.0;
-        let c1 = EomCharge::new(1.0, -3.5, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
-        let c2 = EomCharge::new(1.0, 3.5, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(1.0, -Q, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
+        let c2 = EomCharge::new(1.0, Q, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
         EomChargeSet {
             charges: vec![c1, c2],
         }
@@ -137,7 +139,7 @@ impl EomChargeSet {
             let y = -5.0;
             let u = rng.gen_range(0f64..1.0 / c);
             let theta = x.atan2(y);
-            let q = 1.0 * if i % 2 == 0 { 1.0 } else { -1.0 };
+            let q = Q * if i % 2 == 0 { 1.0 } else { -1.0 };
             let c = EomCharge::new(
                 1.0,
                 q,
@@ -204,7 +206,7 @@ impl LineOscillateCharge {
         let x = Vector3::new(1.2, 0.0, 0.0);
         let v = Vector3::new(1.0, 0.0, 0.0);
         LineOscillateCharge {
-            q: 3.5,
+            q: Q,
             world_line: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
         }
     }
@@ -232,7 +234,7 @@ impl DipoleCharge {
         let x = Vector3::new(1.2, 0.0, 0.0);
         let v = Vector3::new(1.0, 0.0, 0.0);
         DipoleCharge {
-            q: 3.5,
+            q: Q,
             a: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
             b: LineOscillateWorldLine::new(-x, -v, f, c).unwrap(),
         }
@@ -243,7 +245,7 @@ impl DipoleCharge {
         let x = Vector3::new(1.2, 0.0, 0.0);
         let v = Vector3::new(1.0, 0.0, 0.0);
         DipoleCharge {
-            q: 3.5,
+            q: Q,
             a: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
             b: LineOscillateWorldLine::new(x + Vector3::new(0.5, 0.0, 0.0), v, f, c).unwrap(),
         }
@@ -274,9 +276,9 @@ impl LineOscillateEomCharge {
         let r = 0.5;
         let v = 1.8;
         let u = v / c;
-        let c1 = EomCharge::new(1.0, -3.5, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(1.0, -Q, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
         LineOscillateEomCharge {
-            q: 3.5,
+            q: Q,
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
                 Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),

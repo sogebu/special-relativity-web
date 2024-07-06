@@ -68,7 +68,8 @@ impl AppRender {
         let arrow_shape = shape::ArrowOption::new()
             .shaft_radius(0.02)
             .head_radius(0.02)
-            .head_length(0.3);
+            .shaft_length(0.9)
+            .head_length(0.1);
         Ok(AppRender {
             backend,
             simple_shader,
@@ -438,18 +439,18 @@ pub struct ArrowConfig {
 impl Default for ArrowConfig {
     fn default() -> Self {
         ArrowConfig {
-            log_count: 2,
-            length_factor: 0.1,
+            log_count: 1,
+            length_factor: 1.0,
         }
     }
 }
 
 impl ArrowConfig {
     pub fn arrow_length(&self, v: Vector3) -> f64 {
-        let mut length = v.magnitude() * 1e3;
+        let mut length = v.magnitude() * self.length_factor;
         for _ in 0..self.log_count {
             length = (1.0 + length).ln();
         }
-        length * self.length_factor
+        length
     }
 }
