@@ -119,6 +119,10 @@ impl AppPhysics {
                 Box::new(DipoleCharge::new(c)),
                 Player::new(Vector3::new(0.0, 0.0, 20.0)),
             ),
+            ChargePreset::Dipole2 => (
+                Box::new(DipoleCharge::new_para(c)),
+                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+            ),
             ChargePreset::Random => (
                 Box::new(EomChargeSet::new_many_random_charges(c, -30.0, 10)),
                 Player::new(Vector3::new(0.0, 0.0, 30.0)),

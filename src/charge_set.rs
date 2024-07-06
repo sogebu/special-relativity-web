@@ -11,6 +11,7 @@ pub enum ChargePreset {
     LineOscillate,
     LineOscillateEom,
     Dipole,
+    Dipole2,
     Random,
 }
 
@@ -24,6 +25,7 @@ impl std::str::FromStr for ChargePreset {
             "line_o" => Ok(ChargePreset::LineOscillate),
             "o_eom" => Ok(ChargePreset::LineOscillateEom),
             "dipole" => Ok(ChargePreset::Dipole),
+            "dipole2" => Ok(ChargePreset::Dipole2),
             "random" => Ok(ChargePreset::Random),
             _ => Err(()),
         }
@@ -199,8 +201,8 @@ pub struct LineOscillateCharge {
 impl LineOscillateCharge {
     pub fn new(c: f64) -> LineOscillateCharge {
         let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
-        let x = Vector3::new(0.0, 1.2, 0.0);
-        let v = Vector3::new(0.0, 1.0, 0.0);
+        let x = Vector3::new(1.2, 0.0, 0.0);
+        let v = Vector3::new(1.0, 0.0, 0.0);
         LineOscillateCharge {
             q: 3.5,
             world_line: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
@@ -227,12 +229,23 @@ pub struct DipoleCharge {
 impl DipoleCharge {
     pub fn new(c: f64) -> DipoleCharge {
         let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
-        let x = Vector3::new(0.0, 1.2, 0.0);
-        let v = Vector3::new(0.0, 1.0, 0.0);
+        let x = Vector3::new(1.2, 0.0, 0.0);
+        let v = Vector3::new(1.0, 0.0, 0.0);
         DipoleCharge {
             q: 3.5,
             a: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
             b: LineOscillateWorldLine::new(-x, -v, f, c).unwrap(),
+        }
+    }
+
+    pub fn new_para(c: f64) -> DipoleCharge {
+        let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
+        let x = Vector3::new(1.2, 0.0, 0.0);
+        let v = Vector3::new(1.0, 0.0, 0.0);
+        DipoleCharge {
+            q: 3.5,
+            a: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
+            b: LineOscillateWorldLine::new(x + Vector3::new(0.5, 0.0, 0.0), v, f, c).unwrap(),
         }
     }
 }
