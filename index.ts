@@ -123,7 +123,7 @@ function presetChange(): void {
     }
 }
 
-for (let i = 0; i <= 5; i++) {
+for (let i = 0; i <= 6; i++) {
     const preset = document.getElementById(`preset${i}`) as HTMLSelectElement;
     preset.onchange = presetChange;
 }
@@ -179,19 +179,19 @@ const arrowFactorPlus = document.getElementById("arrow-factor-plus") as HTMLButt
 const arrowFactorMinus = document.getElementById("arrow-factor-minus") as HTMLButtonElement;
 arrowFactorPlus.onclick = () => {
     const n = arrowFactor.valueAsNumber + 1;
-    app.change_arrow_length_factor(Math.pow(2, n));
+    app.change_arrow_length_factor(Math.pow(10, n));
     arrowFactor.value = `${n}`;
 };
 arrowFactorMinus.onclick = () => {
     const n = arrowFactor.valueAsNumber - 1;
-    app.change_arrow_length_factor(Math.pow(2, n));
+    app.change_arrow_length_factor(Math.pow(10, n));
     arrowFactor.value = `${n}`;
 };
 
 app.reset_charge(presetNodes.item(0).value);
 app.change_c(speedOfLight());
 app.change_arrow_length_log(arrowLog.valueAsNumber);
-app.change_arrow_length_factor(Math.pow(2, arrowFactor.valueAsNumber));
+app.change_arrow_length_factor(Math.pow(10, arrowFactor.valueAsNumber));
 
 function step(timestamp: DOMHighResTimeStamp): void {
     app.tick(timestamp);
