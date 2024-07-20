@@ -348,19 +348,16 @@ impl CirclesChargeSet {
             world_line.push(w);
         }
 
-        let mut c = CirclesChargeSet { q: Q, world_line };
-        c
+        CirclesChargeSet { q: Q, world_line }
     }
 }
 
 impl ChargeSet for CirclesChargeSet {
     fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
-        let mut v = self
-            .world_line
+        self.world_line
             .iter()
             .filter_map(|wl| wl.past_intersection(c, player_pos).map(|x| (self.q, x)))
-            .collect::<Vec<_>>();
-        v
+            .collect::<Vec<_>>()
     }
 
     fn tick(&mut self, c: f64, until: Vector4) {
