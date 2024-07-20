@@ -15,6 +15,7 @@ pub enum ChargePreset {
     Dipole,
     Dipole2,
     Random,
+    Circle,
 }
 
 impl std::str::FromStr for ChargePreset {
@@ -29,6 +30,7 @@ impl std::str::FromStr for ChargePreset {
             "dipole" => Ok(ChargePreset::Dipole),
             "dipole2" => Ok(ChargePreset::Dipole2),
             "random" => Ok(ChargePreset::Random),
+            "circle" => Ok(ChargePreset::Circle),
             _ => Err(()),
         }
     }
@@ -328,6 +330,54 @@ impl ChargeSet for LineOscillateEomCharge {
     fn change_c(&mut self, current_c: f64, new_c: f64) {
         for charge in self.charges.iter_mut() {
             charge.phase_space.change_c(current_c, new_c);
+        }
+    }
+}
+
+pub struct CirclesChargeSet {
+    q: f64,
+    world_line: Vec<DiscreteWorldLine>,
+}
+
+impl CirclesChargeSet {
+    pub fn new() -> CirclesChargeSet {
+        let mut world_line = Vec::new();
+        for _ in 0..32 {
+            let mut w = DiscreteWorldLine::new();
+            w.push(Vector4::new(0.0, 0.0, 0.0, -40.0));
+            world_line.push(w);
+        }
+
+        let mut c = CirclesChargeSet { q: Q, world_line };
+        c
+    }
+}
+
+impl ChargeSet for CirclesChargeSet {
+    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
+        let mut v = self
+            .world_line
+            .iter()
+            .filter_map(|wl| wl.past_intersection(c, player_pos).map(|x| (self.q, x)))
+            .collect::<Vec<_>>();
+        v
+    }
+
+    fn tick(&mut self, c: f64, until: Vector4) {
+        let ds = 1.0 / 128.0;
+        let r = 2.0;
+        let n = self.world_line.len() as f64;
+        for (i, wl) in self.world_line.iter_mut().enumerate() {
+            let phi = std::f64::consts::TAU * i as f64 / n;
+            if let Some(mut x) = wl.last() {
+                while until.ct > x.ct {
+                    x.ct += ds;
+                    let f = 0.99 / (1.0 + (-x.ct / 100.0 + 1.0).exp());
+                    let omega = c * f / r / std::f64::consts::TAU;
+                    let (sin, cos) = (-omega * x.ct + phi).sin_cos();
+                    wl.push(Vector4::new(0.0, r * cos + 5.0, r * sin, x.ct));
+                }
+            }
         }
     }
 }

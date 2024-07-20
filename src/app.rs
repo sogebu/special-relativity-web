@@ -8,7 +8,7 @@ use color::RGBA;
 use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
 use shape::BuildData;
 
-use crate::charge_set::DipoleCharge;
+use crate::charge_set::{CirclesChargeSet, DipoleCharge};
 use crate::{
     charge_set::{
         ChargePreset, ChargeSet, EomChargeSet, LineOscillateCharge, LineOscillateEomCharge,
@@ -117,6 +117,10 @@ impl AppPhysics {
             ),
             ChargePreset::Random => (
                 Box::new(EomChargeSet::new_many_random_charges(c, -30.0, 10)),
+                Player::new(Vector3::new(0.0, 0.0, 30.0)),
+            ),
+            ChargePreset::Circle => (
+                Box::new(CirclesChargeSet::new()),
                 Player::new(Vector3::new(0.0, 0.0, 30.0)),
             ),
         };

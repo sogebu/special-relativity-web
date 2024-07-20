@@ -160,6 +160,10 @@ impl DiscreteWorldLine {
         self.x.push(x);
     }
 
+    pub fn last(&self) -> Option<Vector4> {
+        self.x.last().copied()
+    }
+
     fn find_future_nearest(&self, x: Vector4) -> Option<usize> {
         if self.x.len() <= 2 {
             return None;

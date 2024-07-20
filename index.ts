@@ -11,8 +11,8 @@ if (screenWidth < screenHeight) {
     canvas.width = screenWidth;
     canvas.height = screenHeight * 0.8;
 } else {
-    canvas.width = 1200;
-    canvas.height = 800;
+    canvas.width = 1920;
+    canvas.height = 1080;
 }
 
 const context = canvas.getContext("webgl2");
