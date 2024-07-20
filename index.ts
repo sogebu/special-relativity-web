@@ -104,7 +104,7 @@ function speedOfLight(): number {
 
 speedOfLightRange.onchange = () => {
     const c = speedOfLight();
-    speedOfLightView.innerText = `${c * 2}`;
+    speedOfLightView.innerText = `${c}`;
     if (app.change_c(c)) {
         setRestarted();
     }

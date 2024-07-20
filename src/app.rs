@@ -136,52 +136,38 @@ impl AppPhysics {
 
 fn grid_surface_measurement_points() -> Vec<StaticWorldLine> {
     let num = 50;
-    let mut measurement_points = Vec::new();
+    let mut grid = Vec::new();
     for x in -num..=num {
+        let x = x as f64;
         for y in -num..=num {
-            if y as f64 * 0.5 < -5.0 {
+            let y = y as f64;
+            if y < -5.0 {
                 continue;
             }
-            measurement_points.push(StaticWorldLine::new(vec3(
-                x as f64 * 0.5,
-                y as f64 * 0.5,
-                0.0,
-            )));
+            grid.push(StaticWorldLine::new(Vector3::new(x, y, 0.0)));
         }
     }
     for x in -num..=num {
-        for z in -num..=num {
-            if z == 0 {
-                continue;
-            }
-            if z as f64 * 0.5 < 0.0 {
-                continue;
-            }
-            measurement_points.push(StaticWorldLine::new(vec3(
-                x as f64 * 0.5,
-                -5.0,
-                z as f64 * 0.5,
-            )));
+        let x = x as f64;
+        for z in 1..=num {
+            let z = z as f64;
+            grid.push(StaticWorldLine::new(vec3(x, -5.0, z)));
         }
     }
-    measurement_points
+    grid
 }
 
 fn grid_bulk_measurement_points() -> Vec<StaticWorldLine> {
     let num = 12;
-    let mut measurement_points = Vec::new();
+    let mut grid = Vec::new();
     for x in -num..=num {
         for y in -num..=num {
             for z in -num..=num {
-                measurement_points.push(StaticWorldLine::new(vec3(
-                    x as f64 * 0.5,
-                    y as f64 * 0.5,
-                    z as f64 * 0.5,
-                )));
+                grid.push(StaticWorldLine::new(vec3(x as f64, y as f64, z as f64)));
             }
         }
     }
-    measurement_points
+    grid
 }
 
 impl InternalApp {
