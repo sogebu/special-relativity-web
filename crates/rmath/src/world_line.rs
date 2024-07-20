@@ -173,6 +173,9 @@ impl DiscreteWorldLine {
         }
         // hi = future = norm is positive
         let mut hi = self.x.len() - 1;
+        if self.x[hi].ct < x.ct && (self.x[hi] - x).lorentz_norm2() < 0.0 {
+            return None;
+        }
         while lo < hi {
             let mid = (lo + hi) / 2;
             if self.x[mid].ct >= x.ct || (self.x[mid] - x).lorentz_norm2() >= 0.0 {
@@ -257,6 +260,36 @@ mod tests {
                 .unwrap()
                 .0,
             Vector4::new(1.0, 2.0, 3.0, -30.0 - (29.0 * 29.0 + 4.0 + 9.0f64).sqrt())
+        );
+    }
+
+    #[test]
+    fn discrete_world_line_cut_off() {
+        let mut wl = DiscreteWorldLine::new();
+        let x = Vector3::new(3.0, 0.0, 4.0);
+        wl.push(Vector4::from_ctv(-1.0, x));
+        wl.push(Vector4::from_ctv(0.0, x));
+        wl.push(Vector4::from_ctv(1.0, x));
+        wl.push(Vector4::from_ctv(2.0, x));
+        assert_eq!(
+            wl.past_intersection(1.0, Vector4::new(0.0, 0.0, 0.0, 4.9999)),
+            None
+        );
+        assert_eq!(
+            wl.past_intersection(1.0, Vector4::new(0.0, 0.0, 0.0, 5.0009765625))
+                .unwrap()
+                .0,
+            Vector4::from_ctv(0.0009765625, x),
+        );
+        assert_relative_eq!(
+            wl.past_intersection(1.0, Vector4::new(0.0, 0.0, 0.0, 6.9999))
+                .unwrap()
+                .0,
+            Vector4::from_ctv(1.9999, x),
+        );
+        assert_eq!(
+            wl.past_intersection(1.0, Vector4::new(0.0, 0.0, 0.0, 7.0001)),
+            None
         );
     }
 
