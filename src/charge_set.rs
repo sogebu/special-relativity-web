@@ -4,7 +4,7 @@ use rmath::{
     Vector3, Vector4, WorldLine,
 };
 
-const Q: f64 = std::f64::consts::PI * 0.5;
+const Q: f64 = std::f64::consts::PI * 4.0;
 
 #[derive(Copy, Clone)]
 pub enum ChargePreset {
