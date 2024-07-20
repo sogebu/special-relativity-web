@@ -104,11 +104,11 @@ impl EomCharge {
 
 impl EomChargeSet {
     pub fn new_fixed_two_charges(c: f64, t: f64) -> EomChargeSet {
-        let v = 0.5;
+        let v = 5.0;
         let u = v / c;
         let r = 2.0;
-        let c1 = EomCharge::new(1.0, -Q, vec4(u * 2.0, r, 0.0, t), vec3(-u, 0.0, 0.0));
-        let c2 = EomCharge::new(1.0, Q, vec4(-u * 2.0, -r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(1.0, -Q, vec4(u, r, 0.0, t), vec3(-u, 0.0, 0.0));
+        let c2 = EomCharge::new(1.0, Q, vec4(-u, -r, 0.0, t), vec3(u, 0.0, 0.0));
         EomChargeSet {
             charges: vec![c1, c2],
         }
@@ -273,15 +273,15 @@ pub struct LineOscillateEomCharge {
 
 impl LineOscillateEomCharge {
     pub fn new(c: f64, t: f64) -> LineOscillateEomCharge {
-        let r = 0.5;
-        let v = 1.8;
+        let r = 2.0;
+        let v = 8.0;
         let u = v / c;
-        let c1 = EomCharge::new(1.0, -Q, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
+        let c1 = EomCharge::new(1.0, Q, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
         LineOscillateEomCharge {
-            q: Q,
+            q: -Q,
             world_line: LineOscillateWorldLine::new(
                 Vector3::new(0.0, 0.0, 0.0),
-                Vector3::new(5.0 / std::f64::consts::TAU, 0.0, 0.0),
+                Vector3::new(0.0 / std::f64::consts::TAU, 0.0, 0.0),
                 (0.1 * c).min(0.4),
                 c,
             )
@@ -309,7 +309,7 @@ impl ChargeSet for LineOscillateEomCharge {
     }
 
     fn tick(&mut self, c: f64, until: Vector4) {
-        let ds = 1.0 / 100.0 * c;
+        let ds = 1.0 / 128.0 * c;
         while !self.charges.iter().all(|c| {
             c.phase_space.position.ct >= until.ct
                 || (c.phase_space.position - until).lorentz_norm2() >= 0.0
