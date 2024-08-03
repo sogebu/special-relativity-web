@@ -8,11 +8,10 @@ use color::RGBA;
 use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
 use shape::BuildData;
 
-use crate::charge_set::{CirclesChargeSet, DipoleCharge};
 use crate::{
     charge_set::{
-        ChargePreset, ChargeSet, EomChargeSet, LineOscillateCharge, LineOscillateEomCharge,
-        StaticChargeSet,
+        ChargePreset, ChargeSet, CirclesChargeSet, EomChargeSet, EomWithStaticCharge,
+        LineOscillateCharge, StaticChargeSet,
     },
     key::{GestureEvent, KeyManager, TouchManager},
     player::Player,
@@ -92,38 +91,27 @@ impl AppInput {
 
 impl AppPhysics {
     fn new(c: f64, charge_preset: ChargePreset) -> AppPhysics {
+        let e = Vector3::new(0.5, 0.5, 0.0);
         let (charges, player): (Box<dyn ChargeSet>, Player) = match charge_preset {
             ChargePreset::Static => (
-                Box::new(StaticChargeSet::new()),
-                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+                Box::new(StaticChargeSet::new(e)),
+                Player::new(Vector3::new(0.0, 0.0, 30.0) + e),
             ),
             ChargePreset::Eom => (
                 Box::new(EomChargeSet::new_fixed_two_charges(c, -30.0)),
-                Player::new(Vector3::new(0.0, 0.0, 30.0)),
+                Player::new(Vector3::new(0.0, 0.0, 30.0) + e),
             ),
             ChargePreset::LineOscillate => (
                 Box::new(LineOscillateCharge::new(c)),
-                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+                Player::new(Vector3::new(0.0, 0.0, 30.0) + e),
             ),
-            ChargePreset::LineOscillateEom => (
-                Box::new(LineOscillateEomCharge::new(c, -20.0)),
-                Player::new(Vector3::new(0.0, 0.0, 20.0)),
-            ),
-            ChargePreset::Dipole => (
-                Box::new(DipoleCharge::new(c)),
-                Player::new(Vector3::new(0.0, 0.0, 20.0)),
-            ),
-            ChargePreset::Dipole2 => (
-                Box::new(DipoleCharge::new_para(c)),
-                Player::new(Vector3::new(0.0, 0.0, 20.0)),
-            ),
-            ChargePreset::Random => (
-                Box::new(EomChargeSet::new_many_random_charges(c, -30.0, 10)),
-                Player::new(Vector3::new(0.0, 0.0, 30.0)),
+            ChargePreset::EomWithStatic => (
+                Box::new(EomWithStaticCharge::new(c, -20.0, e)),
+                Player::new(Vector3::new(0.0, 0.0, 20.0) + e),
             ),
             ChargePreset::Circle => (
                 Box::new(CirclesChargeSet::new()),
-                Player::new(Vector3::new(0.0, 0.0, 20.0)),
+                Player::new(Vector3::new(0.0, 0.0, 20.0) + e),
             ),
         };
         AppPhysics {

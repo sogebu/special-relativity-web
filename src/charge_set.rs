@@ -1,4 +1,3 @@
-use rand::{thread_rng, Rng};
 use rmath::{
     vec3, vec4, DiscreteWorldLine, LineOscillateWorldLine, Matrix, PhaseSpace, StaticWorldLine,
     Vector3, Vector4, WorldLine,
@@ -11,10 +10,7 @@ pub enum ChargePreset {
     Static,
     Eom,
     LineOscillate,
-    LineOscillateEom,
-    Dipole,
-    Dipole2,
-    Random,
+    EomWithStatic,
     Circle,
 }
 
@@ -26,10 +22,7 @@ impl std::str::FromStr for ChargePreset {
             "static" => Ok(ChargePreset::Static),
             "eom" => Ok(ChargePreset::Eom),
             "line_o" => Ok(ChargePreset::LineOscillate),
-            "o_eom" => Ok(ChargePreset::LineOscillateEom),
-            "dipole" => Ok(ChargePreset::Dipole),
-            "dipole2" => Ok(ChargePreset::Dipole2),
-            "random" => Ok(ChargePreset::Random),
+            "eom_with_static" => Ok(ChargePreset::EomWithStatic),
             "circle" => Ok(ChargePreset::Circle),
             _ => Err(()),
         }
@@ -51,9 +44,9 @@ pub struct StaticChargeSet {
 }
 
 impl StaticChargeSet {
-    pub fn new() -> StaticChargeSet {
+    pub fn new(x: Vector3) -> StaticChargeSet {
         StaticChargeSet {
-            charges: vec![(Q, StaticWorldLine::new(vec3(0.0, 0.0, 0.0)))],
+            charges: vec![(Q, StaticWorldLine::new(x))],
         }
     }
 }
@@ -115,43 +108,6 @@ impl EomChargeSet {
             charges: vec![c1, c2],
         }
     }
-
-    pub fn new_many_random_charges(c: f64, t: f64, n: usize) -> EomChargeSet {
-        let mut charges = Vec::with_capacity(n);
-        let mut rng = thread_rng();
-        let l = 10.0_f64;
-        for i in 0..n {
-            let x = rng.gen_range(-l..l);
-            let y = rng.gen_range(-5.0..l);
-            let z = rng.gen_range(-l * 1e-2..l * 1e-2);
-            let u = rng.gen_range(0f64..1.0 / c);
-            let theta = x.atan2(y);
-            let q = 1.0 * if i % 2 == 0 { 1.0 } else { -1.0 };
-            let c = EomCharge::new(
-                1.0,
-                q,
-                vec4(x, y, z, t),
-                vec3(u * theta.cos(), u * theta.sin(), 0.0),
-            );
-            charges.push(c);
-        }
-        for i in 0..n {
-            let x = rng.gen_range(-l..l);
-            let z = rng.gen_range(0.0..l);
-            let y = -5.0;
-            let u = rng.gen_range(0f64..1.0 / c);
-            let theta = x.atan2(y);
-            let q = Q * if i % 2 == 0 { 1.0 } else { -1.0 };
-            let c = EomCharge::new(
-                1.0,
-                q,
-                vec4(x, y, z, t),
-                vec3(u * theta.cos(), 0.0, u * theta.sin()),
-            );
-            charges.push(c);
-        }
-        EomChargeSet { charges }
-    }
 }
 
 impl ChargeSet for EomChargeSet {
@@ -205,7 +161,7 @@ pub struct LineOscillateCharge {
 impl LineOscillateCharge {
     pub fn new(c: f64) -> LineOscillateCharge {
         let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
-        let x = Vector3::new(1.2, 0.0, 0.0);
+        let x = Vector3::new(1.2, 0.5, 0.0);
         let v = Vector3::new(1.0, 0.0, 0.0);
         LineOscillateCharge {
             q: Q,
@@ -224,76 +180,32 @@ impl ChargeSet for LineOscillateCharge {
     }
 }
 
-pub struct DipoleCharge {
+pub struct EomWithStaticCharge {
     q: f64,
-    a: LineOscillateWorldLine,
-    b: LineOscillateWorldLine,
-}
-
-impl DipoleCharge {
-    pub fn new(c: f64) -> DipoleCharge {
-        let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
-        let x = Vector3::new(1.2, 0.0, 0.0);
-        let v = Vector3::new(1.0, 0.0, 0.0);
-        DipoleCharge {
-            q: Q,
-            a: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
-            b: LineOscillateWorldLine::new(-x, -v, f, c).unwrap(),
-        }
-    }
-
-    pub fn new_para(c: f64) -> DipoleCharge {
-        let f = (0.5 * c).min(5.0) / std::f64::consts::TAU;
-        let x = Vector3::new(1.2, 0.0, 0.0);
-        let v = Vector3::new(1.0, 0.0, 0.0);
-        DipoleCharge {
-            q: Q,
-            a: LineOscillateWorldLine::new(x, v, f, c).unwrap(),
-            b: LineOscillateWorldLine::new(x + Vector3::new(0.5, 0.0, 0.0), v, f, c).unwrap(),
-        }
-    }
-}
-
-impl ChargeSet for DipoleCharge {
-    fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
-        let mut v = Vec::with_capacity(2);
-        if let Some(x) = self.a.past_intersection(c, player_pos) {
-            v.push((self.q, x));
-        }
-        if let Some(x) = self.b.past_intersection(c, player_pos) {
-            v.push((-self.q, x));
-        }
-        v
-    }
-}
-
-pub struct LineOscillateEomCharge {
-    q: f64,
-    world_line: LineOscillateWorldLine,
+    world_line: StaticWorldLine,
     charges: Vec<EomCharge>,
 }
 
-impl LineOscillateEomCharge {
-    pub fn new(c: f64, t: f64) -> LineOscillateEomCharge {
+impl EomWithStaticCharge {
+    pub fn new(c: f64, t: f64, x0: Vector3) -> EomWithStaticCharge {
         let r = 2.0;
         let v = 8.0;
         let u = v / c;
-        let c1 = EomCharge::new(1.0, Q, vec4(0.0, r, 0.0, t), vec3(u, 0.0, 0.0));
-        LineOscillateEomCharge {
+        let c1 = EomCharge::new(
+            1.0,
+            Q,
+            Vector4::from_ctv(t * c, vec3(0.0, r, 0.0) + x0),
+            vec3(u, 0.0, 0.0),
+        );
+        EomWithStaticCharge {
             q: -Q,
-            world_line: LineOscillateWorldLine::new(
-                Vector3::new(0.0, 0.0, 0.0),
-                Vector3::new(0.0 / std::f64::consts::TAU, 0.0, 0.0),
-                (0.1 * c).min(0.4),
-                c,
-            )
-            .unwrap(),
+            world_line: StaticWorldLine::new(x0),
             charges: vec![c1],
         }
     }
 }
 
-impl ChargeSet for LineOscillateEomCharge {
+impl ChargeSet for EomWithStaticCharge {
     fn iter(&self, c: f64, player_pos: Vector4) -> Vec<(f64, (Vector4, Vector3, Vector3))> {
         let mut v = self
             .world_line
@@ -342,10 +254,12 @@ pub struct CirclesChargeSet {
 impl CirclesChargeSet {
     pub fn new() -> CirclesChargeSet {
         let mut world_line = Vec::new();
-        for _ in 0..32 {
-            let mut w = DiscreteWorldLine::new();
-            w.push(Vector4::new(0.0, 0.0, 0.0, -40.0));
-            world_line.push(w);
+        for x in 0..1 {
+            for _ in 0..32 {
+                let mut w = DiscreteWorldLine::new();
+                w.push(Vector4::new(x as f64 * 2.0 - 0.5, 0.0, 0.0, -40.0));
+                world_line.push(w);
+            }
         }
 
         CirclesChargeSet { q: Q, world_line }
@@ -362,17 +276,17 @@ impl ChargeSet for CirclesChargeSet {
 
     fn tick(&mut self, c: f64, until: Vector4) {
         let ds = 1.0 / 128.0;
-        let r = 1.6;
+        let r = 2.0;
         let n = self.world_line.len() as f64;
         for (i, wl) in self.world_line.iter_mut().enumerate() {
             let phi = std::f64::consts::TAU * i as f64 / n;
             if let Some(mut x) = wl.last() {
                 while until.ct > x.ct {
                     x.ct += ds;
-                    let f = 0.99 / (1.0 + (-x.ct / 100.0 + 1.0).exp());
-                    let omega = c * f / r / std::f64::consts::TAU;
-                    let (sin, cos) = (-omega * x.ct + phi).sin_cos();
-                    wl.push(Vector4::new(0.0, r * cos + 5.0, r * sin, x.ct));
+                    let f = 0.99 / (1.0 + (-x.ct / r / 100.0 + 5.0).exp());
+                    let freq = f / r;
+                    let (sin, cos) = (-freq * x.ct + phi).sin_cos();
+                    wl.push(Vector4::new(x.x, r * cos + 0.5, r * sin, x.ct));
                 }
             }
         }
