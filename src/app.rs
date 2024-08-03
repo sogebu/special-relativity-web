@@ -121,7 +121,7 @@ impl AppPhysics {
             ),
             ChargePreset::Circle => (
                 Box::new(CirclesChargeSet::new()),
-                Player::new(Vector3::new(0.0, 0.0, 30.0)),
+                Player::new(Vector3::new(0.0, 0.0, 20.0)),
             ),
         };
         AppPhysics {

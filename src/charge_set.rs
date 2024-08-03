@@ -362,7 +362,7 @@ impl ChargeSet for CirclesChargeSet {
 
     fn tick(&mut self, c: f64, until: Vector4) {
         let ds = 1.0 / 128.0;
-        let r = 2.0;
+        let r = 1.6;
         let n = self.world_line.len() as f64;
         for (i, wl) in self.world_line.iter_mut().enumerate() {
             let phi = std::f64::consts::TAU * i as f64 / n;
