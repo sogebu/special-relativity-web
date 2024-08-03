@@ -157,6 +157,61 @@
             background-color: #ff5722;
         }
 
+        .toggle-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-button {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+
+        .toggle-button input {
+            display: none;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 15px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+
     </style>
 </head>
 <body>
@@ -184,7 +239,7 @@
         <h2>Preset</h2>
         <input type="radio" id="preset3" name="preset" value="o_eom" checked="checked" class="hidden-radio">
         <label for="preset3" class="custom-radio checked">
-            Static Pos & Responsive Neg
+            Static Neg & Responsive Pos
         </label>
         <input type="radio" id="preset0" name="preset" value="static" class="hidden-radio">
         <label for="preset0" class="custom-radio">
@@ -198,35 +253,35 @@
         <label for="preset2" class="custom-radio">
             Oscillating Charge
         </label>
-        <input type="radio" id="preset4" name="preset" value="dipole" class="hidden-radio">
+        <input type="radio" id="preset4" name="preset" value="circle" class="hidden-radio">
         <label for="preset4" class="custom-radio">
-            Dipole Oscillation
-        </label>
-        <input type="radio" id="preset6" name="preset" value="dipole2" class="hidden-radio">
-        <label for="preset6" class="custom-radio">
-            Dipole2
-        </label>
-        <input type="radio" id="preset5" name="preset" value="circle" class="hidden-radio">
-        <label for="preset5" class="custom-radio">
             Circle
         </label>
     </div>
     <div>
-        <h2>Grid</h2>
-        <div>
-            <input type="radio" id="grid-option1" name="grid-option" value="2d" checked="checked" class="hidden-radio">
-            <label for="grid-option1" class="custom-radio checked">2D</label>
-            <input type="radio" id="grid-option2" name="grid-option" value="3d" class="hidden-radio">
-            <label for="grid-option2" class="custom-radio">3D</label>
-        </div>
-    </div>
-    <div>
         <h2>Arrow</h2>
-        <div>
-            <input type="radio" id="poynting-off" name="poynting" checked="checked" class="hidden-radio">
-            <label for="poynting-off" class="custom-radio checked">Electromagnetic</label>
-            <input type="radio" id="poynting-on" name="poynting" class="hidden-radio">
-            <label for="poynting-on" class="custom-radio">Poynting (Energy Flux)</label>
+        <div class="toggle-container">
+            <div class="toggle-item">
+                <label class="toggle-button">
+                    <input type="checkbox" id="electric-toggle" checked="checked">
+                    <span class="slider"></span>
+                </label>
+                <label>electric</label>
+            </div>
+            <div class="toggle-item">
+                <label class="toggle-button">
+                    <input type="checkbox" id="magnetic-toggle" checked="checked">
+                    <span class="slider"></span>
+                </label>
+                <label>magnetic</label>
+            </div>
+            <div class="toggle-item">
+                <label class="toggle-button">
+                    <input type="checkbox" id="poynting-toggle">
+                    <span class="slider"></span>
+                </label>
+                <label>poynting</label>
+            </div>
         </div>
         <br>
         <div class="spinner">
@@ -244,6 +299,15 @@
                 <button id="arrow-factor-plus">▲</button>
                 <button id="arrow-factor-minus">▼</button>
             </div>
+        </div>
+    </div>
+    <div>
+        <h2>Grid</h2>
+        <div>
+            <input type="radio" id="grid-option1" name="grid-option" value="2d" checked="checked" class="hidden-radio">
+            <label for="grid-option1" class="custom-radio checked">2D</label>
+            <input type="radio" id="grid-option2" name="grid-option" value="3d" class="hidden-radio">
+            <label for="grid-option2" class="custom-radio">3D</label>
         </div>
     </div>
     <div>

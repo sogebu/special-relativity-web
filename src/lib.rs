@@ -41,6 +41,14 @@ impl App {
         self.0.reset_grid(setup);
     }
 
+    pub fn change_electric_on(&mut self, electric_on: bool) {
+        self.0.change_electric_on(electric_on);
+    }
+
+    pub fn change_magnetic_on(&mut self, magnetic_on: bool) {
+        self.0.change_magnetic_on(magnetic_on);
+    }
+
     pub fn change_poynting_on(&mut self, poynting_on: bool) {
         self.0.change_poynting_on(poynting_on);
     }

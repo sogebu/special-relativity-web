@@ -123,7 +123,7 @@ function presetChange(): void {
     }
 }
 
-for (let i = 0; i <= 6; i++) {
+for (let i = 0; i < presetNodes.length; i++) {
     const preset = document.getElementById(`preset${i}`) as HTMLSelectElement;
     preset.onchange = presetChange;
 }
@@ -144,21 +144,18 @@ go1.onchange = gridOptionChange;
 const go2 = document.getElementById("grid-option2") as HTMLSelectElement;
 go2.onchange = gridOptionChange;
 
-const poyntingNodes = document.getElementsByName("poynting") as NodeListOf<HTMLInputElement>;
-const poyntingChange = () => {
-    for (let i = 0; i < poyntingNodes.length; i++) {
-        if (poyntingNodes.item(i).checked) {
-            app.change_poynting_on(poyntingNodes.item(i).id === "poynting-on");
-            poyntingNodes.item(i)!.nextElementSibling!.classList.add("checked");
-        } else {
-            poyntingNodes.item(i)!.nextElementSibling!.classList.remove("checked");
-        }
-    }
+const electricToggle = document.getElementById('electric-toggle') as HTMLInputElement;
+const magneticToggle = document.getElementById('magnetic-toggle') as HTMLInputElement;
+const poyntingToggle = document.getElementById('poynting-toggle') as HTMLInputElement;
+electricToggle.onchange = () => {
+    app.change_electric_on(electricToggle.checked);
 };
-const poyntingOff = document.getElementById("poynting-off") as HTMLInputElement;
-const poyntingOn = document.getElementById("poynting-on") as HTMLInputElement;
-poyntingOff.onchange = poyntingChange;
-poyntingOn.onchange = poyntingChange;
+magneticToggle.onchange = () => {
+    app.change_magnetic_on(magneticToggle.checked);
+};
+poyntingToggle.onchange = () => {
+    app.change_poynting_on(poyntingToggle.checked);
+};
 
 const arrowLog = document.getElementById("arrow-log") as HTMLInputElement;
 const arrowLogPlus = document.getElementById("arrow-log-plus") as HTMLButtonElement;

@@ -50,6 +50,8 @@ pub struct InternalApp {
     measurement_points: Vec<StaticWorldLine>,
     arrow_config: ArrowConfig,
     charge_scale: f64,
+    electric_on: bool,
+    magnetic_on: bool,
     poynting_on: bool,
 }
 
@@ -60,9 +62,9 @@ impl AppRender {
 
         let arrow_shape = shape::ArrowOption::new()
             .shaft_radius(0.02)
-            .head_radius(0.02)
-            .shaft_length(0.9)
-            .head_length(0.1);
+            .head_radius(0.05)
+            .shaft_length(0.7)
+            .head_length(0.3);
         Ok(AppRender {
             backend,
             shader,
@@ -186,6 +188,8 @@ impl InternalApp {
             measurement_points: grid_surface_measurement_points(),
             arrow_config: ArrowConfig::default(),
             charge_scale: 0.2,
+            electric_on: true,
+            magnetic_on: true,
             poynting_on: false,
         })
     }
@@ -232,6 +236,17 @@ impl InternalApp {
         }
     }
 
+    #[inline(always)]
+    pub fn change_electric_on(&mut self, electric_on: bool) {
+        self.electric_on = electric_on;
+    }
+
+    #[inline(always)]
+    pub fn change_magnetic_on(&mut self, magnetic_on: bool) {
+        self.magnetic_on = magnetic_on;
+    }
+
+    #[inline(always)]
     pub fn change_poynting_on(&mut self, poynting_on: bool) {
         self.poynting_on = poynting_on;
     }
@@ -335,11 +350,11 @@ impl InternalApp {
             let pos = lorentz * (pos_on_player_plc - player_position);
             let projection = view_projection * Matrix::translation(pos.spatial());
             let ele = fs.field_strength_to_electric_field(self.physics.c);
-            if !self.poynting_on && ele.magnitude2() > 1e-16 {
+            if self.electric_on && ele.magnitude2() > 1e-16 {
                 self.draw_arrow(ele, RGBA::green(), projection, normal);
             }
             let mag = fs.field_strength_to_magnetic_field();
-            if !self.poynting_on && mag.magnitude2() > 1e-16 {
+            if self.magnetic_on && mag.magnitude2() > 1e-16 {
                 self.draw_arrow(mag, RGBA::orange(), projection, normal);
             }
             if self.poynting_on {
