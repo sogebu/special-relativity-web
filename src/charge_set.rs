@@ -248,11 +248,12 @@ impl ChargeSet for EomWithStaticCharge {
 
 pub struct CirclesChargeSet {
     q: f64,
+    c: f64,
     world_line: Vec<DiscreteWorldLine>,
 }
 
 impl CirclesChargeSet {
-    pub fn new() -> CirclesChargeSet {
+    pub fn new(c: f64) -> CirclesChargeSet {
         let mut world_line = Vec::new();
         for x in 0..1 {
             for _ in 0..32 {
@@ -262,7 +263,11 @@ impl CirclesChargeSet {
             }
         }
 
-        CirclesChargeSet { q: Q, world_line }
+        CirclesChargeSet {
+            q: Q,
+            c,
+            world_line,
+        }
     }
 }
 
@@ -274,18 +279,20 @@ impl ChargeSet for CirclesChargeSet {
             .collect::<Vec<_>>()
     }
 
-    fn tick(&mut self, c: f64, until: Vector4) {
+    fn tick(&mut self, _c: f64, until: Vector4) {
         let ds = 1.0 / 128.0;
         let r = 2.0;
+        let b = 0.1;
         let n = self.world_line.len() as f64;
         for (i, wl) in self.world_line.iter_mut().enumerate() {
             let phi = std::f64::consts::TAU * i as f64 / n;
             if let Some(mut x) = wl.last() {
                 while until.ct > x.ct {
                     x.ct += ds;
-                    let f = 0.99 / (1.0 + (-x.ct / r / 100.0 + 5.0).exp());
-                    let freq = f / r;
-                    let (sin, cos) = (-freq * x.ct + phi).sin_cos();
+                    let theta =
+                        (x.ct + self.c / b * (b * (x.ct - 100.0) / self.c).cosh().ln()) / r / 2.0
+                            * 0.99;
+                    let (sin, cos) = (theta + phi).sin_cos();
                     wl.push(Vector4::new(x.x, r * cos + 0.5, r * sin, x.ct));
                 }
             }

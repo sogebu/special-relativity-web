@@ -117,6 +117,13 @@ function presetChange(): void {
         if (presetNodes.item(i).checked) {
             app.reset_charge(presetNodes.item(i).value);
             presetNodes.item(i)!.nextElementSibling!.classList.add("checked");
+            // adhoc
+            if (presetNodes.item(i).value === 'circle') {
+                electricToggle.checked = false;
+                magneticToggle.checked = true;
+                app.change_electric_on(false);
+                app.change_magnetic_on(true);
+            }
         } else {
             presetNodes.item(i)!.nextElementSibling!.classList.remove("checked");
         }
