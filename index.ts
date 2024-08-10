@@ -168,9 +168,8 @@ const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInput
 const presetChange = (): void => {
     for (let i = 0; i < presetNodes.length; i++) {
         if (presetNodes.item(i).checked) {
-            app.reset_charge(presetNodes.item(i).value);
-            presetNodes.item(i)!.nextElementSibling!.classList.add("checked");
             resetModel(presetNodes.item(i).value as keyof typeof initModel);
+            presetNodes.item(i)!.nextElementSibling!.classList.add("checked");
         } else {
             presetNodes.item(i)!.nextElementSibling!.classList.remove("checked");
         }
@@ -264,6 +263,7 @@ const resetModel = (preset: keyof typeof initModel) => {
     setElectricToggle(m.electricOn);
     setMagneticToggle(m.magneticOn);
     setPoyntingToggle(m.poyntingOn);
+    app.reset_charge(preset);
 }
 
 resetModel(presetNodes.item(0).value as keyof typeof initModel);

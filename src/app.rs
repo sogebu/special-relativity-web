@@ -104,7 +104,7 @@ impl AppPhysics {
             ),
             ChargePreset::LineOscillate => (
                 Box::new(LineOscillateCharge::new(c)),
-                Player::new(Vector3::new(0.0, 0.0, 30.0) + e),
+                Player::new(Vector3::new(0.0, 0.0, 40.0) + e),
             ),
             ChargePreset::EomWithStatic => (
                 Box::new(EomWithStaticCharge::new(c, -20.0, e)),
