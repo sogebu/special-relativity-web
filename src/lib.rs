@@ -41,6 +41,10 @@ impl App {
         self.0.reset_grid(setup);
     }
 
+    pub fn change_correct_lorentz(&mut self, correct_lorentz: bool) {
+        self.0.change_correct_lorentz(correct_lorentz);
+    }
+
     pub fn change_electric_on(&mut self, electric_on: bool) {
         self.0.change_electric_on(electric_on);
     }

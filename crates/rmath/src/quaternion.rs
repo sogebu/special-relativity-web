@@ -116,7 +116,7 @@ impl Quaternion {
     ///
     /// Ref: https://docs.rs/glam/latest/glam/f64/struct.DQuat.html#method.from_rotation_arc
     pub fn from_rotation_arc(from: Vector3, to: Vector3) -> Quaternion {
-        const ONE_MINUS_EPS: f64 = 1.0 - 2.0 * core::f64::EPSILON;
+        const ONE_MINUS_EPS: f64 = 1.0 - 2.0 * f64::EPSILON;
         let dot = from.dot(to);
         if dot > ONE_MINUS_EPS {
             Quaternion::one()

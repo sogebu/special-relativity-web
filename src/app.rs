@@ -5,7 +5,7 @@ use web_sys::WebGl2RenderingContext;
 
 use backend::{Backend, LightingLocalData, LightingShader, Shader, Shape, VertexPositionNormal};
 use color::RGBA;
-use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, WorldLine};
+use rmath::{vec3, Deg, Matrix, Quaternion, StaticWorldLine, Vector3, Vector4, WorldLine};
 use shape::BuildData;
 
 use crate::{
@@ -48,6 +48,7 @@ pub struct InternalApp {
     physics: AppPhysics,
     measurement_points: Vec<StaticWorldLine>,
     arrow_config: ArrowConfig,
+    correct_lorentz: bool,
     charge_scale: f64,
     electric_on: bool,
     magnetic_on: bool,
@@ -175,6 +176,7 @@ impl InternalApp {
             physics: AppPhysics::new(1.0, ChargePreset::Static),
             measurement_points: grid_surface_measurement_points(),
             arrow_config: ArrowConfig::default(),
+            correct_lorentz: false,
             charge_scale: 0.2,
             electric_on: true,
             magnetic_on: true,
@@ -222,6 +224,11 @@ impl InternalApp {
             }
             _ => (),
         }
+    }
+
+    #[inline(always)]
+    pub fn change_correct_lorentz(&mut self, correct_lorentz: bool) {
+        self.correct_lorentz = correct_lorentz;
     }
 
     #[inline(always)]
@@ -298,12 +305,21 @@ impl InternalApp {
         let normal = self.physics.player.inv_rot_matrix();
         let player_position = self.physics.player.position();
 
+        let lorentz_trans = |x: Vector4, p: Vector4| {
+            let pos = x - p;
+            if self.correct_lorentz {
+                pos
+            } else {
+                lorentz * pos
+            }
+        };
+
         self.render
             .shader
             .bind_shared_data(&self.render.backend, &self.render.charge_shape);
         let charge_scale = Matrix::uniform_scale(self.charge_scale);
         for (q, (x, _, _)) in self.physics.charges.iter(c, player_position) {
-            let pos = lorentz * (x - player_position);
+            let pos = lorentz_trans(x, player_position);
             let charge_data = LightingLocalData {
                 color: if q > 0.0 { RGBA::red() } else { RGBA::blue() },
                 model_view_projection: view_projection
@@ -335,7 +351,7 @@ impl InternalApp {
             }
             fs = lorentz * fs * lorentz.transposed();
 
-            let pos = lorentz * (pos_on_player_plc - player_position);
+            let pos = lorentz_trans(pos_on_player_plc, player_position);
             let projection = view_projection * Matrix::translation(pos.spatial());
             let ele = fs.field_strength_to_electric_field(self.physics.c);
             if self.electric_on && ele.magnitude2() > 1e-16 {

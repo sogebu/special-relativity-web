@@ -129,6 +129,11 @@ speedOfLightRange.onchange = () => {
     }
 };
 
+const lorentz = document.getElementById('lorentz') as HTMLInputElement;
+lorentz.onchange = (): void => {
+    app.change_correct_lorentz(!lorentz.checked);
+}
+
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;
 
 const presetChange = (): void => {
