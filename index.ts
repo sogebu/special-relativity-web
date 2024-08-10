@@ -25,6 +25,36 @@ const info = document.getElementById("info")!;
 
 const app = new App(context);
 
+type Model = {
+    speedOfLight: number;
+    electricOn: boolean;
+    magneticOn: boolean;
+    poyntingOn: boolean;
+    arrowLog: number;
+    arrowFactor: number;
+};
+const defaultModel: Model = {
+    speedOfLight: 2,
+    electricOn: true,
+    magneticOn: true,
+    poyntingOn: false,
+    arrowLog: 1,
+    arrowFactor: 2,
+};
+const initModel = {
+    eom_with_static: defaultModel,
+    eom: defaultModel,
+    static: {
+        ...defaultModel,
+        speedOfLight: 0,
+    },
+    line_o: defaultModel,
+    circle: {
+        ...defaultModel,
+        electricOn: false,
+    },
+} as const;
+
 
 const takeScreenShot = (): void => {
     canvas.toBlob((blob) => {
@@ -112,7 +142,6 @@ restartButton.onclick = () => {
     setRestarted();
 };
 
-
 const speedOfLightRange = document.getElementById("speed-of-light-exp") as HTMLInputElement;
 const speedOfLightView = document.getElementById("speed-of-light") as HTMLSpanElement;
 
@@ -120,14 +149,14 @@ const speedOfLight = (): number => {
     const e = speedOfLightRange.valueAsNumber;
     return Math.pow(2, e);
 }
-
-speedOfLightRange.onchange = () => {
+const changeSpeedOfLight = (): void => {
     const c = speedOfLight();
     speedOfLightView.innerText = `${c}`;
     if (app.change_c(c)) {
         setRestarted();
     }
-};
+}
+speedOfLightRange.onchange = changeSpeedOfLight;
 
 const lorentz = document.getElementById('lorentz') as HTMLInputElement;
 lorentz.onchange = (): void => {
@@ -141,13 +170,7 @@ const presetChange = (): void => {
         if (presetNodes.item(i).checked) {
             app.reset_charge(presetNodes.item(i).value);
             presetNodes.item(i)!.nextElementSibling!.classList.add("checked");
-            // adhoc
-            if (presetNodes.item(i).value === 'circle') {
-                electricToggle.checked = false;
-                magneticToggle.checked = true;
-                app.change_electric_on(false);
-                app.change_magnetic_on(true);
-            }
+            resetModel(presetNodes.item(i).value as keyof typeof initModel);
         } else {
             presetNodes.item(i)!.nextElementSibling!.classList.remove("checked");
         }
@@ -178,6 +201,18 @@ go2.onchange = gridOptionChange;
 const electricToggle = document.getElementById('electric-toggle') as HTMLInputElement;
 const magneticToggle = document.getElementById('magnetic-toggle') as HTMLInputElement;
 const poyntingToggle = document.getElementById('poynting-toggle') as HTMLInputElement;
+const setElectricToggle = (on: boolean): void => {
+    electricToggle.checked = on;
+    app.change_electric_on(on);
+};
+const setMagneticToggle = (on: boolean): void => {
+    magneticToggle.checked = on;
+    app.change_magnetic_on(on);
+};
+const setPoyntingToggle = (on: boolean): void => {
+    poyntingToggle.checked = on;
+    app.change_poynting_on(on);
+};
 electricToggle.onchange = () => {
     app.change_electric_on(electricToggle.checked);
 };
@@ -191,35 +226,47 @@ poyntingToggle.onchange = () => {
 const arrowLog = document.getElementById("arrow-log") as HTMLInputElement;
 const arrowLogPlus = document.getElementById("arrow-log-plus") as HTMLButtonElement;
 const arrowLogMinus = document.getElementById("arrow-log-minus") as HTMLButtonElement;
-arrowLogPlus.onclick = () => {
-    const n = arrowLog.valueAsNumber + 1;
+const setArrowLog = (n: number): void => {
     app.change_arrow_length_log(n);
     arrowLog.value = `${n}`;
 };
+arrowLogPlus.onclick = () => {
+    const n = arrowLog.valueAsNumber + 1;
+    setArrowLog(n);
+};
 arrowLogMinus.onclick = () => {
     const n = arrowLog.valueAsNumber >= 1 ? arrowLog.valueAsNumber - 1 : 0;
-    app.change_arrow_length_log(n);
-    arrowLog.value = `${n}`;
+    setArrowLog(n);
 };
 
 const arrowFactor = document.getElementById("arrow-factor") as HTMLInputElement;
 const arrowFactorPlus = document.getElementById("arrow-factor-plus") as HTMLButtonElement;
 const arrowFactorMinus = document.getElementById("arrow-factor-minus") as HTMLButtonElement;
-arrowFactorPlus.onclick = () => {
-    const n = arrowFactor.valueAsNumber + 1;
+const setArrowFactor = (n: number): void => {
     app.change_arrow_length_factor(Math.pow(10, n));
     arrowFactor.value = `${n}`;
+};
+arrowFactorPlus.onclick = () => {
+    const n = arrowFactor.valueAsNumber + 1;
+    setArrowFactor(n);
 };
 arrowFactorMinus.onclick = () => {
     const n = arrowFactor.valueAsNumber - 1;
-    app.change_arrow_length_factor(Math.pow(10, n));
-    arrowFactor.value = `${n}`;
+    setArrowFactor(n);
 };
 
-app.reset_charge(presetNodes.item(0).value);
-app.change_c(speedOfLight());
-app.change_arrow_length_log(arrowLog.valueAsNumber);
-app.change_arrow_length_factor(Math.pow(10, arrowFactor.valueAsNumber));
+const resetModel = (preset: keyof typeof initModel) => {
+    const m = initModel[preset];
+    speedOfLightRange.valueAsNumber = m.speedOfLight;
+    changeSpeedOfLight();
+    setArrowLog(m.arrowLog);
+    setArrowFactor(m.arrowFactor);
+    setElectricToggle(m.electricOn);
+    setMagneticToggle(m.magneticOn);
+    setPoyntingToggle(m.poyntingOn);
+}
+
+resetModel(presetNodes.item(0).value as keyof typeof initModel);
 
 const step = (timestamp: DOMHighResTimeStamp): void => {
     app.tick(timestamp);
