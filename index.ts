@@ -25,11 +25,26 @@ const info = document.getElementById("info")!;
 
 const app = new App(context);
 
+
+const takeScreenShot = (): void => {
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            console.error('Fail to get canvas blob data');
+            return;
+        }
+        const item = new ClipboardItem({'image/png': blob});
+        navigator.clipboard.write([item]).catch((error) => {
+            console.error('Failed to copy to clipboard: ', error);
+        });
+    });
+};
+
 document.addEventListener('keydown', (event) => {
-    if (event.key.toLowerCase().startsWith('arrow')) {
+    const key = event.key.toLowerCase();
+    if (key.startsWith('arrow')) {
         event.preventDefault();
     }
-    app.key_down(event.key.toLowerCase());
+    app.key_down(key);
 });
 document.addEventListener('keyup', (event) => {
     app.key_up(event.key.toLowerCase());
@@ -66,6 +81,10 @@ let isClick = false;
 canvas.addEventListener('mousedown', (event) => {
     isClick = true;
     app.touch_start(new Date().getTime(), new Float64Array([event.clientX]), new Float64Array([event.clientY]));
+    if (event.ctrlKey) {
+        takeScreenShot();
+        isClick = false;
+    }
 });
 canvas.addEventListener('mousemove', (event) => {
     if (isClick) {
