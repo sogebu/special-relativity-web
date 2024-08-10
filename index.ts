@@ -38,7 +38,7 @@ window.addEventListener('blur', () => {
     app.window_blue();
 });
 
-function getTouchEventXY(event: TouchEvent): [Float64Array, Float64Array] {
+const getTouchEventXY = (event: TouchEvent): [Float64Array, Float64Array] => {
     const x = [];
     const y = [];
     for (let i = 0; i < event.touches.length; i++) {
@@ -46,7 +46,7 @@ function getTouchEventXY(event: TouchEvent): [Float64Array, Float64Array] {
         y.push(event.touches[i].clientY);
     }
     return [new Float64Array(x), new Float64Array(y)];
-}
+};
 
 canvas.addEventListener('touchstart', (event) => {
     event.preventDefault();
@@ -97,7 +97,7 @@ restartButton.onclick = () => {
 const speedOfLightRange = document.getElementById("speed-of-light-exp") as HTMLInputElement;
 const speedOfLightView = document.getElementById("speed-of-light") as HTMLSpanElement;
 
-function speedOfLight(): number {
+const speedOfLight = (): number => {
     const e = speedOfLightRange.valueAsNumber;
     return Math.pow(2, e);
 }
@@ -112,7 +112,7 @@ speedOfLightRange.onchange = () => {
 
 const presetNodes = document.getElementsByName("preset") as NodeListOf<HTMLInputElement>;
 
-function presetChange(): void {
+const presetChange = (): void => {
     for (let i = 0; i < presetNodes.length; i++) {
         if (presetNodes.item(i).checked) {
             app.reset_charge(presetNodes.item(i).value);
@@ -197,7 +197,7 @@ app.change_c(speedOfLight());
 app.change_arrow_length_log(arrowLog.valueAsNumber);
 app.change_arrow_length_factor(Math.pow(10, arrowFactor.valueAsNumber));
 
-function step(timestamp: DOMHighResTimeStamp): void {
+const step = (timestamp: DOMHighResTimeStamp): void => {
     app.tick(timestamp);
     info.innerText = app.info();
     window.requestAnimationFrame(step);
