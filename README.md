@@ -4,7 +4,7 @@ See: https://sogebu.github.io/special-relativity-web/dev
 
 ## What is this
 
-TBW
+https://www.arxiv.org/abs/2408.05481
 
 ## How to build
 
