@@ -1,0 +1,10 @@
+# claude-public-repo-marker
+# This repository is publicly accessible.
+# Leak prevention hooks enforce structural checks on Edit/Write and
+# at pre-commit time. See:
+#   - claude-config/hooks/public-leak-guard.sh
+#   - claude-config/scripts/public-precommit-runner.sh (phase 2)
+#   - claude-config/scripts/audit-public-repos.sh (phase 3)
+# Marker presence is the single source of truth for "this repo is
+# public and should be scanned". Do not delete without also removing
+# the pre-commit hook stub from .git/hooks/pre-commit.
