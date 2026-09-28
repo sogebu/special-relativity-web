@@ -30,7 +30,7 @@ special-relativity-web/
 ├── package.json                # npm scripts（build / serve / deploy）
 ├── tsconfig.json
 ├── CLAUDE.md / SESSION.md / DESIGN.md   # 作業マニュアル / 作業状態 / 設計判断
-└── README.md                   # 外部訪問者向けの玄関（ビルド手順の正本もここ）
+└── README.md                   # 外部訪問者向けの玄関（利用者向けのビルド手順）
 ```
 
 各 crate の責務境界・アーキテクチャの設計判断は [`DESIGN.md`](DESIGN.md)、実装詳細は各ソース。
@@ -39,12 +39,12 @@ special-relativity-web/
 
 前提: Rust toolchain + [`wasm-pack`](https://rustwasm.github.io/wasm-pack/) + Node.js。
 
-**ビルド・開発サーバー・GitHub Pages デプロイのコマンドは [`README.md`](README.md) §How to build が正本**（外部 contributor 向けの玄関に集約）。要点だけ再掲すると、開発は `wasm-pack build` → `npm run serve`、本番は `npm run build`、デプロイは `npm run deploy`（`dev` ブランチへ）。
+**ビルド・開発サーバー・GitHub Pages デプロイのコマンド**: 開発は `wasm-pack build` → `npm run serve`、本番は `rm -rf dist` → `npm run build`、デプロイは `npm run deploy`（`dev` ブランチへ）。[`README.md`](README.md) §How to build は同じコマンドを外部 contributor 向けに載せた玄関（コマンドを変えたら両方を直す）。
 
 ## How to Resume
 1. [`SESSION.md`](SESSION.md) を読む → 現在の作業状態
 2. 設計判断が要れば [`DESIGN.md`](DESIGN.md)
-3. ソース構造は本ファイル §構造、ビルドは README §How to build
+3. ソース構造は本ファイル §構造、ビルドは本ファイル §ビルド・実行
 4. 変更後は commit + push（共有リポなので push 前に `git pull` で同期。force push 禁止）
 
 ## 規約・注意
